@@ -8,6 +8,10 @@ const nextConfig = {
   images: {
     domains: [],
   },
+  // Force Vercel to rebuild
+  generateBuildId: async () => {
+    return `build-${Date.now()}`
+  },
 }
 
 module.exports = nextConfig
