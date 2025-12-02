@@ -1,20 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    serverActions: {
-      bodySizeLimit: '2mb',
-    },
-  },
+  reactStrictMode: true,
   images: {
     domains: [],
-  },
-  // Force Vercel to rebuild
-  generateBuildId: async () => {
-    return `build-${Date.now()}`
   },
 }
 
 module.exports = nextConfig
-
-
-
