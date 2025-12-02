@@ -8,7 +8,7 @@ export default function GlobalError({
   reset: () => void
 }) {
   return (
-    <html lang="he" dir="rtl" suppressHydrationWarning>
+    <html lang="he" dir="rtl">
       <body>
         <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-b from-red-50 to-white">
           <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8">
