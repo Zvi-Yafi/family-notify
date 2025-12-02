@@ -15,9 +15,7 @@ export default function GlobalError({
             <div className="text-center">
               <div className="text-6xl mb-4">⚠️</div>
               <h1 className="text-3xl font-bold mb-2">שגיאה</h1>
-              <p className="text-muted-foreground mb-6">
-                משהו השתבש. אנחנו עובדים על זה.
-              </p>
+              <p className="text-muted-foreground mb-6">משהו השתבש. אנחנו עובדים על זה.</p>
               <button
                 onClick={reset}
                 className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
@@ -31,4 +29,3 @@ export default function GlobalError({
     </html>
   )
 }
-

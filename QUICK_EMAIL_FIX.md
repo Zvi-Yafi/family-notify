@@ -44,3 +44,4 @@ npm run prisma:studio
 
 **לפרטים מלאים**: קרא [FIX_EMAIL_ISSUE.md](./FIX_EMAIL_ISSUE.md)
 
+

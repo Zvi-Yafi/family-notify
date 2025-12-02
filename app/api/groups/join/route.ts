@@ -8,15 +8,15 @@ export async function POST(request: NextRequest) {
     const { slug } = body
 
     if (!slug) {
-      return NextResponse.json(
-        { error: 'Group slug is required' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Group slug is required' }, { status: 400 })
     }
 
     // Get authenticated user
     const supabase = await createServerClient()
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
 
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -28,10 +28,7 @@ export async function POST(request: NextRequest) {
     })
 
     if (!familyGroup) {
-      return NextResponse.json(
-        { error: 'קבוצה לא נמצאה. בדוק את קוד הקבוצה.' },
-        { status: 404 }
-      )
+      return NextResponse.json({ error: 'קבוצה לא נמצאה. בדוק את קוד הקבוצה.' }, { status: 404 })
     }
 
     // Check if user is already a member
@@ -45,10 +42,7 @@ export async function POST(request: NextRequest) {
     })
 
     if (existingMembership) {
-      return NextResponse.json(
-        { error: 'כבר חבר בקבוצה זו' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'כבר חבר בקבוצה זו' }, { status: 400 })
     }
 
     // Add the user as a MEMBER
@@ -70,10 +64,6 @@ export async function POST(request: NextRequest) {
     })
   } catch (error: any) {
     console.error('Error joining group:', error)
-    return NextResponse.json(
-      { error: error.message || 'Failed to join group' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: error.message || 'Failed to join group' }, { status: 500 })
   }
 }
-

@@ -107,12 +107,8 @@ export default function GroupsPage() {
             <CardContent className="py-12 text-center">
               <Users className="h-12 w-12 mx-auto text-gray-400 mb-4" />
               <h3 className="text-lg font-semibold mb-2">אין לך קבוצות עדיין</h3>
-              <p className="text-gray-600 mb-4">
-                צור קבוצה חדשה או הצטרף לקבוצה קיימת
-              </p>
-              <Button onClick={() => router.push('/onboarding')}>
-                הצטרף לקבוצה
-              </Button>
+              <p className="text-gray-600 mb-4">צור קבוצה חדשה או הצטרף לקבוצה קיימת</p>
+              <Button onClick={() => router.push('/onboarding')}>הצטרף לקבוצה</Button>
             </CardContent>
           </Card>
         ) : (
@@ -169,11 +165,7 @@ export default function GroupsPage() {
         )}
 
         <div className="mt-8 text-center">
-          <Button
-            variant="outline"
-            onClick={() => router.push('/onboarding')}
-            className="gap-2"
-          >
+          <Button variant="outline" onClick={() => router.push('/onboarding')} className="gap-2">
             <Users className="h-4 w-4" />
             הצטרף לקבוצה נוספת
           </Button>
@@ -182,4 +174,3 @@ export default function GroupsPage() {
     </div>
   )
 }
-

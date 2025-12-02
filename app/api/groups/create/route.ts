@@ -8,15 +8,15 @@ export async function POST(request: NextRequest) {
     const { name, slug } = body
 
     if (!name || !slug) {
-      return NextResponse.json(
-        { error: 'Name and slug are required' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Name and slug are required' }, { status: 400 })
     }
 
     // Get authenticated user
     const supabase = await createServerClient()
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
 
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -28,10 +28,7 @@ export async function POST(request: NextRequest) {
     })
 
     if (existingGroup) {
-      return NextResponse.json(
-        { error: 'קוד הקבוצה כבר קיים, בחר שם אחר' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'קוד הקבוצה כבר קיים, בחר שם אחר' }, { status: 400 })
     }
 
     // Create the family group
@@ -61,10 +58,6 @@ export async function POST(request: NextRequest) {
     })
   } catch (error: any) {
     console.error('Error creating group:', error)
-    return NextResponse.json(
-      { error: error.message || 'Failed to create group' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: error.message || 'Failed to create group' }, { status: 500 })
   }
 }
-

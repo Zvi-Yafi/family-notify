@@ -9,9 +9,7 @@ export default function NotFound() {
         <CardHeader className="text-center">
           <div className="text-6xl mb-4">🔍</div>
           <CardTitle className="text-3xl">404</CardTitle>
-          <CardDescription className="text-lg">
-            הדף שחיפשת לא נמצא
-          </CardDescription>
+          <CardDescription className="text-lg">הדף שחיפשת לא נמצא</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <p className="text-center text-muted-foreground">
@@ -30,4 +28,3 @@ export default function NotFound() {
     </div>
   )
 }
-

@@ -262,3 +262,4 @@ Route (app)                              Size     First Load JS
 
 **גרסת Prisma:** 5.11.0
 
+

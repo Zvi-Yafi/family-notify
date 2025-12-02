@@ -6,7 +6,10 @@ export async function GET(request: NextRequest) {
   try {
     // Get authenticated user
     const supabase = await createServerClient()
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
 
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -37,10 +40,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ groups })
   } catch (error: any) {
     console.error('Error fetching groups:', error)
-    return NextResponse.json(
-      { error: error.message || 'Failed to fetch groups' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: error.message || 'Failed to fetch groups' }, { status: 500 })
   }
 }
-

@@ -6,13 +6,13 @@ import { prisma } from '@/lib/prisma'
 export async function GET(request: NextRequest) {
   try {
     const supabase = await createServerClient()
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
 
     if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Not authenticated' },
-        { status: 401 }
-      )
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     }
 
     // Get all preferences for user
@@ -34,23 +34,20 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createServerClient()
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
 
     if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Not authenticated' },
-        { status: 401 }
-      )
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     }
 
     const body = await request.json()
     const { preferences } = body
 
     if (!Array.isArray(preferences)) {
-      return NextResponse.json(
-        { error: 'Invalid preferences format' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Invalid preferences format' }, { status: 400 })
     }
 
     // Update or create each preference
@@ -91,4 +88,3 @@ export async function POST(request: NextRequest) {
     )
   }
 }
-
