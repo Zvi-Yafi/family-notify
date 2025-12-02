@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "prisma generate && next build",
     "start": "next start",
     "lint": "next lint",
     "lint-staged": "lint-staged",
@@ -21,6 +21,7 @@
     "prisma:seed": "tsx prisma/seed.ts",
     "setup": "bash scripts/setup.sh",
     "generate-vapid": "node scripts/generate-vapid.js",
+    "postinstall": "prisma generate",
     "prepare": "husky install"
   },
   "dependencies": {
