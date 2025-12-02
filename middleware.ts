@@ -1,7 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { cookies } from 'next/headers'
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
@@ -17,16 +16,13 @@ export async function middleware(request: NextRequest) {
   response.headers.set('X-Frame-Options', 'DENY')
   response.headers.set('X-Content-Type-Options', 'nosniff')
   response.headers.set('Referrer-Policy', 'origin-when-cross-origin')
-  response.headers.set(
-    'Permissions-Policy',
-    'camera=(), microphone=(), geolocation=()'
-  )
+  response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
 
   // Protected routes that require authentication
   // For now, we allow guest access to admin and preferences for demo purposes
   // In production, you would want to protect these routes
   const protectedRoutes: string[] = [] // ['/admin', '/preferences']
-  const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route))
+  const isProtectedRoute = protectedRoutes.some((route) => pathname.startsWith(route))
 
   if (isProtectedRoute) {
     // Check authentication
@@ -76,7 +72,9 @@ export async function middleware(request: NextRequest) {
       }
     )
 
-    const { data: { user } } = await supabase.auth.getUser()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
 
     if (!user) {
       // Redirect to login if not authenticated
@@ -101,5 +99,3 @@ export const config = {
     '/((?!_next/static|_next/image|favicon.ico|api).*)',
   ],
 }
-
-

@@ -1,16 +1,36 @@
-import { POST, GET } from '@/app/api/admin/events/route'
-import { prismaMock } from '../../../utils/test-helpers'
-import { NextRequest } from 'next/server'
-import { mockEvent, mockUser } from '../../../utils/test-helpers'
+import handler from '@/pages/api/admin/events'
+import {
+  prismaMock,
+  mockEvent,
+  mockUser,
+  createMockApiRequest,
+  createMockApiResponse,
+} from '../../../utils/test-helpers'
 
 // Mock prisma
 jest.mock('@/lib/prisma', () => ({
   prisma: prismaMock,
 }))
 
+// Mock Supabase server client
+const mockSupabaseAuth = {
+  auth: {
+    getUser: jest.fn(),
+  },
+}
+
+jest.mock('@/lib/supabase/server', () => ({
+  createServerClient: jest.fn(() => mockSupabaseAuth),
+}))
+
 describe('Events API Route', () => {
   beforeEach(() => {
     jest.clearAllMocks()
+    // Mock authenticated user by default
+    mockSupabaseAuth.auth.getUser.mockResolvedValue({
+      data: { user: { id: 'demo-user-id', email: 'test@example.com' } },
+      error: null,
+    })
   })
 
   describe('POST /api/admin/events', () => {
@@ -25,19 +45,20 @@ describe('Events API Route', () => {
         familyGroupId: 'family-123',
       }
 
-      const request = {
-        json: jest.fn().mockResolvedValue(requestBody),
-      } as unknown as NextRequest
+      const req = createMockApiRequest({
+        method: 'POST',
+        body: requestBody,
+      })
+      const res = createMockApiResponse()
 
       // @ts-ignore
       prismaMock.event.create.mockResolvedValue(event)
 
-      const response = await POST(request)
-      const data = await response.json()
+      await handler(req, res as any)
 
-      expect(response.status).toBe(200)
-      expect(data.success).toBe(true)
-      expect(data.event).toBeDefined()
+      expect(res.statusCode).toBe(200)
+      expect(res.jsonData.success).toBe(true)
+      expect(res.jsonData.event).toBeDefined()
 
       expect(prismaMock.event.create).toHaveBeenCalledWith({
         data: {
@@ -64,14 +85,16 @@ describe('Events API Route', () => {
         reminderOffsets: customOffsets,
       }
 
-      const request = {
-        json: jest.fn().mockResolvedValue(requestBody),
-      } as unknown as NextRequest
+      const req = createMockApiRequest({
+        method: 'POST',
+        body: requestBody,
+      })
+      const res = createMockApiResponse()
 
       // @ts-ignore
       prismaMock.event.create.mockResolvedValue(event)
 
-      const response = await POST(request)
+      await handler(req, res as any)
 
       expect(prismaMock.event.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
@@ -88,22 +111,41 @@ describe('Events API Route', () => {
         familyGroupId: 'family-123',
       }
 
-      const request = {
-        json: jest.fn().mockResolvedValue(requestBody),
-      } as unknown as NextRequest
+      const req = createMockApiRequest({
+        method: 'POST',
+        body: requestBody,
+      })
+      const res = createMockApiResponse()
 
       // @ts-ignore
       prismaMock.event.create.mockResolvedValue(event)
 
-      const response = await POST(request)
-      const data = await response.json()
+      await handler(req, res as any)
 
-      expect(response.status).toBe(200)
+      expect(res.statusCode).toBe(200)
       expect(prismaMock.event.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
           endsAt: null,
         }),
       })
+    })
+
+    it('should return 401 if not authenticated', async () => {
+      mockSupabaseAuth.auth.getUser.mockResolvedValue({
+        data: { user: null },
+        error: { message: 'Not authenticated' },
+      })
+
+      const req = createMockApiRequest({
+        method: 'POST',
+        body: { title: 'Test' },
+      })
+      const res = createMockApiResponse()
+
+      await handler(req, res as any)
+
+      expect(res.statusCode).toBe(401)
+      expect(res.jsonData.error).toBe('Unauthorized')
     })
 
     it('should handle errors', async () => {
@@ -113,18 +155,19 @@ describe('Events API Route', () => {
         familyGroupId: 'family-123',
       }
 
-      const request = {
-        json: jest.fn().mockResolvedValue(requestBody),
-      } as unknown as NextRequest
+      const req = createMockApiRequest({
+        method: 'POST',
+        body: requestBody,
+      })
+      const res = createMockApiResponse()
 
       // @ts-ignore
       prismaMock.event.create.mockRejectedValue(new Error('Database error'))
 
-      const response = await POST(request)
-      const data = await response.json()
+      await handler(req, res as any)
 
-      expect(response.status).toBe(500)
-      expect(data.error).toBe('Database error')
+      expect(res.statusCode).toBe(500)
+      expect(res.jsonData.error).toBe('Database error')
     })
   })
 
@@ -136,9 +179,11 @@ describe('Events API Route', () => {
       ]
       const creator = mockUser()
 
-      const request = {
-        url: 'http://localhost:3000/api/admin/events?familyGroupId=family-123',
-      } as NextRequest
+      const req = createMockApiRequest({
+        method: 'GET',
+        query: { familyGroupId: 'family-123' },
+      })
+      const res = createMockApiResponse()
 
       // @ts-ignore
       prismaMock.event.findMany.mockResolvedValue(
@@ -148,11 +193,10 @@ describe('Events API Route', () => {
         }))
       )
 
-      const response = await GET(request)
-      const data = await response.json()
+      await handler(req, res as any)
 
-      expect(response.status).toBe(200)
-      expect(data.events).toHaveLength(2)
+      expect(res.statusCode).toBe(200)
+      expect(res.jsonData.events).toHaveLength(2)
 
       expect(prismaMock.event.findMany).toHaveBeenCalledWith({
         where: {
@@ -175,32 +219,46 @@ describe('Events API Route', () => {
     })
 
     it('should return 400 if familyGroupId is missing', async () => {
-      const request = {
-        url: 'http://localhost:3000/api/admin/events',
-      } as NextRequest
+      const req = createMockApiRequest({
+        method: 'GET',
+        query: {},
+      })
+      const res = createMockApiResponse()
 
-      const response = await GET(request)
-      const data = await response.json()
+      await handler(req, res as any)
 
-      expect(response.status).toBe(400)
-      expect(data.error).toBe('familyGroupId required')
+      expect(res.statusCode).toBe(400)
+      expect(res.jsonData.error).toBe('familyGroupId required')
     })
 
     it('should handle errors', async () => {
-      const request = {
-        url: 'http://localhost:3000/api/admin/events?familyGroupId=family-123',
-      } as NextRequest
+      const req = createMockApiRequest({
+        method: 'GET',
+        query: { familyGroupId: 'family-123' },
+      })
+      const res = createMockApiResponse()
 
       // @ts-ignore
       prismaMock.event.findMany.mockRejectedValue(new Error('Database error'))
 
-      const response = await GET(request)
-      const data = await response.json()
+      await handler(req, res as any)
 
-      expect(response.status).toBe(500)
-      expect(data.error).toBe('Database error')
+      expect(res.statusCode).toBe(500)
+      expect(res.jsonData.error).toBe('Database error')
+    })
+  })
+
+  describe('Unsupported methods', () => {
+    it('should return 405 for unsupported methods', async () => {
+      const req = createMockApiRequest({
+        method: 'DELETE',
+      })
+      const res = createMockApiResponse()
+
+      await handler(req, res as any)
+
+      expect(res.statusCode).toBe(405)
+      expect(res.jsonData.error).toBe('Method not allowed')
     })
   })
 })
-
-

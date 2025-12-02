@@ -1,0 +1,86 @@
+import type { NextApiRequest, NextApiResponse } from 'next'
+import { prisma } from '@/lib/prisma'
+import { dispatchService } from '@/lib/dispatch/dispatch.service'
+import { createServerClient } from '@/lib/supabase/server'
+
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method === 'POST') {
+    try {
+      const { title, bodyText, type, familyGroupId, scheduledAt } = req.body
+
+      // Get authenticated user
+      const supabase = createServerClient(req, res)
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser()
+
+      if (authError || !user) {
+        return res.status(401).json({ error: 'Unauthorized' })
+      }
+
+      const userId = user.id
+
+      // Create announcement
+      const announcement = await prisma.announcement.create({
+        data: {
+          title,
+          body: bodyText,
+          type: type || 'GENERAL',
+          familyGroupId,
+          createdBy: userId,
+          scheduledAt: scheduledAt ? new Date(scheduledAt) : null,
+          publishedAt: scheduledAt ? null : new Date(), // Publish immediately if not scheduled
+        },
+      })
+
+      // If not scheduled, dispatch immediately
+      if (!scheduledAt) {
+        await dispatchService.dispatchAnnouncement({
+          announcementId: announcement.id,
+          familyGroupId,
+        })
+      }
+
+      return res.status(200).json({
+        success: true,
+        announcement,
+      })
+    } catch (error: any) {
+      console.error('Error creating announcement:', error)
+      return res.status(500).json({ error: error.message || 'Failed to create announcement' })
+    }
+  }
+
+  if (req.method === 'GET') {
+    try {
+      const { familyGroupId } = req.query
+
+      if (!familyGroupId || typeof familyGroupId !== 'string') {
+        return res.status(400).json({ error: 'familyGroupId required' })
+      }
+
+      const announcements = await prisma.announcement.findMany({
+        where: { familyGroupId },
+        include: {
+          creator: {
+            select: {
+              email: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+        take: 50,
+      })
+
+      return res.status(200).json({ announcements })
+    } catch (error: any) {
+      console.error('Error fetching announcements:', error)
+      return res.status(500).json({ error: error.message || 'Failed to fetch announcements' })
+    }
+  }
+
+  return res.status(405).json({ error: 'Method not allowed' })
+}

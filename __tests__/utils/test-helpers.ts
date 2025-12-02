@@ -129,9 +129,9 @@ export const mockPushProvider = {
 }
 
 // Helper to wait for async operations
-export const waitFor = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
+export const waitFor = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
-// Helper to create mock request
+// Helper to create mock request (App Router style - deprecated)
 export const mockRequest = (body: any = {}, options: any = {}) => {
   return {
     json: jest.fn().mockResolvedValue(body),
@@ -142,7 +142,7 @@ export const mockRequest = (body: any = {}, options: any = {}) => {
   }
 }
 
-// Helper to create mock NextResponse
+// Helper to create mock NextResponse (App Router style - deprecated)
 export const mockNextResponse = () => {
   const response = {
     json: jest.fn((data) => ({
@@ -153,4 +153,50 @@ export const mockNextResponse = () => {
   return response
 }
 
+// Pages Router API helpers
+export interface MockApiRequest {
+  method?: string
+  body?: any
+  query?: Record<string, string | string[]>
+  cookies?: Record<string, string>
+  headers?: Record<string, string>
+}
 
+export interface MockApiResponse {
+  statusCode: number
+  jsonData: any
+  status: jest.Mock
+  json: jest.Mock
+  setHeader: jest.Mock
+  redirect: jest.Mock
+}
+
+// Helper to create mock NextApiRequest for Pages Router
+export const createMockApiRequest = (options: MockApiRequest = {}): any => {
+  return {
+    method: options.method || 'GET',
+    body: options.body || {},
+    query: options.query || {},
+    cookies: options.cookies || {},
+    headers: options.headers || {},
+  }
+}
+
+// Helper to create mock NextApiResponse for Pages Router
+export const createMockApiResponse = (): MockApiResponse => {
+  const res: MockApiResponse = {
+    statusCode: 200,
+    jsonData: null,
+    status: jest.fn().mockImplementation((code: number) => {
+      res.statusCode = code
+      return res
+    }),
+    json: jest.fn().mockImplementation((data: any) => {
+      res.jsonData = data
+      return res
+    }),
+    setHeader: jest.fn().mockReturnThis(),
+    redirect: jest.fn().mockReturnThis(),
+  }
+  return res
+}

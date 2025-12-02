@@ -1,39 +1,48 @@
 import { createServerClient as createSupabaseServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
+import { NextApiRequest, NextApiResponse } from 'next'
 import { Database } from './database.types'
 
-export async function createServerClient() {
-  const cookieStore = await cookies()
-
+// For Pages Router API routes
+export function createServerClient(req: NextApiRequest, res: NextApiResponse) {
   return createSupabaseServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
         get(name: string) {
-          return cookieStore.get(name)?.value
+          return req.cookies[name]
         },
         set(name: string, value: string, options: any) {
-          try {
-            cookieStore.set({ name, value, ...options })
-          } catch (error) {
-            // The `set` method was called from a Server Component.
-            // This can be ignored if you have middleware refreshing
-            // user sessions.
-          }
+          res.setHeader(
+            'Set-Cookie',
+            `${name}=${value}; Path=/; ${options.httpOnly ? 'HttpOnly;' : ''} ${options.secure ? 'Secure;' : ''} SameSite=Lax`
+          )
         },
         remove(name: string, options: any) {
-          try {
-            cookieStore.set({ name, value: '', ...options })
-          } catch (error) {
-            // The `delete` method was called from a Server Component.
-            // This can be ignored if you have middleware refreshing
-            // user sessions.
-          }
+          res.setHeader('Set-Cookie', `${name}=; Path=/; Max-Age=0`)
         },
       },
     }
   )
 }
 
-
+// For middleware and getServerSideProps
+export function createServerClientFromCookies(cookies: { [key: string]: string }) {
+  return createSupabaseServerClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookies[name]
+        },
+        set() {
+          // Can't set cookies in this context
+        },
+        remove() {
+          // Can't remove cookies in this context
+        },
+      },
+    }
+  )
+}

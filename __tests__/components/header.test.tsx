@@ -24,7 +24,7 @@ describe('Header Component', () => {
     })
 
     render(<Header />)
-    
+
     expect(screen.getByText('FamilyNotify')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /FamilyNotify/i })).toHaveAttribute('href', '/')
   })
@@ -37,7 +37,7 @@ describe('Header Component', () => {
     })
 
     render(<Header />)
-    
+
     expect(screen.getByRole('link', { name: 'התחברות' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'הרשמה' })).toBeInTheDocument()
   })
@@ -50,10 +50,10 @@ describe('Header Component', () => {
     })
 
     render(<Header />)
-    
+
     expect(screen.getByRole('link', { name: 'הודעות' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'אירועים' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'העדפות' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'הקבוצות שלי' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'ניהול' })).toBeInTheDocument()
   })
 
@@ -66,11 +66,11 @@ describe('Header Component', () => {
     })
 
     render(<Header />)
-    
+
     // Click on the user icon button
     const userButton = screen.getByRole('button', { name: '' })
     await user.click(userButton)
-    
+
     expect(screen.getByText('test@example.com')).toBeInTheDocument()
   })
 
@@ -83,15 +83,15 @@ describe('Header Component', () => {
     })
 
     render(<Header />)
-    
+
     // Click on the user icon button
     const userButton = screen.getByRole('button', { name: '' })
     await user.click(userButton)
-    
+
     // Click on logout
     const logoutButton = screen.getByText('התנתק')
     await user.click(logoutButton)
-    
+
     expect(mockSignOut).toHaveBeenCalledTimes(1)
   })
 
@@ -103,7 +103,7 @@ describe('Header Component', () => {
     })
 
     render(<Header />)
-    
+
     expect(screen.queryByRole('link', { name: 'התחברות' })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'הרשמה' })).not.toBeInTheDocument()
   })
@@ -116,12 +116,28 @@ describe('Header Component', () => {
     })
 
     render(<Header />)
-    
+
     expect(screen.getByRole('link', { name: 'הודעות' })).toHaveAttribute('href', '/feed')
     expect(screen.getByRole('link', { name: 'אירועים' })).toHaveAttribute('href', '/events')
-    expect(screen.getByRole('link', { name: 'העדפות' })).toHaveAttribute('href', '/preferences')
+    expect(screen.getByRole('link', { name: 'הקבוצות שלי' })).toHaveAttribute('href', '/groups')
     expect(screen.getByRole('link', { name: 'ניהול' })).toHaveAttribute('href', '/admin')
   })
+
+  it('should show preferences link in dropdown menu', async () => {
+    const user = userEvent.setup()
+    mockUseAuth.mockReturnValue({
+      user: { id: 'user-123', email: 'test@example.com' },
+      loading: false,
+      signOut: mockSignOut,
+    })
+
+    render(<Header />)
+
+    // Click on the user icon button to open dropdown
+    const userButton = screen.getByRole('button', { name: '' })
+    await user.click(userButton)
+
+    // Check for preferences link inside dropdown
+    expect(screen.getByRole('menuitem', { name: 'העדפות' })).toBeInTheDocument()
+  })
 })
-
-

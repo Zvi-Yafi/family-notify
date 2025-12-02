@@ -1,5 +1,9 @@
 import { getCurrentUser, isAuthenticated, requireAuth } from '@/lib/auth-helpers'
-import { mockSupabaseClient } from '../utils/test-helpers'
+import {
+  mockSupabaseClient,
+  createMockApiRequest,
+  createMockApiResponse,
+} from '../utils/test-helpers'
 
 // Mock the Supabase server module
 jest.mock('@/lib/supabase/server', () => ({
@@ -25,7 +29,10 @@ describe('Auth Helpers', () => {
         error: null,
       })
 
-      const user = await getCurrentUser()
+      const req = createMockApiRequest()
+      const res = createMockApiResponse()
+
+      const user = await getCurrentUser(req as any, res as any)
       expect(user).toEqual(mockUser)
       expect(mockSupabaseClient.auth.getUser).toHaveBeenCalledTimes(1)
     })
@@ -36,7 +43,10 @@ describe('Auth Helpers', () => {
         error: null,
       })
 
-      const user = await getCurrentUser()
+      const req = createMockApiRequest()
+      const res = createMockApiResponse()
+
+      const user = await getCurrentUser(req as any, res as any)
       expect(user).toBeNull()
     })
 
@@ -46,7 +56,10 @@ describe('Auth Helpers', () => {
         error: { message: 'Auth error' },
       })
 
-      const user = await getCurrentUser()
+      const req = createMockApiRequest()
+      const res = createMockApiResponse()
+
+      const user = await getCurrentUser(req as any, res as any)
       expect(user).toBeNull()
     })
   })
@@ -63,7 +76,10 @@ describe('Auth Helpers', () => {
         error: null,
       })
 
-      const result = await isAuthenticated()
+      const req = createMockApiRequest()
+      const res = createMockApiResponse()
+
+      const result = await isAuthenticated(req as any, res as any)
       expect(result).toBe(true)
     })
 
@@ -73,7 +89,10 @@ describe('Auth Helpers', () => {
         error: null,
       })
 
-      const result = await isAuthenticated()
+      const req = createMockApiRequest()
+      const res = createMockApiResponse()
+
+      const result = await isAuthenticated(req as any, res as any)
       expect(result).toBe(false)
     })
   })
@@ -90,7 +109,10 @@ describe('Auth Helpers', () => {
         error: null,
       })
 
-      const user = await requireAuth()
+      const req = createMockApiRequest()
+      const res = createMockApiResponse()
+
+      const user = await requireAuth(req as any, res as any)
       expect(user).toEqual(mockUser)
     })
 
@@ -100,7 +122,10 @@ describe('Auth Helpers', () => {
         error: null,
       })
 
-      await expect(requireAuth()).rejects.toThrow('Authentication required')
+      const req = createMockApiRequest()
+      const res = createMockApiResponse()
+
+      await expect(requireAuth(req as any, res as any)).rejects.toThrow('Authentication required')
     })
 
     it('should throw error when auth check fails', async () => {
@@ -109,9 +134,10 @@ describe('Auth Helpers', () => {
         error: { message: 'Network error' },
       })
 
-      await expect(requireAuth()).rejects.toThrow('Authentication required')
+      const req = createMockApiRequest()
+      const res = createMockApiResponse()
+
+      await expect(requireAuth(req as any, res as any)).rejects.toThrow('Authentication required')
     })
   })
 })
-
-
