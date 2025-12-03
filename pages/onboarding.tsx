@@ -90,7 +90,13 @@ export default function OnboardingPage() {
 
         if (!createResponse.ok) {
           const errorData = await createResponse.json()
-          throw new Error(errorData.error || 'שגיאה ביצירת הקבוצה')
+          toast({
+            title: 'שגיאה',
+            description: errorData.error || 'שגיאה ביצירת הקבוצה',
+            variant: 'destructive',
+          })
+          setLoading(false)
+          return
         }
 
         groupResult = await createResponse.json()
@@ -106,7 +112,13 @@ export default function OnboardingPage() {
 
         if (!joinResponse.ok) {
           const errorData = await joinResponse.json()
-          throw new Error(errorData.error || 'שגיאה בהצטרפות לקבוצה')
+          toast({
+            title: 'שגיאה',
+            description: errorData.error || 'שגיאה בהצטרפות לקבוצה',
+            variant: 'destructive',
+          })
+          setLoading(false)
+          return
         }
 
         groupResult = await joinResponse.json()

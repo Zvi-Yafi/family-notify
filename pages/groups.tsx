@@ -27,7 +27,9 @@ export default function GroupsPage() {
           router.push('/login')
           return
         }
-        throw new Error('Failed to fetch groups')
+        toast.error('שגיאה בטעינת הקבוצות')
+        setLoading(false)
+        return
       }
       const data = await response.json()
       setGroups(data.groups || [])

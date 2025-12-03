@@ -51,7 +51,13 @@ export default function PreferencesPage() {
       // Load preferences from database
       const response = await fetch('/api/preferences')
       if (!response.ok) {
-        throw new Error('Failed to load preferences')
+        toast({
+          title: 'שגיאה',
+          description: 'לא הצלחנו לטעון את ההעדפות',
+          variant: 'destructive',
+        })
+        setLoading(false)
+        return
       }
 
       const data = await response.json()
@@ -181,7 +187,13 @@ export default function PreferencesPage() {
       })
 
       if (!response.ok) {
-        throw new Error('Failed to save preferences')
+        toast({
+          title: 'שגיאה',
+          description: 'לא הצלחנו לשמור את ההעדפות',
+          variant: 'destructive',
+        })
+        setSaving(false)
+        return
       }
 
       toast({

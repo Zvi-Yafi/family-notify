@@ -3,25 +3,22 @@
  * Centralized API communication layer
  */
 
-const API_BASE = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-
 class ApiClient {
-  private async request<T>(
-    endpoint: string,
-    options: RequestInit = {}
-  ): Promise<T> {
-    const url = `${API_BASE}${endpoint}`
-    
+  private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+    // Use relative URLs - works in browser and during SSR
+    const url = endpoint
+
     const config: RequestInit = {
       ...options,
       headers: {
         'Content-Type': 'application/json',
         ...options.headers,
       },
+      credentials: 'include', // Include cookies for auth
     }
 
     const response = await fetch(url, config)
-    
+
     if (!response.ok) {
       const error = await response.json().catch(() => ({ error: 'Request failed' }))
       throw new Error(error.error || `HTTP ${response.status}`)
@@ -44,20 +41,16 @@ class ApiClient {
     familyGroupId: string
     scheduledAt?: string
   }) {
-    return this.request<{ success: boolean; announcement: any }>(
-      '/api/admin/announcements',
-      {
-        method: 'POST',
-        body: JSON.stringify(data),
-      }
-    )
+    return this.request<{ success: boolean; announcement: any }>('/api/admin/announcements', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
   }
 
   // Events
-  async getEvents(familyGroupId: string) {
-    return this.request<{ events: any[] }>(
-      `/api/admin/events?familyGroupId=${familyGroupId}`
-    )
+  async getEvents(familyGroupId: string, includePast: boolean = false) {
+    const url = `/api/admin/events?familyGroupId=${familyGroupId}${includePast ? '&includePast=true' : ''}`
+    return this.request<{ events: any[] }>(url)
   }
 
   async createEvent(data: {
@@ -69,16 +62,11 @@ class ApiClient {
     familyGroupId: string
     reminderOffsets?: number[]
   }) {
-    return this.request<{ success: boolean; event: any }>(
-      '/api/admin/events',
-      {
-        method: 'POST',
-        body: JSON.stringify(data),
-      }
-    )
+    return this.request<{ success: boolean; event: any }>('/api/admin/events', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
   }
 }
 
 export const apiClient = new ApiClient()
-
-

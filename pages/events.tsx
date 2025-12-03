@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Calendar, MapPin, Clock } from 'lucide-react'
+import { Calendar, MapPin, Clock, RefreshCw } from 'lucide-react'
 import Link from 'next/link'
 import { apiClient } from '@/lib/api-client'
 import { useFamilyContext } from '@/lib/context/family-context'
 import { Header } from '@/components/header'
+import { GroupSelector } from '@/components/group-selector'
+import { useToast } from '@/hooks/use-toast'
 
 interface Event {
   id: string
@@ -43,33 +45,59 @@ function formatTimeRange(start: Date, end: Date): string {
 export default function EventsPage() {
   const [events, setEvents] = useState<Event[]>([])
   const [loading, setLoading] = useState(true)
-  const { familyGroupId } = useFamilyContext()
+  const [error, setError] = useState<string | null>(null)
+  const [showPastEvents, setShowPastEvents] = useState(false)
+  const { familyGroupId, groups, loadingGroups, selectedGroup } = useFamilyContext()
+  const { toast } = useToast()
 
-  useEffect(() => {
-    async function loadEvents() {
-      if (!familyGroupId) {
-        setLoading(false)
-        return
-      }
-
-      try {
-        const data = await apiClient.getEvents(familyGroupId)
-        setEvents(
-          data.events.map((e) => ({
-            ...e,
-            startsAt: new Date(e.startsAt),
-            endsAt: e.endsAt ? new Date(e.endsAt) : null,
-          }))
-        )
-      } catch (error) {
-        console.error('Failed to load events:', error)
-      } finally {
-        setLoading(false)
-      }
+  const loadEvents = async () => {
+    if (!familyGroupId) {
+      setLoading(false)
+      return
     }
 
+    setLoading(true)
+    setError(null)
+
+    try {
+      const data = await apiClient.getEvents(familyGroupId, showPastEvents)
+      setEvents(
+        data.events.map((e) => ({
+          ...e,
+          startsAt: new Date(e.startsAt),
+          endsAt: e.endsAt ? new Date(e.endsAt) : null,
+        }))
+      )
+    } catch (err: any) {
+      console.error('Failed to load events:', err)
+      setError(err.message || 'שגיאה בטעינת האירועים')
+      toast({
+        title: 'שגיאה',
+        description: 'לא הצלחנו לטעון את האירועים',
+        variant: 'destructive',
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
     loadEvents()
-  }, [familyGroupId])
+  }, [familyGroupId, showPastEvents])
+
+  // Show loading while fetching groups
+  if (loadingGroups) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+        <Header />
+        <div className="container mx-auto px-4 py-8">
+          <div className="max-w-4xl mx-auto text-center py-12">
+            <p className="text-gray-600 dark:text-gray-400">טוען...</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -81,37 +109,63 @@ export default function EventsPage() {
           <div className="mb-8 flex items-center justify-between">
             <div>
               <h2 className="text-3xl font-bold mb-2">לוח אירועים משפחתי</h2>
-              <p className="text-gray-600 dark:text-gray-400">כל האירועים והשמחות הקרובים</p>
+              <p className="text-gray-600 dark:text-gray-400">
+                {showPastEvents ? 'כל האירועים (כולל עבר)' : 'אירועים קרובים ושמחות'}
+              </p>
             </div>
-            <Button asChild>
-              <Link href="/admin">
-                <Calendar className="h-4 w-4 ml-2" />
-                הוסף אירוע
-              </Link>
-            </Button>
+            <div className="flex gap-2">
+              {familyGroupId && (
+                <>
+                  <Button
+                    variant={showPastEvents ? 'default' : 'outline'}
+                    onClick={() => setShowPastEvents(!showPastEvents)}
+                    size="sm"
+                  >
+                    {showPastEvents ? 'הצג עתידיים' : 'הצג הכל'}
+                  </Button>
+                  <Button asChild>
+                    <Link href="/admin">
+                      <Calendar className="h-4 w-4 ml-2" />
+                      הוסף אירוע
+                    </Link>
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
 
-          {loading && (
+          {/* Show group selector if no groups or multiple groups without selection */}
+          {(groups.length === 0 || (groups.length > 1 && !familyGroupId)) && (
+            <GroupSelector
+              title="בחר קבוצה לצפייה באירועים"
+              description="בחר את הקבוצה שתרצה לראות את האירועים שלה"
+            />
+          )}
+
+          {/* Show current group indicator if multiple groups and one selected */}
+          {groups.length > 1 && familyGroupId && selectedGroup && <GroupSelector />}
+
+          {loading && familyGroupId && (
             <div className="text-center py-12">
+              <RefreshCw className="h-8 w-8 mx-auto text-gray-400 mb-4 animate-spin" />
               <p className="text-gray-600 dark:text-gray-400">טוען אירועים...</p>
             </div>
           )}
 
-          {!loading && !familyGroupId && (
+          {error && familyGroupId && !loading && (
             <Card>
               <CardContent className="py-12 text-center">
-                <Calendar className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                <p className="text-gray-600 dark:text-gray-400 mb-4">
-                  עדיין לא הצטרפת לקבוצה משפחתית
-                </p>
-                <Button asChild>
-                  <Link href="/onboarding">הרשם עכשיו</Link>
+                <Calendar className="h-12 w-12 mx-auto text-red-400 mb-4" />
+                <p className="text-red-600 mb-4">{error}</p>
+                <Button onClick={loadEvents} variant="outline">
+                  <RefreshCw className="h-4 w-4 ml-2" />
+                  נסה שוב
                 </Button>
               </CardContent>
             </Card>
           )}
 
-          {!loading && familyGroupId && events.length > 0 && (
+          {!loading && !error && familyGroupId && events.length > 0 && (
             <div className="space-y-4">
               {events.map((event) => {
                 const isPast = event.startsAt < new Date()
@@ -181,7 +235,7 @@ export default function EventsPage() {
             </div>
           )}
 
-          {!loading && familyGroupId && events.length === 0 && (
+          {!loading && !error && familyGroupId && events.length === 0 && (
             <Card>
               <CardContent className="py-12 text-center">
                 <Calendar className="h-12 w-12 mx-auto text-gray-400 mb-4" />

@@ -3,6 +3,13 @@ import { prisma } from '@/lib/prisma'
 import { createServerClient } from '@/lib/supabase/server'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  // Handle CORS preflight
+  if (req.method === 'OPTIONS') {
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+    return res.status(200).end()
+  }
+
   if (req.method === 'POST') {
     try {
       const { title, description, startsAt, endsAt, location, familyGroupId, reminderOffsets } =
@@ -47,7 +54,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   if (req.method === 'GET') {
     try {
-      const { familyGroupId } = req.query
+      const { familyGroupId, includePast } = req.query
 
       if (!familyGroupId || typeof familyGroupId !== 'string') {
         return res.status(400).json({ error: 'familyGroupId required' })
@@ -55,13 +62,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       const now = new Date()
 
+      // Build where clause - include past events if requested
+      const whereClause: any = {
+        familyGroupId,
+      }
+
+      // Only filter future events if includePast is not 'true'
+      if (includePast !== 'true') {
+        whereClause.startsAt = {
+          gte: now,
+        }
+      }
+
       const events = await prisma.event.findMany({
-        where: {
-          familyGroupId,
-          startsAt: {
-            gte: now, // Only future events
-          },
-        },
+        where: whereClause,
         include: {
           creator: {
             select: {

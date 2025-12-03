@@ -4,6 +4,13 @@ import { dispatchService } from '@/lib/dispatch/dispatch.service'
 import { createServerClient } from '@/lib/supabase/server'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  // Handle CORS preflight
+  if (req.method === 'OPTIONS') {
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+    return res.status(200).end()
+  }
+
   if (req.method === 'POST') {
     try {
       const { title, bodyText, type, familyGroupId, scheduledAt } = req.body
