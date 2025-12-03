@@ -20,29 +20,34 @@ export function useAuth() {
         } = await supabase.auth.getSession()
 
         if (sessionError) {
+          // If it's AuthSessionMissingError, it's normal - just means no session
+          if (sessionError.message?.includes('Auth session missing')) {
+            console.log('ℹ️ No active session (user not logged in)')
+            setUser(null)
+            setLoading(false)
+            return
+          }
           console.error('❌ Session error:', sessionError)
         }
 
         if (session) {
           console.log('✅ Found session for:', session.user.email)
           setUser(session.user)
-        } else {
-          console.log('⚠️ No session found')
-          // Try getUser as fallback
-          const {
-            data: { user },
-            error: userError,
-          } = await supabase.auth.getUser()
-          if (userError) {
-            console.error('❌ Get user error:', userError)
-          }
-          if (user) {
-            console.log('✅ Found user:', user.email)
-          }
-          setUser(user)
+          setLoading(false)
+          return
         }
-      } catch (error) {
-        console.error('❌ Auth error:', error)
+
+        // No session found - user is not logged in
+        console.log('⚠️ No session found - user not logged in')
+        setUser(null)
+      } catch (error: any) {
+        // Handle AuthSessionMissingError gracefully
+        if (error?.message?.includes('Auth session missing')) {
+          console.log('ℹ️ No active session (user not logged in)')
+          setUser(null)
+        } else {
+          console.error('❌ Auth error:', error)
+        }
       } finally {
         setLoading(false)
       }
@@ -54,7 +59,7 @@ export function useAuth() {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('🔄 Auth state changed:', event, session?.user?.email)
+      console.log('🔄 Auth state changed:', event, session?.user?.email || 'no user')
       setUser(session?.user ?? null)
       setLoading(false)
     })

@@ -43,7 +43,19 @@ export default function PreferencesPage() {
           error: authError,
         } = await supabase.auth.getUser()
 
-        if (authError || !currentUser) {
+        // If it's AuthSessionMissingError, redirect to login
+        if (authError) {
+          // If it's AuthSessionMissingError, it's normal - just means no session
+          if (authError.message?.includes('Auth session missing')) {
+            router.push('/login')
+            return
+          }
+          console.error('Auth error:', authError)
+          router.push('/login')
+          return
+        }
+
+        if (!currentUser) {
           router.push('/login')
           return
         }

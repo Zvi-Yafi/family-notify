@@ -27,12 +27,26 @@ export default function OnboardingPage() {
   // Check if user is already authenticated
   useEffect(() => {
     async function checkAuth() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-      if (user) {
-        setIsAuthenticated(true)
-        setFormData((prev) => ({ ...prev, email: user.email || '' }))
+      try {
+        const {
+          data: { user },
+          error,
+        } = await supabase.auth.getUser()
+
+        // If it's AuthSessionMissingError, it's normal - just means no session
+        if (error && !error.message?.includes('Auth session missing')) {
+          console.error('Auth error:', error)
+        }
+
+        if (user) {
+          setIsAuthenticated(true)
+          setFormData((prev) => ({ ...prev, email: user.email || '' }))
+        }
+      } catch (error: any) {
+        // Handle AuthSessionMissingError gracefully
+        if (!error?.message?.includes('Auth session missing')) {
+          console.error('Auth check error:', error)
+        }
       }
     }
     checkAuth()
@@ -46,7 +60,13 @@ export default function OnboardingPage() {
       // Get current user
       const {
         data: { user },
+        error: getUserError,
       } = await supabase.auth.getUser()
+
+      // If it's AuthSessionMissingError, it's normal - just means no session
+      if (getUserError && !getUserError.message?.includes('Auth session missing')) {
+        console.error('Get user error:', getUserError)
+      }
 
       if (!user && !isAuthenticated) {
         // If not authenticated, redirect to login
