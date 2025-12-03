@@ -35,34 +35,66 @@ export class WhatsAppProvider {
     }
 
     try {
-      // Actual WhatsApp Cloud API implementation would go here:
-      // const response = await fetch(
-      //   `https://graph.facebook.com/v18.0/${this.phoneNumberId}/messages`,
-      //   {
-      //     method: 'POST',
-      //     headers: {
-      //       'Authorization': `Bearer ${this.accessToken}`,
-      //       'Content-Type': 'application/json',
-      //     },
-      //     body: JSON.stringify({
-      //       messaging_product: 'whatsapp',
-      //       to: options.to,
-      //       type: 'text',
-      //       text: { body: options.message },
-      //     }),
-      //   }
-      // )
-      // const data = await response.json()
-      // return { success: true, messageId: data.messages[0].id }
-
-      console.log(`💬 [WhatsApp STUB] Would send to ${options.to}: ${options.message}`)
+      // Normalize phone number (remove +, spaces, dashes)
+      const normalizedPhone = options.to.replace(/[\s\-+]/g, '')
       
+      console.log(`💬 Sending WhatsApp to ${normalizedPhone}`)
+
+      // WhatsApp Cloud API implementation
+      const response = await fetch(
+        `https://graph.facebook.com/v18.0/${this.phoneNumberId}/messages`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${this.accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            messaging_product: 'whatsapp',
+            to: normalizedPhone,
+            type: 'text',
+            text: { 
+              body: options.message,
+              preview_url: false,
+            },
+          }),
+        }
+      )
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        const errorMessage = data.error?.message || JSON.stringify(data.error) || 'Unknown error'
+        console.error(`❌ WhatsApp API error:`, data.error)
+        return {
+          success: false,
+          error: errorMessage,
+        }
+      }
+
+      if (data.messages && data.messages[0]) {
+        console.log(`✅ WhatsApp sent successfully! Message ID: ${data.messages[0].id}`)
+        return {
+          success: true,
+          messageId: data.messages[0].id,
+        }
+      }
+
       return {
-        success: true,
-        messageId: `stub-wa-${Date.now()}`,
+        success: false,
+        error: 'Unexpected response from WhatsApp API',
       }
     } catch (error: any) {
       console.error('WhatsApp send error:', error)
+      
+      // Check for common errors
+      if (error.message?.includes('fetch')) {
+        return {
+          success: false,
+          error: 'Network error. Check your internet connection and WhatsApp API endpoint.',
+        }
+      }
+      
       return {
         success: false,
         error: error.message || 'Unknown error',

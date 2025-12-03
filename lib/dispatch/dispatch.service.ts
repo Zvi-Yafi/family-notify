@@ -146,12 +146,14 @@ export class DispatchService {
 
       switch (preference.channel) {
         case 'EMAIL':
+          console.log(`📧 Sending email to ${preference.destination} for user ${user.email}`)
           result = await emailProvider.send({
             to: preference.destination,
             subject: `${announcement.type === 'SIMCHA' ? '🎉' : '📢'} ${announcement.title}`,
             html: this.buildEmailHtml(announcement, user),
             text: announcement.body,
           })
+          console.log(`📧 Email result: ${result.success ? 'SUCCESS' : 'FAILED'} - ${result.messageId || result.error}`)
           break
 
         case 'SMS':

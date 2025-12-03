@@ -17,6 +17,8 @@ export class EmailProvider {
 
     if (apiKey) {
       this.resend = new Resend(apiKey)
+      console.log('✅ Email provider (Resend) initialized')
+      console.log(`   From: ${this.fromEmail}`)
     } else {
       console.warn('⚠️  RESEND_API_KEY not configured - email sending disabled')
     }
