@@ -34,10 +34,20 @@ export default function LoginPage() {
   const handleGoogleLogin = async () => {
     try {
       setLoading(true)
+      // IMPORTANT: redirectTo must be /api/auth/callback, NOT /feed!
+      // The callback route will handle the OAuth code and then redirect to /feed
+      const redirectUrl = `${window.location.origin}/api/auth/callback`
+
+      console.log('🔐 Google OAuth redirect URL:', redirectUrl)
+
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/feed`,
+          redirectTo: redirectUrl,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
         },
       })
 
@@ -47,7 +57,7 @@ export default function LoginPage() {
 
       // User will be redirected to Google
     } catch (error: any) {
-      console.error('Login error:', error)
+      console.error('❌ Login error:', error)
       toast({
         title: 'שגיאת התחברות',
         description: error.message || 'לא הצלחנו להתחבר עם Google',

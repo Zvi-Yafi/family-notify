@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -31,69 +31,76 @@ export default function PreferencesPage() {
   const router = useRouter()
   const supabase = createClient()
 
-  const loadPreferences = useCallback(async () => {
-    try {
-      setLoading(true)
+  // Load user and preferences on mount
+  useEffect(() => {
+    const loadPreferences = async () => {
+      try {
+        setLoading(true)
 
-      // Get current user
-      const {
-        data: { user: currentUser },
-        error: authError,
-      } = await supabase.auth.getUser()
+        // Get current user
+        const {
+          data: { user: currentUser },
+          error: authError,
+        } = await supabase.auth.getUser()
 
-      if (authError || !currentUser) {
-        router.push('/login')
-        return
-      }
+        if (authError || !currentUser) {
+          router.push('/login')
+          return
+        }
 
-      setUser(currentUser)
+        setUser(currentUser)
 
-      // Load preferences from database
-      const response = await fetch('/api/preferences')
-      if (!response.ok) {
+        // Load preferences from database
+        const response = await fetch('/api/preferences')
+        if (!response.ok) {
+          toast({
+            title: 'שגיאה',
+            description: 'לא הצלחנו לטעון את ההעדפות',
+            variant: 'destructive',
+          })
+          setLoading(false)
+          return
+        }
+
+        const data = await response.json()
+
+        // Merge loaded preferences with defaults
+        const loadedPrefs = data.preferences || []
+        const defaultPrefs: ChannelPreference[] = [
+          { channel: 'EMAIL', enabled: false, destination: '', verified: false },
+          { channel: 'SMS', enabled: false, destination: '', verified: false },
+          { channel: 'WHATSAPP', enabled: false, destination: '', verified: false },
+          { channel: 'PUSH', enabled: false, destination: '', verified: false },
+        ]
+
+        const updated = defaultPrefs.map((pref) => {
+          const loaded = loadedPrefs.find((p: any) => p.channel === pref.channel)
+          if (loaded) {
+            return {
+              channel: pref.channel,
+              enabled: loaded.enabled,
+              destination: loaded.destination || '',
+              verified: !!loaded.verifiedAt,
+            }
+          }
+          return pref
+        })
+
+        setPreferences(updated)
+      } catch (error: any) {
+        console.error('Error loading preferences:', error)
         toast({
           title: 'שגיאה',
           description: 'לא הצלחנו לטעון את ההעדפות',
           variant: 'destructive',
         })
+      } finally {
         setLoading(false)
-        return
       }
-
-      const data = await response.json()
-
-      // Merge loaded preferences with defaults
-      const loadedPrefs = data.preferences || []
-      const updated = preferences.map((pref) => {
-        const loaded = loadedPrefs.find((p: any) => p.channel === pref.channel)
-        if (loaded) {
-          return {
-            channel: pref.channel,
-            enabled: loaded.enabled,
-            destination: loaded.destination || '',
-            verified: !!loaded.verifiedAt,
-          }
-        }
-        return pref
-      })
-
-      setPreferences(updated)
-    } catch (error: any) {
-      console.error('Error loading preferences:', error)
-      toast({
-        title: 'שגיאה',
-        description: 'לא הצלחנו לטעון את ההעדפות',
-        variant: 'destructive',
-      })
-    } finally {
-      setLoading(false)
     }
-  }, [supabase, router, toast, preferences])
 
-  // Load user and preferences on mount
-  useEffect(() => {
     loadPreferences()
-  }, [loadPreferences])
+  }, [supabase, router, toast])
 
   const getChannelIcon = (channel: string) => {
     switch (channel) {

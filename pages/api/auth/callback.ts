@@ -7,55 +7,77 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   const { code } = req.query
-  const origin = `${req.headers['x-forwarded-proto'] || 'http'}://${req.headers.host}`
+  const protocol =
+    req.headers['x-forwarded-proto'] || (req.headers.host?.includes('localhost') ? 'http' : 'https')
+  const origin = `${protocol}://${req.headers.host}`
 
-  if (code && typeof code === 'string') {
-    const supabase = createServerClient(req, res)
+  console.log('🔐 OAuth Callback:', { code: code ? 'present' : 'missing', origin })
 
-    const { data, error } = await supabase.auth.exchangeCodeForSession(code)
+  if (!code || typeof code !== 'string') {
+    console.error('❌ No code in callback')
+    return res.redirect('/login?error=No authorization code received')
+  }
 
-    if (error) {
-      console.error('Error exchanging code for session:', error)
-      return res.redirect(`/login?error=${encodeURIComponent(error.message)}`)
-    }
+  const supabase = createServerClient(req, res)
 
-    // Sync/Create user in Prisma database
-    if (data.user) {
-      try {
-        // First try to create/sync the user
-        const createResponse = await fetch(`${origin}/api/auth/create-user`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            userId: data.user.id,
-            email: data.user.email,
-            phone: data.user.phone || null,
-          }),
-        })
+  const { data, error } = await supabase.auth.exchangeCodeForSession(code)
 
-        if (!createResponse.ok) {
-          console.error('Failed to create user in database')
-        }
+  if (error) {
+    console.error('❌ Error exchanging code for session:', error)
+    return res.redirect(`/login?error=${encodeURIComponent(error.message)}`)
+  }
 
-        // Then sync any additional data
-        const syncResponse = await fetch(`${origin}/api/auth/sync-user`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Cookie: req.headers.cookie || '',
-          },
-        })
+  console.log('✅ Session created for user:', data.user?.email)
+  console.log('🍪 Session expires at:', data.session?.expires_at)
 
-        if (!syncResponse.ok) {
-          console.error('Failed to sync user to database')
-        }
-      } catch (syncError) {
-        console.error('Error syncing user:', syncError)
-        // Don't fail the auth flow if sync fails
+  // Log cookies being set
+  const setCookieHeader = res.getHeader('Set-Cookie')
+  console.log(
+    '🍪 Setting cookies:',
+    Array.isArray(setCookieHeader) ? setCookieHeader.length : 'single'
+  )
+
+  // Sync/Create user in Prisma database
+  if (data.user) {
+    try {
+      console.log('📝 Creating/syncing user in database:', data.user.email)
+
+      // First try to create/sync the user
+      const createResponse = await fetch(`${origin}/api/auth/create-user`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: data.user.id,
+          email: data.user.email,
+          phone: data.user.phone || null,
+        }),
+      })
+
+      if (createResponse.ok) {
+        const result = await createResponse.json()
+        console.log('✅ User in database:', result.action)
+      } else {
+        console.error('❌ Failed to create user in database:', await createResponse.text())
       }
+
+      // Then sync any additional data
+      const syncResponse = await fetch(`${origin}/api/auth/sync-user`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Cookie: req.headers.cookie || '',
+        },
+      })
+
+      if (!syncResponse.ok) {
+        console.error('⚠️ Failed to sync user metadata')
+      }
+    } catch (syncError) {
+      console.error('❌ Error syncing user:', syncError)
+      // Don't fail the auth flow if sync fails
     }
   }
 
-  // Redirect to feed page after successful authentication
+  console.log('🔄 Redirecting to /feed')
   return res.redirect('/feed')
 }

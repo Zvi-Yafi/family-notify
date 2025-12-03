@@ -12,20 +12,52 @@ export function useAuth() {
   useEffect(() => {
     // Get initial session
     const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      setUser(user)
-      setLoading(false)
+      try {
+        // First try to get the session
+        const {
+          data: { session },
+          error: sessionError,
+        } = await supabase.auth.getSession()
+
+        if (sessionError) {
+          console.error('❌ Session error:', sessionError)
+        }
+
+        if (session) {
+          console.log('✅ Found session for:', session.user.email)
+          setUser(session.user)
+        } else {
+          console.log('⚠️ No session found')
+          // Try getUser as fallback
+          const {
+            data: { user },
+            error: userError,
+          } = await supabase.auth.getUser()
+          if (userError) {
+            console.error('❌ Get user error:', userError)
+          }
+          if (user) {
+            console.log('✅ Found user:', user.email)
+          }
+          setUser(user)
+        }
+      } catch (error) {
+        console.error('❌ Auth error:', error)
+      } finally {
+        setLoading(false)
+      }
     }
 
     getUser()
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setUser(session?.user ?? null)
-        setLoading(false)
-      }
-    )
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('🔄 Auth state changed:', event, session?.user?.email)
+      setUser(session?.user ?? null)
+      setLoading(false)
+    })
 
     return () => {
       subscription.unsubscribe()
@@ -44,5 +76,3 @@ export function useAuth() {
     isAuthenticated: !!user,
   }
 }
-
-

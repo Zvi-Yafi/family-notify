@@ -13,13 +13,36 @@ export function createServerClient(req: NextApiRequest, res: NextApiResponse) {
           return req.cookies[name]
         },
         set(name: string, value: string, options: any) {
-          res.setHeader(
-            'Set-Cookie',
-            `${name}=${value}; Path=/; ${options.httpOnly ? 'HttpOnly;' : ''} ${options.secure ? 'Secure;' : ''} SameSite=Lax`
-          )
+          // Build cookie string with proper attributes
+          const cookieOptions = [
+            `${name}=${value}`,
+            'Path=/',
+            options.maxAge ? `Max-Age=${options.maxAge}` : '',
+            options.httpOnly ? 'HttpOnly' : '',
+            options.secure ? 'Secure' : '',
+            options.sameSite ? `SameSite=${options.sameSite}` : 'SameSite=Lax',
+          ]
+            .filter(Boolean)
+            .join('; ')
+
+          // Get existing Set-Cookie headers
+          const existingCookies = res.getHeader('Set-Cookie') || []
+          const cookiesArray = Array.isArray(existingCookies)
+            ? existingCookies
+            : [existingCookies as string]
+
+          // Add new cookie
+          res.setHeader('Set-Cookie', [...cookiesArray, cookieOptions])
         },
         remove(name: string, options: any) {
-          res.setHeader('Set-Cookie', `${name}=; Path=/; Max-Age=0`)
+          const cookieString = `${name}=; Path=/; Max-Age=0; ${options.httpOnly ? 'HttpOnly;' : ''}`
+
+          const existingCookies = res.getHeader('Set-Cookie') || []
+          const cookiesArray = Array.isArray(existingCookies)
+            ? existingCookies
+            : [existingCookies as string]
+
+          res.setHeader('Set-Cookie', [...cookiesArray, cookieString])
         },
       },
     }
