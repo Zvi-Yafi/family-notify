@@ -26,7 +26,9 @@ export class EmailProvider {
     return this.resend !== null
   }
 
-  async send(options: EmailOptions): Promise<{ success: boolean; messageId?: string; error?: string }> {
+  async send(
+    options: EmailOptions
+  ): Promise<{ success: boolean; messageId?: string; error?: string }> {
     if (!this.isConfigured()) {
       return {
         success: false,
@@ -56,6 +58,19 @@ export class EmailProvider {
       }
     } catch (error: any) {
       console.error('Email send error:', error)
+
+      // Check if it's a Resend testing mode limitation
+      const errorMessage = error.message || ''
+      if (errorMessage.includes('You can only send testing emails')) {
+        console.error('⚠️  RESEND TESTING MODE LIMITATION:')
+        console.error('   You can only send emails to your own address in testing mode.')
+        console.error('   Solutions:')
+        console.error('   1. Add recipient to "Allowed Recipients" in Resend dashboard')
+        console.error('   2. Verify a domain at https://resend.com/domains (recommended)')
+        console.error('   3. Use a Production API key')
+        console.error('   See RESEND_EMAIL_FIX.md for details')
+      }
+
       return {
         success: false,
         error: error.message || 'Unknown error',
@@ -63,7 +78,10 @@ export class EmailProvider {
     }
   }
 
-  async sendVerificationCode(email: string, code: string): Promise<{ success: boolean; error?: string }> {
+  async sendVerificationCode(
+    email: string,
+    code: string
+  ): Promise<{ success: boolean; error?: string }> {
     return this.send({
       to: email,
       subject: 'קוד אימות - FamilyNotify',
@@ -87,6 +105,3 @@ export class EmailProvider {
 }
 
 export const emailProvider = new EmailProvider()
-
-
-

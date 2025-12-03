@@ -67,6 +67,34 @@ class ApiClient {
       body: JSON.stringify(data),
     })
   }
+
+  // Stats
+  async getStats(familyGroupId: string) {
+    return this.request<{
+      memberCount: number
+      announcementsThisMonth: number
+      upcomingEvents: number
+      messagesSentToday: number
+      deliveryStats: {
+        sent: number
+        queued: number
+        failed: number
+      }
+    }>(`/api/admin/stats?familyGroupId=${familyGroupId}`)
+  }
+
+  // Members
+  async getMembers(familyGroupId: string) {
+    return this.request<{
+      members: Array<{
+        id: string
+        email: string
+        phone: string | null
+        role: string
+        joinedAt: string
+      }>
+    }>(`/api/admin/members?familyGroupId=${familyGroupId}`)
+  }
 }
 
 export const apiClient = new ApiClient()

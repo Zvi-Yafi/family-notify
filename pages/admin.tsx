@@ -1,18 +1,65 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/router'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Bell, Calendar, MessageSquare, Users } from 'lucide-react'
+import {
+  Bell,
+  Calendar,
+  MessageSquare,
+  Users,
+  Loader2,
+  X,
+  Crown,
+  Edit,
+  User as UserIcon,
+} from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { apiClient } from '@/lib/api-client'
 import { useFamilyContext } from '@/lib/context/family-context'
 import { Header } from '@/components/header'
 import { GroupSelector } from '@/components/group-selector'
 
+interface Stats {
+  memberCount: number
+  announcementsThisMonth: number
+  upcomingEvents: number
+  messagesSentToday: number
+  deliveryStats: {
+    sent: number
+    queued: number
+    failed: number
+  }
+}
+
+interface Member {
+  id: string
+  email: string
+  phone: string | null
+  role: string
+  joinedAt: string
+}
+
 export default function AdminPage() {
+  const router = useRouter()
   const [activeTab, setActiveTab] = useState<'announcements' | 'events' | 'stats'>('announcements')
   const [loading, setLoading] = useState(false)
+  const [statsLoading, setStatsLoading] = useState(true)
+  const [stats, setStats] = useState<Stats>({
+    memberCount: 0,
+    announcementsThisMonth: 0,
+    upcomingEvents: 0,
+    messagesSentToday: 0,
+    deliveryStats: {
+      sent: 0,
+      queued: 0,
+      failed: 0,
+    },
+  })
+  const [showMembersDialog, setShowMembersDialog] = useState(false)
+  const [members, setMembers] = useState<Member[]>([])
+  const [loadingMembers, setLoadingMembers] = useState(false)
   const { toast } = useToast()
   const { familyGroupId, groups, loadingGroups, selectedGroup } = useFamilyContext()
 
@@ -31,6 +78,78 @@ export default function AdminPage() {
     location: '',
     reminderOffsets: [1440, 60], // 24h and 1h before
   })
+
+  // Load stats function
+  const loadStats = useCallback(async () => {
+    if (!familyGroupId) {
+      setStatsLoading(false)
+      return
+    }
+
+    try {
+      setStatsLoading(true)
+      const data = await apiClient.getStats(familyGroupId)
+      setStats(data)
+    } catch (error) {
+      console.error('Failed to load stats:', error)
+      // Don't show error toast, just use defaults
+    } finally {
+      setStatsLoading(false)
+    }
+  }, [familyGroupId])
+
+  // Load stats when familyGroupId changes
+  useEffect(() => {
+    loadStats()
+  }, [loadStats])
+
+  // Load members when dialog opens
+  const loadMembers = useCallback(async () => {
+    if (!familyGroupId) return
+
+    try {
+      setLoadingMembers(true)
+      const data = await apiClient.getMembers(familyGroupId)
+      setMembers(data.members)
+    } catch (error) {
+      console.error('Failed to load members:', error)
+      toast({
+        title: 'שגיאה',
+        description: 'לא הצלחנו לטעון את רשימת החברים',
+        variant: 'destructive',
+      })
+    } finally {
+      setLoadingMembers(false)
+    }
+  }, [familyGroupId, toast])
+
+  useEffect(() => {
+    if (showMembersDialog) {
+      loadMembers()
+    }
+  }, [showMembersDialog, loadMembers])
+
+  const getRoleIcon = (role: string) => {
+    switch (role) {
+      case 'ADMIN':
+        return <Crown className="h-4 w-4 text-yellow-500" />
+      case 'EDITOR':
+        return <Edit className="h-4 w-4 text-blue-500" />
+      default:
+        return <UserIcon className="h-4 w-4 text-gray-500" />
+    }
+  }
+
+  const getRoleLabel = (role: string) => {
+    switch (role) {
+      case 'ADMIN':
+        return 'מנהל'
+      case 'EDITOR':
+        return 'עורך'
+      default:
+        return 'חבר'
+    }
+  }
 
   const handleAnnouncementSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -63,6 +182,9 @@ export default function AdminPage() {
         title: 'הודעה נוצרה בהצלחה!',
         description: 'ההודעה נשלחה לכל חברי המשפחה',
       })
+
+      // Reload stats to update the count
+      await loadStats()
 
       // Reset form
       setAnnouncementForm({
@@ -115,6 +237,9 @@ export default function AdminPage() {
         title: 'אירוע נוצר בהצלחה!',
         description: 'תזכורות יישלחו אוטומטית לפני האירוע',
       })
+
+      // Reload stats to update the count
+      await loadStats()
 
       // Reset form
       setEventForm({
@@ -182,28 +307,55 @@ export default function AdminPage() {
             <>
               {/* Stats Overview */}
               <div className="grid md:grid-cols-4 gap-4 mb-8">
-                <Card>
+                <Card
+                  className="cursor-pointer hover:shadow-lg transition-shadow"
+                  onClick={() => setShowMembersDialog(true)}
+                >
                   <CardHeader className="pb-3">
                     <CardDescription>חברי קבוצה</CardDescription>
-                    <CardTitle className="text-3xl">24</CardTitle>
+                    <CardTitle className="text-3xl">
+                      {statsLoading ? (
+                        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+                      ) : (
+                        stats.memberCount
+                      )}
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <Users className="h-4 w-4 text-gray-400" />
                   </CardContent>
                 </Card>
-                <Card>
+                <Card
+                  className="cursor-pointer hover:shadow-lg transition-shadow"
+                  onClick={() => router.push('/feed')}
+                >
                   <CardHeader className="pb-3">
                     <CardDescription>הודעות חודש זה</CardDescription>
-                    <CardTitle className="text-3xl">12</CardTitle>
+                    <CardTitle className="text-3xl">
+                      {statsLoading ? (
+                        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+                      ) : (
+                        stats.announcementsThisMonth
+                      )}
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <MessageSquare className="h-4 w-4 text-gray-400" />
                   </CardContent>
                 </Card>
-                <Card>
+                <Card
+                  className="cursor-pointer hover:shadow-lg transition-shadow"
+                  onClick={() => router.push('/events')}
+                >
                   <CardHeader className="pb-3">
                     <CardDescription>אירועים קרובים</CardDescription>
-                    <CardTitle className="text-3xl">5</CardTitle>
+                    <CardTitle className="text-3xl">
+                      {statsLoading ? (
+                        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+                      ) : (
+                        stats.upcomingEvents
+                      )}
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <Calendar className="h-4 w-4 text-gray-400" />
@@ -212,13 +364,89 @@ export default function AdminPage() {
                 <Card>
                   <CardHeader className="pb-3">
                     <CardDescription>הודעות נשלחו היום</CardDescription>
-                    <CardTitle className="text-3xl">48</CardTitle>
+                    <CardTitle className="text-3xl">
+                      {statsLoading ? (
+                        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+                      ) : (
+                        stats.messagesSentToday
+                      )}
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <Bell className="h-4 w-4 text-gray-400" />
                   </CardContent>
                 </Card>
               </div>
+
+              {/* Members Dialog */}
+              {showMembersDialog && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                  <Card className="w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+                    <CardHeader className="flex flex-row items-center justify-between pb-4">
+                      <div>
+                        <CardTitle>חברי הקבוצה</CardTitle>
+                        <CardDescription>
+                          {selectedGroup?.name} - {stats.memberCount} חברים
+                        </CardDescription>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setShowMembersDialog(false)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </CardHeader>
+                    <CardContent className="flex-1 overflow-y-auto">
+                      {loadingMembers ? (
+                        <div className="flex items-center justify-center py-12">
+                          <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+                        </div>
+                      ) : members.length === 0 ? (
+                        <div className="text-center py-12">
+                          <Users className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                          <p className="text-gray-600">אין חברים בקבוצה</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          {members.map((member) => (
+                            <div
+                              key={member.id}
+                              className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                            >
+                              <div className="flex items-center gap-3">
+                                <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
+                                  <UserIcon className="h-5 w-5 text-blue-600" />
+                                </div>
+                                <div>
+                                  <p className="font-medium">{member.email}</p>
+                                  {member.phone && (
+                                    <p className="text-sm text-gray-500">{member.phone}</p>
+                                  )}
+                                  <p className="text-xs text-gray-400">
+                                    הצטרף ב-{' '}
+                                    {new Date(member.joinedAt).toLocaleDateString('he-IL', {
+                                      year: 'numeric',
+                                      month: 'long',
+                                      day: 'numeric',
+                                    })}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                {getRoleIcon(member.role)}
+                                <span className="text-sm text-gray-600">
+                                  {getRoleLabel(member.role)}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
 
               {/* Tabs */}
               <div className="flex gap-2 mb-6">
@@ -464,29 +692,43 @@ export default function AdminPage() {
                     <CardDescription>מעקב אחרי הודעות שנשלחו</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                        <div>
-                          <p className="font-medium">נשלחו בהצלחה</p>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">היום</p>
-                        </div>
-                        <span className="text-2xl font-bold text-green-600">42</span>
+                    {statsLoading ? (
+                      <div className="flex items-center justify-center py-12">
+                        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
                       </div>
-                      <div className="flex items-center justify-between p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
-                        <div>
-                          <p className="font-medium">בתור</p>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">ממתינים לשליחה</p>
+                    ) : (
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                          <div>
+                            <p className="font-medium">נשלחו בהצלחה</p>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">כל הזמנים</p>
+                          </div>
+                          <span className="text-2xl font-bold text-green-600">
+                            {stats.deliveryStats.sent}
+                          </span>
                         </div>
-                        <span className="text-2xl font-bold text-yellow-600">6</span>
-                      </div>
-                      <div className="flex items-center justify-between p-4 bg-red-50 dark:bg-red-900/20 rounded-lg">
-                        <div>
-                          <p className="font-medium">נכשלו</p>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">דורשים טיפול</p>
+                        <div className="flex items-center justify-between p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+                          <div>
+                            <p className="font-medium">בתור</p>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                              ממתינים לשליחה
+                            </p>
+                          </div>
+                          <span className="text-2xl font-bold text-yellow-600">
+                            {stats.deliveryStats.queued}
+                          </span>
                         </div>
-                        <span className="text-2xl font-bold text-red-600">0</span>
+                        <div className="flex items-center justify-between p-4 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                          <div>
+                            <p className="font-medium">נכשלו</p>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">דורשים טיפול</p>
+                          </div>
+                          <span className="text-2xl font-bold text-red-600">
+                            {stats.deliveryStats.failed}
+                          </span>
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </CardContent>
                 </Card>
               )}

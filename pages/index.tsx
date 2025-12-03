@@ -1,9 +1,62 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/router'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Mail, MessageSquare, Bell, Calendar, Users, Shield } from 'lucide-react'
+import { Header } from '@/components/header'
+import { useAuth } from '@/lib/hooks/use-auth'
 
 export default function HomePage() {
+  const router = useRouter()
+  const { user, loading } = useAuth()
+  const [showContent, setShowContent] = useState(false)
+
+  // If user is logged in, show the app header and redirect to feed after a moment
+  useEffect(() => {
+    if (!loading && user) {
+      // Show content with app header for logged in users
+      setShowContent(true)
+    } else if (!loading && !user) {
+      // Show landing page for non-logged in users
+      setShowContent(true)
+    }
+  }, [user, loading])
+
+  // If user is logged in, show a simplified version with app header
+  if (!loading && user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white dark:from-gray-900 dark:to-gray-800">
+        <Header />
+
+        {/* Welcome message for logged in users */}
+        <div className="container mx-auto px-4 py-16">
+          <div className="max-w-4xl mx-auto text-center">
+            <h1 className="text-4xl font-bold mb-4">ברוך הבא ל-FamilyNotify!</h1>
+            <p className="text-xl text-gray-600 dark:text-gray-300 mb-8">
+              אתה מחובר ומוכן להתחיל לשלוח הודעות ואירועים למשפחה
+            </p>
+            <div className="flex gap-4 justify-center">
+              <Button size="lg" asChild>
+                <Link href="/feed">לפיד ההודעות</Link>
+              </Button>
+              <Button size="lg" variant="outline" asChild>
+                <Link href="/admin">ניהול</Link>
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Landing page for non-logged in users
+  if (!showContent) {
+    return null // Show nothing while checking auth
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white dark:from-gray-900 dark:to-gray-800">
       {/* Header */}
