@@ -13,7 +13,11 @@ import { Header } from '@/components/header'
 export default function TestEmailPage() {
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
-  const [result, setResult] = useState<{ success: boolean; message?: string; error?: string } | null>(null)
+  const [result, setResult] = useState<{
+    success: boolean
+    message?: string
+    error?: string
+  } | null>(null)
   const { toast } = useToast()
   const { user } = useAuth()
 
@@ -87,9 +91,7 @@ export default function TestEmailPage() {
                 <Mail className="h-6 w-6 text-blue-600" />
                 <CardTitle>בדיקת שליחת אימייל</CardTitle>
               </div>
-              <CardDescription>
-                בדוק שההגדרות של Resend עובדות נכון
-              </CardDescription>
+              <CardDescription>בדוק שההגדרות של Resend עובדות נכון</CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleTest} className="space-y-4">
@@ -104,11 +106,7 @@ export default function TestEmailPage() {
                     disabled={loading}
                     required
                   />
-                  {user && (
-                    <p className="text-sm text-gray-500 mt-1">
-                      נשלח מ: {user.email}
-                    </p>
-                  )}
+                  {user && <p className="text-sm text-gray-500 mt-1">נשלח מ: {user.email}</p>}
                 </div>
 
                 <Button type="submit" className="w-full" disabled={loading}>
@@ -189,4 +187,3 @@ export default function TestEmailPage() {
     </div>
   )
 }
-

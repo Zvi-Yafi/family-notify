@@ -20,8 +20,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     } = await supabase.auth.getUser()
 
     if (authError || !user) {
+      console.error('❌ Sync-user: Not authenticated', { authError: authError?.message })
       return res.status(401).json({ error: 'Not authenticated' })
     }
+
+    console.log('✅ Sync-user: Authenticated user found', { userId: user.id, email: user.email })
 
     // Check if user already exists in Prisma
     const existingUser = await prisma.user.findUnique({
@@ -39,6 +42,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         },
       })
 
+      console.log('✅ Sync-user: User updated in database', { userId: updatedUser.id })
       return res.status(200).json({
         success: true,
         user: updatedUser,
@@ -54,6 +58,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         phone: user.phone || null,
       },
     })
+
+    console.log('✅ Sync-user: New user created in database', { userId: newUser.id })
 
     // Create default EMAIL preference
     try {

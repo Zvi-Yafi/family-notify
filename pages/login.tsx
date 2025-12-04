@@ -90,14 +90,35 @@ export default function LoginPage() {
         throw error
       }
 
-      // Sync user to database
-      try {
-        await fetch('/api/auth/sync-user', {
-          method: 'POST',
-        })
-      } catch (syncError) {
-        console.error('Failed to sync user:', syncError)
-        // Don't block login if sync fails
+      // signInWithPassword should return session in data, but wait a bit for cookies to be set
+      // The browser client from @supabase/ssr should automatically set cookies
+      if (data?.session) {
+        // Small delay to ensure cookies are set by the browser client
+        await new Promise((resolve) => setTimeout(resolve, 200))
+
+        // Sync user to database - include credentials to ensure cookies are sent
+        try {
+          const syncResponse = await fetch('/api/auth/sync-user', {
+            method: 'POST',
+            credentials: 'include', // Ensure cookies are sent
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          })
+
+          if (!syncResponse.ok) {
+            const errorText = await syncResponse.text()
+            console.error('Failed to sync user:', errorText)
+            // Don't block login if sync fails, but log it
+          } else {
+            console.log('✅ User synced successfully')
+          }
+        } catch (syncError) {
+          console.error('Failed to sync user:', syncError)
+          // Don't block login if sync fails
+        }
+      } else {
+        console.warn('No session in response, sync-user will be called on next page load')
       }
 
       toast({

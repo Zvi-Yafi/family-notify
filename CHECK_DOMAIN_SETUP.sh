@@ -73,3 +73,4 @@ echo ""
 echo "📖 קרא את DOMAIN_SETUP.md להסבר מפורט"
 echo ""
 
+
