@@ -39,157 +39,117 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     })
     console.log('📊 Stats - Member count:', memberCount)
 
-    // 2. Count announcements this month
-    // Get all announcements and filter by month
-    const allAnnouncements = await prisma.announcement.findMany({
-      where: { familyGroupId },
-      select: { id: true, createdAt: true },
-    })
+    // 2. Count announcements this month (optimized - count in database)
+    const [totalAnnouncements, announcementsThisMonth] = await Promise.all([
+      prisma.announcement.count({
+        where: { familyGroupId },
+      }),
+      prisma.announcement.count({
+        where: {
+          familyGroupId,
+          createdAt: {
+            gte: startOfMonth,
+            lte: now,
+          },
+        },
+      }),
+    ])
 
-    // Count announcements created this month
-    const announcementsThisMonth = allAnnouncements.filter((a) => {
-      const created = new Date(a.createdAt)
-      return created >= startOfMonth && created <= now
-    }).length
-
-    console.log('📊 Stats - Total announcements:', allAnnouncements.length)
+    console.log('📊 Stats - Total announcements:', totalAnnouncements)
     console.log('📊 Stats - Announcements this month:', announcementsThisMonth)
     console.log('📊 Stats - Date range:', startOfMonth.toISOString(), 'to', now.toISOString())
 
-    // 3. Count upcoming events (future events)
-    const allEvents = await prisma.event.findMany({
-      where: { familyGroupId },
-      select: { id: true, startsAt: true },
+    // 3. Count upcoming events (optimized - count in database)
+    const upcomingEvents = await prisma.event.count({
+      where: {
+        familyGroupId,
+        startsAt: {
+          gte: now,
+        },
+      },
     })
-    console.log(
-      '📊 Stats - All events:',
-      allEvents.length,
-      allEvents.map((e) => ({ id: e.id, startsAt: e.startsAt }))
-    )
 
-    const upcomingEvents = allEvents.filter((e) => e.startsAt >= now).length
     console.log('📊 Stats - Upcoming events:', upcomingEvents, 'now:', now.toISOString())
 
-    // 4. Count messages sent today (successful delivery attempts)
-    // Get all announcement and event IDs for this group
-    const groupAnnouncementIds = await prisma.announcement.findMany({
-      where: { familyGroupId },
-      select: { id: true },
-    })
-    const groupEventIds = await prisma.event.findMany({
-      where: { familyGroupId },
-      select: { id: true },
-    })
+    // 4. Count messages sent today and get delivery stats
+    // Get all announcement and event IDs for this group in one batch
+    const [groupAnnouncementIds, groupEventIds] = await Promise.all([
+      prisma.announcement.findMany({
+        where: { familyGroupId },
+        select: { id: true },
+      }),
+      prisma.event.findMany({
+        where: { familyGroupId },
+        select: { id: true },
+      }),
+    ])
 
     const announcementIds = groupAnnouncementIds.map((a) => a.id)
     const eventIds = groupEventIds.map((e) => e.id)
+    const allItemIds = [...announcementIds, ...eventIds]
 
-    // Count successful delivery attempts - do separate queries for announcements and events
-    // Note: status is 'SENT' not 'SUCCESS' according to schema
-    const [announcementDeliveries, eventDeliveries] = await Promise.all([
-      announcementIds.length > 0
-        ? prisma.deliveryAttempt.count({
-            where: {
+    // Use a single optimized query with GROUP BY to get all delivery stats at once
+    // This replaces 8 separate COUNT queries with 1 grouped query
+    let messagesSentToday = 0
+    let sentCount = 0
+    let queuedCount = 0
+    let failedCount = 0
+
+    if (allItemIds.length > 0) {
+      // Get all delivery attempts for this group's items in one query
+      const deliveryStats = await prisma.deliveryAttempt.groupBy({
+        by: ['status', 'itemType'],
+        where: {
+          OR: [
+            {
               itemType: 'ANNOUNCEMENT',
               itemId: { in: announcementIds },
-              status: 'SENT',
-              createdAt: {
-                gte: startOfToday,
-              },
             },
-          })
-        : 0,
-      eventIds.length > 0
-        ? prisma.deliveryAttempt.count({
-            where: {
+            {
               itemType: 'EVENT',
               itemId: { in: eventIds },
-              status: 'SENT',
-              createdAt: {
-                gte: startOfToday,
-              },
             },
-          })
-        : 0,
-    ])
+          ],
+        },
+        _count: {
+          id: true,
+        },
+      })
 
-    const messagesSentToday = announcementDeliveries + eventDeliveries
+      // Process the grouped results
+      for (const stat of deliveryStats) {
+        const count = stat._count.id
+        if (stat.status === 'SENT') {
+          sentCount += count
+        } else if (stat.status === 'QUEUED') {
+          queuedCount += count
+        } else if (stat.status === 'FAILED') {
+          failedCount += count
+        }
+      }
 
-    // 5. Get delivery status counts (for stats tab)
-    // Do separate queries for announcements and events, then combine
-    const [
-      announcementSent,
-      announcementQueued,
-      announcementFailed,
-      eventSent,
-      eventQueued,
-      eventFailed,
-    ] = await Promise.all([
-      // Announcement deliveries - SENT
-      announcementIds.length > 0
-        ? prisma.deliveryAttempt.count({
-            where: {
+      // Count messages sent today separately (needs date filter)
+      const todayDeliveries = await prisma.deliveryAttempt.count({
+        where: {
+          OR: [
+            {
               itemType: 'ANNOUNCEMENT',
               itemId: { in: announcementIds },
-              status: 'SENT',
             },
-          })
-        : 0,
-      // Announcement deliveries - QUEUED
-      announcementIds.length > 0
-        ? prisma.deliveryAttempt.count({
-            where: {
-              itemType: 'ANNOUNCEMENT',
-              itemId: { in: announcementIds },
-              status: 'QUEUED',
-            },
-          })
-        : 0,
-      // Announcement deliveries - FAILED
-      announcementIds.length > 0
-        ? prisma.deliveryAttempt.count({
-            where: {
-              itemType: 'ANNOUNCEMENT',
-              itemId: { in: announcementIds },
-              status: 'FAILED',
-            },
-          })
-        : 0,
-      // Event deliveries - SENT
-      eventIds.length > 0
-        ? prisma.deliveryAttempt.count({
-            where: {
+            {
               itemType: 'EVENT',
               itemId: { in: eventIds },
-              status: 'SENT',
             },
-          })
-        : 0,
-      // Event deliveries - QUEUED
-      eventIds.length > 0
-        ? prisma.deliveryAttempt.count({
-            where: {
-              itemType: 'EVENT',
-              itemId: { in: eventIds },
-              status: 'QUEUED',
-            },
-          })
-        : 0,
-      // Event deliveries - FAILED
-      eventIds.length > 0
-        ? prisma.deliveryAttempt.count({
-            where: {
-              itemType: 'EVENT',
-              itemId: { in: eventIds },
-              status: 'FAILED',
-            },
-          })
-        : 0,
-    ])
+          ],
+          status: 'SENT',
+          createdAt: {
+            gte: startOfToday,
+          },
+        },
+      })
 
-    const sentCount = announcementSent + eventSent
-    const queuedCount = announcementQueued + eventQueued
-    const failedCount = announcementFailed + eventFailed
+      messagesSentToday = todayDeliveries
+    }
 
     return res.status(200).json({
       memberCount,

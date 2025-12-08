@@ -170,3 +170,4 @@ WHATSAPP_BUSINESS_ACCOUNT_ID="987654321098765"
 **אחרי ההגדרה - WhatsApp יעבוד! 🎉**
 
 
+

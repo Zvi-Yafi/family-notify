@@ -62,6 +62,15 @@ export function useAuth() {
       console.log('🔄 Auth state changed:', event, session?.user?.email || 'no user')
       setUser(session?.user ?? null)
       setLoading(false)
+
+      // Redirect to home if user signed out (but not if we're already on home or login)
+      if (event === 'SIGNED_OUT' && typeof window !== 'undefined') {
+        const currentPath = window.location.pathname
+        // Only redirect if we're on a protected page (not home, login, or onboarding)
+        if (currentPath !== '/' && currentPath !== '/login' && currentPath !== '/onboarding') {
+          window.location.href = '/'
+        }
+      }
     })
 
     return () => {
@@ -72,6 +81,10 @@ export function useAuth() {
   const signOut = async () => {
     await supabase.auth.signOut()
     setUser(null)
+    // Redirect to home page after sign out
+    if (typeof window !== 'undefined') {
+      window.location.href = '/'
+    }
   }
 
   return {

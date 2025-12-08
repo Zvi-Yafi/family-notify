@@ -3,6 +3,14 @@
  * Centralized API communication layer
  */
 
+// Custom error class for authentication errors
+export class UnauthorizedError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'UnauthorizedError'
+  }
+}
+
 class ApiClient {
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     // Use relative URLs - works in browser and during SSR
@@ -20,6 +28,18 @@ class ApiClient {
     const response = await fetch(url, config)
 
     if (!response.ok) {
+      // Handle 401 Unauthorized - user logged out
+      if (response.status === 401) {
+        // Only redirect if we're in the browser
+        if (typeof window !== 'undefined') {
+          const currentPath = window.location.pathname
+          window.location.href = `/login?redirectTo=${encodeURIComponent(currentPath)}`
+          // Throw a special error that won't be displayed
+          throw new UnauthorizedError('Unauthorized - redirecting to login')
+        }
+        throw new UnauthorizedError('Unauthorized')
+      }
+
       const error = await response.json().catch(() => ({ error: 'Request failed' }))
       throw new Error(error.error || `HTTP ${response.status}`)
     }

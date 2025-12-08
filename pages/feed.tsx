@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Bell } from 'lucide-react'
 import Link from 'next/link'
-import { apiClient } from '@/lib/api-client'
+import { apiClient, UnauthorizedError } from '@/lib/api-client'
 import { useFamilyContext } from '@/lib/context/family-context'
 import { Header } from '@/components/header'
 
@@ -37,6 +37,10 @@ export default function FeedPage() {
           }))
         )
       } catch (error) {
+        // Don't show error for unauthorized - redirect is handled by apiClient
+        if (error instanceof UnauthorizedError) {
+          return
+        }
         console.error('Failed to load announcements:', error)
       } finally {
         setLoading(false)

@@ -40,12 +40,12 @@ export default function HomePage() {
             </p>
             <div className="flex gap-4 justify-center">
               <Button size="lg" asChild>
-                <Link href="/feed">לפיד ההודעות</Link>
-              </Button>
-              <Button size="lg" variant="outline" asChild>
-                <Link href="/admin">ניהול</Link>
+                <Link href="/feed">התחל כאן - לפיד ההודעות</Link>
               </Button>
             </div>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-4">
+              ניתן לגשת לניהול, אירועים וקבוצות דרך התפריט למעלה
+            </p>
           </div>
         </div>
       </div>
@@ -67,11 +67,8 @@ export default function HomePage() {
             <h1 className="text-2xl font-bold">FamilyNotify</h1>
           </div>
           <div className="flex gap-4">
-            <Button variant="ghost" asChild>
-              <Link href="/login">התחברות</Link>
-            </Button>
-            <Button asChild>
-              <Link href="/login">התחל כאן</Link>
+            <Button size="lg" asChild>
+              <Link href="/login">התחבר / הירשם</Link>
             </Button>
           </div>
         </nav>

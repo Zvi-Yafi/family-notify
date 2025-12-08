@@ -16,7 +16,7 @@ import {
   User as UserIcon,
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
-import { apiClient } from '@/lib/api-client'
+import { apiClient, UnauthorizedError } from '@/lib/api-client'
 import { useFamilyContext } from '@/lib/context/family-context'
 import { Header } from '@/components/header'
 import { GroupSelector } from '@/components/group-selector'
@@ -91,6 +91,10 @@ export default function AdminPage() {
       const data = await apiClient.getStats(familyGroupId)
       setStats(data)
     } catch (error) {
+      // Don't show error for unauthorized - redirect is handled by apiClient
+      if (error instanceof UnauthorizedError) {
+        return
+      }
       console.error('Failed to load stats:', error)
       // Don't show error toast, just use defaults
     } finally {
@@ -112,6 +116,10 @@ export default function AdminPage() {
       const data = await apiClient.getMembers(familyGroupId)
       setMembers(data.members)
     } catch (error) {
+      // Don't show error for unauthorized - redirect is handled by apiClient
+      if (error instanceof UnauthorizedError) {
+        return
+      }
       console.error('Failed to load members:', error)
       toast({
         title: 'שגיאה',
@@ -194,6 +202,10 @@ export default function AdminPage() {
         scheduledAt: '',
       })
     } catch (error: any) {
+      // Don't show error for unauthorized - redirect is handled by apiClient
+      if (error instanceof UnauthorizedError) {
+        return
+      }
       toast({
         title: 'שגיאה',
         description: error.message || 'נכשל ליצור הודעה',
@@ -251,6 +263,10 @@ export default function AdminPage() {
         reminderOffsets: [1440, 60],
       })
     } catch (error: any) {
+      // Don't show error for unauthorized - redirect is handled by apiClient
+      if (error instanceof UnauthorizedError) {
+        return
+      }
       toast({
         title: 'שגיאה',
         description: error.message || 'נכשל ליצור אירוע',
