@@ -26,10 +26,101 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     console.log('✅ Sync-user: Authenticated user found', { userId: user.id, email: user.email })
 
-    // Check if user already exists in Prisma
-    const existingUser = await prisma.user.findUnique({
+    // Check if user already exists in Prisma by ID
+    let existingUser = await prisma.user.findUnique({
       where: { id: user.id },
     })
+
+    // If not found by ID, check by email (for pre-created users)
+    if (!existingUser && user.email) {
+      existingUser = await prisma.user.findUnique({
+        where: { email: user.email },
+      })
+
+      // If found by email but with different ID, migrate to Supabase Auth ID
+      if (existingUser && existingUser.id !== user.id) {
+        console.log(
+          '🔄 Sync-user: Found user by email, migrating ID from',
+          existingUser.id,
+          'to',
+          user.id
+        )
+
+        // Save values to local variables for TypeScript null-safety in transaction
+        const oldUserId = existingUser.id
+        const oldUserEmail = existingUser.email
+        const oldUserPhone = existingUser.phone
+
+        try {
+          // Use a transaction to ensure all updates succeed or fail together
+          const updatedUser = await prisma.$transaction(async (tx) => {
+            // Step 1: Temporarily change the old user's email to avoid unique constraint
+            const tempEmail = `temp_${Date.now()}_${oldUserEmail}`
+            await tx.user.update({
+              where: { id: oldUserId },
+              data: { email: tempEmail },
+            })
+
+            // Step 2: Create new user with Supabase Auth ID
+            const newUser = await tx.user.create({
+              data: {
+                id: user.id,
+                email: user.email!,
+                phone: user.phone || oldUserPhone || null,
+              },
+            })
+
+            // Step 3: Update all related records to point to new user
+            await tx.membership.updateMany({
+              where: { userId: oldUserId },
+              data: { userId: user.id },
+            })
+
+            await tx.preference.updateMany({
+              where: { userId: oldUserId },
+              data: { userId: user.id },
+            })
+
+            await tx.announcement.updateMany({
+              where: { createdBy: oldUserId },
+              data: { createdBy: user.id },
+            })
+
+            await tx.event.updateMany({
+              where: { createdBy: oldUserId },
+              data: { createdBy: user.id },
+            })
+
+            await tx.deliveryAttempt.updateMany({
+              where: { userId: oldUserId },
+              data: { userId: user.id },
+            })
+
+            await tx.consent.updateMany({
+              where: { userId: oldUserId },
+              data: { userId: user.id },
+            })
+
+            // Step 4: Delete the old user record
+            await tx.user.delete({
+              where: { id: oldUserId },
+            })
+
+            return newUser
+          })
+
+          console.log('✅ Sync-user: User ID migrated successfully')
+          return res.status(200).json({
+            success: true,
+            user: updatedUser,
+            action: 'migrated',
+          })
+        } catch (txError: any) {
+          console.error('❌ Sync-user: Failed to migrate user ID:', txError)
+          throw new Error('Failed to migrate user from pre-created account')
+        }
+      }
+    }
 
     if (existingUser) {
       // Update existing user
