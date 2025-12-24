@@ -301,20 +301,17 @@ export default function AdminPage() {
       {/* Main Content */}
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-5xl mx-auto">
-          {/* Group Selection */}
-          {needsGroupSelection && (
+          {/* Group Selection - Always show for multiple groups or when needed */}
+          {(needsGroupSelection || (groups.length > 1 && familyGroupId)) && (
             <div className="mb-8">
               <GroupSelector
-                title="בחר קבוצה"
-                description="בחר את הקבוצה שאליה תרצה לשלוח הודעות ואירועים"
+                title={familyGroupId ? 'החלף קבוצה' : 'בחר קבוצה'}
+                description={
+                  familyGroupId
+                    ? 'בחר את הקבוצה שאליה תרצה לשלוח הודעות ואירועים'
+                    : 'בחר את הקבוצה שאליה תרצה לשלוח הודעות ואירועים'
+                }
               />
-            </div>
-          )}
-
-          {/* Show selected group indicator for multiple groups */}
-          {groups.length > 1 && familyGroupId && selectedGroup && (
-            <div className="mb-6">
-              <GroupSelector />
             </div>
           )}
 
@@ -497,6 +494,17 @@ export default function AdminPage() {
                     <CardDescription>
                       ההודעה תישלח לכל חברי הקבוצה בהתאם להעדפות שלהם
                     </CardDescription>
+                    {/* Show selected group indicator */}
+                    {selectedGroup && groups.length > 1 && (
+                      <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                        <div className="flex items-center gap-2">
+                          <Users className="h-4 w-4 text-blue-600" />
+                          <span className="text-sm text-blue-800 dark:text-blue-200">
+                            שולח לקבוצה: <strong>{selectedGroup.name}</strong>
+                          </span>
+                        </div>
+                      </div>
+                    )}
                   </CardHeader>
                   <CardContent>
                     <form onSubmit={handleAnnouncementSubmit} className="space-y-4">
@@ -601,6 +609,17 @@ export default function AdminPage() {
                   <CardHeader>
                     <CardTitle>צור אירוע חדש</CardTitle>
                     <CardDescription>תזכורות יישלחו אוטומטית לפני האירוע</CardDescription>
+                    {/* Show selected group indicator */}
+                    {selectedGroup && groups.length > 1 && (
+                      <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                        <div className="flex items-center gap-2">
+                          <Users className="h-4 w-4 text-blue-600" />
+                          <span className="text-sm text-blue-800 dark:text-blue-200">
+                            שולח לקבוצה: <strong>{selectedGroup.name}</strong>
+                          </span>
+                        </div>
+                      </div>
+                    )}
                   </CardHeader>
                   <CardContent>
                     <form onSubmit={handleEventSubmit} className="space-y-4">

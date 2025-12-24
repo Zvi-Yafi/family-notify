@@ -64,7 +64,7 @@ export function GroupSelector({
     )
   }
 
-  // Multiple groups - show selector
+  // Multiple groups - show selector (always expandable)
   return (
     <Card className="mb-6">
       <CardHeader>

@@ -134,16 +134,13 @@ export default function EventsPage() {
             </div>
           </div>
 
-          {/* Show group selector if no groups or multiple groups without selection */}
-          {(groups.length === 0 || (groups.length > 1 && !familyGroupId)) && (
+          {/* Show group selector if no groups or multiple groups (always show for multiple groups) */}
+          {(groups.length === 0 || groups.length > 1) && (
             <GroupSelector
-              title="בחר קבוצה לצפייה באירועים"
+              title={familyGroupId ? 'החלף קבוצה' : 'בחר קבוצה לצפייה באירועים'}
               description="בחר את הקבוצה שתרצה לראות את האירועים שלה"
             />
           )}
-
-          {/* Show current group indicator if multiple groups and one selected */}
-          {groups.length > 1 && familyGroupId && selectedGroup && <GroupSelector />}
 
           {loading && familyGroupId && (
             <div className="text-center py-12">

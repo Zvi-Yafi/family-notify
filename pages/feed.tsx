@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { apiClient, UnauthorizedError } from '@/lib/api-client'
 import { useFamilyContext } from '@/lib/context/family-context'
 import { Header } from '@/components/header'
+import { GroupSelector } from '@/components/group-selector'
 
 interface Announcement {
   id: string
@@ -19,7 +20,7 @@ interface Announcement {
 export default function FeedPage() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([])
   const [loading, setLoading] = useState(true)
-  const { familyGroupId } = useFamilyContext()
+  const { familyGroupId, groups, loadingGroups, selectedGroup } = useFamilyContext()
 
   useEffect(() => {
     async function loadAnnouncements() {
@@ -50,6 +51,20 @@ export default function FeedPage() {
     loadAnnouncements()
   }, [familyGroupId])
 
+  // Show loading while fetching groups
+  if (loadingGroups) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+        <Header />
+        <div className="container mx-auto px-4 py-8">
+          <div className="max-w-3xl mx-auto text-center py-12">
+            <p className="text-gray-600 dark:text-gray-400">טוען...</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <Header />
@@ -64,10 +79,20 @@ export default function FeedPage() {
                 כל ההודעות והשמחות האחרונות מהמשפחה
               </p>
             </div>
-            <Button asChild>
-              <Link href="/admin">הוסף הודעה</Link>
-            </Button>
+            {familyGroupId && (
+              <Button asChild>
+                <Link href="/admin">הוסף הודעה</Link>
+              </Button>
+            )}
           </div>
+
+          {/* Show group selector if no groups or multiple groups */}
+          {(groups.length === 0 || groups.length > 1) && (
+            <GroupSelector
+              title={familyGroupId ? 'החלף קבוצה' : 'בחר קבוצה לצפייה בהודעות'}
+              description="בחר את הקבוצה שתרצה לראות את ההודעות שלה"
+            />
+          )}
 
           {loading && (
             <div className="text-center py-12">
