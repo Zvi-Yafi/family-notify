@@ -46,14 +46,18 @@ export class DispatchService {
       },
     })
 
-    console.log(`📢 Dispatching announcement "${announcement.title}" to ${memberships.length} members`)
+    console.log(
+      `📢 Dispatching announcement "${announcement.title}" to ${memberships.length} members`
+    )
 
     // Create delivery attempts for each user and their enabled channels
     for (const membership of memberships) {
       for (const preference of membership.user.preferences) {
         // Skip if not verified
         if (!preference.verifiedAt) {
-          console.log(`⏭️  Skipping ${preference.channel} for ${membership.user.email} - not verified`)
+          console.log(
+            `⏭️  Skipping ${preference.channel} for ${membership.user.email} - not verified`
+          )
           continue
         }
 
@@ -111,7 +115,9 @@ export class DispatchService {
       for (const preference of membership.user.preferences) {
         // Skip if not verified
         if (!preference.verifiedAt) {
-          console.log(`⏭️  Skipping ${preference.channel} for ${membership.user.email} - not verified`)
+          console.log(
+            `⏭️  Skipping ${preference.channel} for ${membership.user.email} - not verified`
+          )
           continue
         }
 
@@ -153,7 +159,9 @@ export class DispatchService {
             html: this.buildEmailHtml(announcement, user),
             text: announcement.body,
           })
-          console.log(`📧 Email result: ${result.success ? 'SUCCESS' : 'FAILED'} - ${result.messageId || result.error}`)
+          console.log(
+            `📧 Email result: ${result.success ? 'SUCCESS' : 'FAILED'} - ${result.messageId || result.error}`
+          )
           break
 
         case 'SMS':
@@ -285,7 +293,9 @@ export class DispatchService {
       if (result.success) {
         console.log(`✅ Sent event reminder via ${preference.channel} to ${user.email}`)
       } else {
-        console.error(`❌ Failed event reminder via ${preference.channel} to ${user.email}: ${result.error}`)
+        console.error(
+          `❌ Failed event reminder via ${preference.channel} to ${user.email}: ${result.error}`
+        )
       }
     } catch (error: any) {
       console.error(`❌ Error sending event reminder to ${user.email}:`, error)
@@ -300,36 +310,246 @@ export class DispatchService {
   }
 
   private buildEmailHtml(announcement: any, user: any): string {
+    const isSimcha = announcement.type === 'SIMCHA'
+    const accentColor = isSimcha ? '#8B5CF6' : '#3B82F6'
+    const emoji = isSimcha ? '🎉' : '📢'
+
     return `
-      <div dir="rtl" style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <h1 style="color: #333;">${announcement.type === 'SIMCHA' ? '🎉' : '📢'} ${announcement.title}</h1>
-        <div style="background: #f9f9f9; padding: 20px; border-radius: 8px; margin: 20px 0;">
-          ${announcement.body.replace(/\n/g, '<br>')}
-        </div>
-        <p style="color: #666; font-size: 14px;">
-          הודעה זו נשלחה מ-FamilyNotify<br>
-          <a href="${process.env.NEXT_PUBLIC_APP_URL}/preferences">נהל העדפות קבלה</a>
-        </p>
-      </div>
+      <!DOCTYPE html>
+      <html lang="he" dir="rtl">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>${announcement.title}</title>
+      </head>
+      <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background: linear-gradient(to bottom, #f8fafc, #f1f5f9); direction: rtl;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="background: linear-gradient(to bottom, #f8fafc, #f1f5f9);">
+          <tr>
+            <td align="center" style="padding: 40px 20px;">
+              
+              <!-- Main Container -->
+              <table width="600" cellpadding="0" cellspacing="0" style="background: #ffffff; border-radius: 16px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 10px 15px rgba(0, 0, 0, 0.1); overflow: hidden;">
+                
+                <!-- Header with gradient -->
+                <tr>
+                  <td style="background: linear-gradient(135deg, ${accentColor} 0%, ${isSimcha ? '#A78BFA' : '#60A5FA'} 100%); padding: 40px 40px 35px; text-align: center;">
+                    <div style="font-size: 48px; margin-bottom: 12px;">${emoji}</div>
+                    <h1 style="color: #ffffff; font-size: 28px; font-weight: 700; margin: 0; text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); line-height: 1.3;">
+                      ${announcement.title}
+                    </h1>
+                  </td>
+                </tr>
+                
+                <!-- Content -->
+                <tr>
+                  <td style="padding: 45px 40px;">
+                    <div style="background: linear-gradient(to bottom, #f8fafc, #ffffff); padding: 32px; border-radius: 12px; border: 1px solid #e2e8f0; line-height: 1.8; font-size: 16px; color: #334155;">
+                      ${announcement.body.replace(/\n/g, '<br>')}
+                    </div>
+                  </td>
+                </tr>
+                
+                <!-- Action Button -->
+                <tr>
+                  <td style="padding: 0 40px 40px; text-align: center;">
+                    <a href="${process.env.NEXT_PUBLIC_APP_URL}/feed" style="display: inline-block; background: ${accentColor}; color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 16px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); transition: transform 0.2s;">
+                      צפה בכל ההודעות
+                    </a>
+                  </td>
+                </tr>
+                
+                <!-- Divider -->
+                <tr>
+                  <td style="padding: 0 40px;">
+                    <div style="height: 1px; background: linear-gradient(to left, transparent, #e2e8f0, transparent);"></div>
+                  </td>
+                </tr>
+                
+                <!-- Footer -->
+                <tr>
+                  <td style="padding: 32px 40px; text-align: center;">
+                    <p style="margin: 0 0 16px 0; color: #64748b; font-size: 14px; line-height: 1.6;">
+                      הודעה זו נשלחה אליך מ-<strong style="color: ${accentColor};">FamilyNotify</strong>
+                    </p>
+                    <div style="margin-top: 20px;">
+                      <a href="${process.env.NEXT_PUBLIC_APP_URL}/preferences" style="color: ${accentColor}; text-decoration: none; font-size: 14px; font-weight: 500; padding: 8px 16px; border: 1px solid ${accentColor}; border-radius: 6px; display: inline-block; transition: background 0.2s;">
+                        ⚙️ נהל העדפות קבלה
+                      </a>
+                    </div>
+                    <p style="margin: 20px 0 0 0; color: #94a3b8; font-size: 13px;">
+                      משפחת Yafi • FamilyNotify
+                    </p>
+                  </td>
+                </tr>
+                
+              </table>
+              
+              <!-- Spacer -->
+              <div style="height: 20px;"></div>
+              
+            </td>
+          </tr>
+        </table>
+      </body>
+      </html>
     `
   }
 
   private buildEventReminderHtml(event: any, user: any, timeUntil: string): string {
+    const eventDate = new Date(event.startsAt)
+    const formattedDate = eventDate.toLocaleDateString('he-IL', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    })
+    const formattedTime = eventDate.toLocaleTimeString('he-IL', {
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+
     return `
-      <div dir="rtl" style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <h1 style="color: #333;">⏰ תזכורת לאירוע</h1>
-        <div style="background: #f0f7ff; padding: 20px; border-radius: 8px; margin: 20px 0; border-right: 4px solid #3b82f6;">
-          <h2 style="margin-top: 0;">${event.title}</h2>
-          <p><strong>מתחיל:</strong> ${timeUntil}</p>
-          ${event.location ? `<p><strong>מיקום:</strong> ${event.location}</p>` : ''}
-          ${event.description ? `<p>${event.description}</p>` : ''}
-        </div>
-        <p style="color: #666; font-size: 14px;">
-          תזכורת מ-FamilyNotify<br>
-          <a href="${process.env.NEXT_PUBLIC_APP_URL}/events">ראה את כל האירועים</a> | 
-          <a href="${process.env.NEXT_PUBLIC_APP_URL}/preferences">נהל העדפות</a>
-        </p>
-      </div>
+      <!DOCTYPE html>
+      <html lang="he" dir="rtl">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>תזכורת: ${event.title}</title>
+      </head>
+      <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background: linear-gradient(to bottom, #fef3c7, #fef9e7); direction: rtl;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="background: linear-gradient(to bottom, #fef3c7, #fef9e7);">
+          <tr>
+            <td align="center" style="padding: 40px 20px;">
+              
+              <!-- Main Container -->
+              <table width="600" cellpadding="0" cellspacing="0" style="background: #ffffff; border-radius: 16px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 10px 15px rgba(0, 0, 0, 0.1); overflow: hidden;">
+                
+                <!-- Header with reminder badge -->
+                <tr>
+                  <td style="background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%); padding: 40px 40px 35px; text-align: center; position: relative;">
+                    <div style="font-size: 56px; margin-bottom: 8px;">⏰</div>
+                    <div style="display: inline-block; background: rgba(255, 255, 255, 0.25); color: #ffffff; padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: 600; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px;">
+                      תזכורת לאירוע
+                    </div>
+                    <h1 style="color: #ffffff; font-size: 28px; font-weight: 700; margin: 12px 0 0 0; text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); line-height: 1.3;">
+                      ${event.title}
+                    </h1>
+                  </td>
+                </tr>
+                
+                <!-- Time Until Badge -->
+                <tr>
+                  <td style="padding: 32px 40px; text-align: center;">
+                    <div style="display: inline-block; background: linear-gradient(135deg, #fef3c7, #fde68a); padding: 20px 32px; border-radius: 12px; border: 2px solid #fbbf24;">
+                      <div style="font-size: 14px; color: #92400e; font-weight: 600; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">מתחיל</div>
+                      <div style="font-size: 32px; font-weight: 700; color: #b45309; margin: 0;">${timeUntil}</div>
+                    </div>
+                  </td>
+                </tr>
+                
+                <!-- Event Details -->
+                <tr>
+                  <td style="padding: 0 40px 32px;">
+                    
+                    <!-- Date & Time -->
+                    <table width="100%" cellpadding="0" cellspacing="0" style="background: linear-gradient(to bottom, #f8fafc, #ffffff); border-radius: 12px; padding: 24px; border: 1px solid #e2e8f0; margin-bottom: 16px;">
+                      <tr>
+                        <td width="48" valign="top">
+                          <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #f59e0b, #fbbf24); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                            <span style="font-size: 20px;">📅</span>
+                          </div>
+                        </td>
+                        <td valign="top" style="padding-right: 16px;">
+                          <div style="font-size: 13px; color: #64748b; font-weight: 600; margin-bottom: 4px;">תאריך ושעה</div>
+                          <div style="font-size: 16px; color: #1e293b; font-weight: 600;">${formattedDate}</div>
+                          <div style="font-size: 15px; color: #475569; margin-top: 2px;">שעה ${formattedTime}</div>
+                        </td>
+                      </tr>
+                    </table>
+                    
+                    ${
+                      event.location
+                        ? `
+                    <!-- Location -->
+                    <table width="100%" cellpadding="0" cellspacing="0" style="background: linear-gradient(to bottom, #f8fafc, #ffffff); border-radius: 12px; padding: 24px; border: 1px solid #e2e8f0; margin-bottom: 16px;">
+                      <tr>
+                        <td width="48" valign="top">
+                          <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #ec4899, #f472b6); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                            <span style="font-size: 20px;">📍</span>
+                          </div>
+                        </td>
+                        <td valign="top" style="padding-right: 16px;">
+                          <div style="font-size: 13px; color: #64748b; font-weight: 600; margin-bottom: 4px;">מיקום</div>
+                          <div style="font-size: 16px; color: #1e293b; font-weight: 600;">${event.location}</div>
+                        </td>
+                      </tr>
+                    </table>
+                    `
+                        : ''
+                    }
+                    
+                    ${
+                      event.description
+                        ? `
+                    <!-- Description -->
+                    <table width="100%" cellpadding="0" cellspacing="0" style="background: linear-gradient(to bottom, #f8fafc, #ffffff); border-radius: 12px; padding: 24px; border: 1px solid #e2e8f0;">
+                      <tr>
+                        <td>
+                          <div style="font-size: 13px; color: #64748b; font-weight: 600; margin-bottom: 8px;">פרטים נוספים</div>
+                          <div style="font-size: 15px; color: #475569; line-height: 1.6;">${event.description}</div>
+                        </td>
+                      </tr>
+                    </table>
+                    `
+                        : ''
+                    }
+                    
+                  </td>
+                </tr>
+                
+                <!-- Action Buttons -->
+                <tr>
+                  <td style="padding: 0 40px 40px; text-align: center;">
+                    <a href="${process.env.NEXT_PUBLIC_APP_URL}/events" style="display: inline-block; background: linear-gradient(135deg, #f59e0b, #fbbf24); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 6px rgba(245, 158, 11, 0.3); margin: 0 8px;">
+                      📅 כל האירועים
+                    </a>
+                  </td>
+                </tr>
+                
+                <!-- Divider -->
+                <tr>
+                  <td style="padding: 0 40px;">
+                    <div style="height: 1px; background: linear-gradient(to left, transparent, #e2e8f0, transparent);"></div>
+                  </td>
+                </tr>
+                
+                <!-- Footer -->
+                <tr>
+                  <td style="padding: 32px 40px; text-align: center;">
+                    <p style="margin: 0 0 16px 0; color: #64748b; font-size: 14px; line-height: 1.6;">
+                      תזכורת אוטומטית מ-<strong style="color: #f59e0b;">FamilyNotify</strong>
+                    </p>
+                    <div style="margin-top: 20px;">
+                      <a href="${process.env.NEXT_PUBLIC_APP_URL}/preferences" style="color: #f59e0b; text-decoration: none; font-size: 14px; font-weight: 500; padding: 8px 16px; border: 1px solid #f59e0b; border-radius: 6px; display: inline-block;">
+                        ⚙️ נהל תזכורות
+                      </a>
+                    </div>
+                    <p style="margin: 20px 0 0 0; color: #94a3b8; font-size: 13px;">
+                      משפחת Yafi • FamilyNotify
+                    </p>
+                  </td>
+                </tr>
+                
+              </table>
+              
+              <!-- Spacer -->
+              <div style="height: 20px;"></div>
+              
+            </td>
+          </tr>
+        </table>
+      </body>
+      </html>
     `
   }
 
@@ -352,6 +572,3 @@ export class DispatchService {
 }
 
 export const dispatchService = new DispatchService()
-
-
-
