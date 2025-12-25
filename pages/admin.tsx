@@ -36,6 +36,7 @@ interface Stats {
 interface Member {
   id: string
   email: string
+  name: string | null
   phone: string | null
   role: string
   joinedAt: string
@@ -421,39 +422,60 @@ export default function AdminPage() {
                           <p className="text-gray-600">אין חברים בקבוצה</p>
                         </div>
                       ) : (
-                        <div className="space-y-2">
-                          {members.map((member) => (
-                            <div
-                              key={member.id}
-                              className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                            >
-                              <div className="flex items-center gap-3">
-                                <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
-                                  <UserIcon className="h-5 w-5 text-blue-600" />
+                        <div className="space-y-3">
+                          {members.map((member) => {
+                            // Use name if available, otherwise extract from email
+                            const displayName = member.name || member.email.split('@')[0]
+
+                            return (
+                              <div
+                                key={member.id}
+                                className="flex items-start justify-between p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                              >
+                                <div className="flex items-start gap-3">
+                                  <div className="h-12 w-12 rounded-full bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900 dark:to-blue-800 flex items-center justify-center flex-shrink-0">
+                                    <UserIcon className="h-6 w-6 text-blue-600 dark:text-blue-300" />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    {/* שורה 1: שם */}
+                                    <p className="font-semibold text-lg text-gray-900 dark:text-gray-100 truncate">
+                                      {displayName}
+                                    </p>
+
+                                    {/* שורה 2: מייל */}
+                                    <p className="text-sm text-gray-600 dark:text-gray-400 truncate mt-1">
+                                      📧 {member.email}
+                                    </p>
+
+                                    {/* שורה 3: תאריך הצטרפות */}
+                                    <p className="text-xs text-gray-500 dark:text-gray-500 mt-1 flex items-center gap-1">
+                                      <Calendar className="h-3 w-3 inline" />
+                                      הצטרף ב-{' '}
+                                      {new Date(member.joinedAt).toLocaleDateString('he-IL', {
+                                        year: 'numeric',
+                                        month: 'long',
+                                        day: 'numeric',
+                                      })}
+                                    </p>
+
+                                    {/* טלפון (אם קיים) */}
+                                    {member.phone && (
+                                      <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                                        📱 {member.phone}
+                                      </p>
+                                    )}
+                                  </div>
                                 </div>
-                                <div>
-                                  <p className="font-medium">{member.email}</p>
-                                  {member.phone && (
-                                    <p className="text-sm text-gray-500">{member.phone}</p>
-                                  )}
-                                  <p className="text-xs text-gray-400">
-                                    הצטרף ב-{' '}
-                                    {new Date(member.joinedAt).toLocaleDateString('he-IL', {
-                                      year: 'numeric',
-                                      month: 'long',
-                                      day: 'numeric',
-                                    })}
-                                  </p>
+
+                                <div className="flex items-center gap-2 flex-shrink-0 mr-3">
+                                  {getRoleIcon(member.role)}
+                                  <span className="text-sm text-gray-600 dark:text-gray-400 font-medium">
+                                    {getRoleLabel(member.role)}
+                                  </span>
                                 </div>
                               </div>
-                              <div className="flex items-center gap-2">
-                                {getRoleIcon(member.role)}
-                                <span className="text-sm text-gray-600">
-                                  {getRoleLabel(member.role)}
-                                </span>
-                              </div>
-                            </div>
-                          ))}
+                            )
+                          })}
                         </div>
                       )}
                     </CardContent>

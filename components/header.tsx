@@ -30,7 +30,19 @@ export function Header() {
     return avatarUrl
   }
 
+  // Get user display name
+  const getUserDisplayName = () => {
+    if (!user) return null
+
+    // Try to get name from user_metadata (Google or signup)
+    const name =
+      user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0]
+
+    return name
+  }
+
   const avatarUrl = getUserAvatar()
+  const displayName = getUserDisplayName()
 
   return (
     <header className="bg-white dark:bg-gray-800 border-b">
@@ -91,17 +103,20 @@ export function Header() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>
-                          <div className="flex items-center gap-2">
-                            {avatarUrl && (
-                              <Image
-                                src={avatarUrl}
-                                alt={user.email || 'User'}
-                                width={24}
-                                height={24}
-                                className="rounded-full object-cover"
-                              />
-                            )}
-                            <span>{user.email}</span>
+                          <div className="flex flex-col gap-1">
+                            <div className="flex items-center gap-2">
+                              {avatarUrl && (
+                                <Image
+                                  src={avatarUrl}
+                                  alt={displayName || user.email || 'User'}
+                                  width={24}
+                                  height={24}
+                                  className="rounded-full object-cover"
+                                />
+                              )}
+                              <span className="font-semibold">{displayName}</span>
+                            </div>
+                            <span className="text-xs text-gray-500 font-normal">{user.email}</span>
                           </div>
                         </DropdownMenuLabel>
                         <DropdownMenuSeparator />
@@ -124,11 +139,8 @@ export function Header() {
                   </>
                 ) : (
                   <>
-                    <Button variant="ghost" asChild>
-                      <Link href="/login">התחברות</Link>
-                    </Button>
                     <Button asChild>
-                      <Link href="/onboarding">הרשמה</Link>
+                      <Link href="/login">התחבר / הירשם</Link>
                     </Button>
                   </>
                 )}

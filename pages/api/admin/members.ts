@@ -42,6 +42,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           select: {
             id: true,
             email: true,
+            name: true,
             phone: true,
           },
         },
@@ -54,6 +55,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const members = memberships.map((membership) => ({
       id: membership.user.id,
       email: membership.user.email,
+      name: membership.user.name,
       phone: membership.user.phone,
       role: membership.role,
       joinedAt: membership.createdAt,

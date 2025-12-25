@@ -10,7 +10,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const { userId, email, phone } = req.body
+    const { userId, email, name, phone } = req.body
 
     if (!userId || !email) {
       return res.status(400).json({ error: 'userId and email are required' })
@@ -34,6 +34,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       data: {
         id: userId,
         email: email,
+        name: name || null,
         phone: phone || null,
       },
     })

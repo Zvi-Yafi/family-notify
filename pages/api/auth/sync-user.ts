@@ -34,6 +34,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         where: { id: user.id },
         data: {
           email: user.email!,
+          name:
+            user.user_metadata?.full_name || user.user_metadata?.name || existingUser.name || null,
           phone: user.phone || null,
           updatedAt: new Date(),
         },
@@ -51,6 +53,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       data: {
         id: user.id,
         email: user.email!,
+        name: user.user_metadata?.full_name || user.user_metadata?.name || null,
         phone: user.phone || null,
       },
     })

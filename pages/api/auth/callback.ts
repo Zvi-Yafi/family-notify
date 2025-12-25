@@ -49,6 +49,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         body: JSON.stringify({
           userId: data.user.id,
           email: data.user.email,
+          name: data.user.user_metadata?.full_name || data.user.user_metadata?.name || null,
           phone: data.user.phone || null,
         }),
       })

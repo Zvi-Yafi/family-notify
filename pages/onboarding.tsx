@@ -21,7 +21,7 @@ export default function OnboardingPage() {
   })
   const router = useRouter()
   const { toast } = useToast()
-  const { setFamilyGroup, setUser } = useFamilyContext()
+  const { setFamilyGroup, setUser, refreshGroups } = useFamilyContext()
   const supabase = createClient()
 
   // Check if user is already authenticated
@@ -149,6 +149,9 @@ export default function OnboardingPage() {
       // Save to context
       setFamilyGroup(groupResult.group.id)
       setUser(userId)
+
+      // Refresh groups to update the list
+      await refreshGroups()
 
       toast({
         title: formData.createNew ? 'הקבוצה נוצרה בהצלחה! 🎉' : 'הצטרפת לקבוצה בהצלחה! 🎉',

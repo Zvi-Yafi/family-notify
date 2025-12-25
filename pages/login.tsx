@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/hooks/use-toast'
 import { Mail, Chrome, Lock, User } from 'lucide-react'
+import { useFamilyContext } from '@/lib/context/family-context'
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false)
@@ -18,6 +19,7 @@ export default function LoginPage() {
   const router = useRouter()
   const { toast } = useToast()
   const supabase = createClient()
+  const { refreshGroups } = useFamilyContext()
 
   // Check for errors in URL
   useEffect(() => {
@@ -117,6 +119,16 @@ export default function LoginPage() {
           console.error('Failed to sync user:', syncError)
           // Don't block login if sync fails
         }
+
+        // Refresh groups to load user's groups before redirect
+        try {
+          console.log('🔄 Refreshing groups...')
+          await refreshGroups()
+          console.log('✅ Groups refreshed successfully')
+        } catch (refreshError) {
+          console.error('Failed to refresh groups:', refreshError)
+          // Don't block login if refresh fails
+        }
       } else {
         console.warn('No session in response, sync-user will be called on next page load')
       }
@@ -188,6 +200,7 @@ export default function LoginPage() {
             body: JSON.stringify({
               userId: data.user.id,
               email: data.user.email,
+              name: name,
               phone: data.user.phone || null,
             }),
           })
@@ -209,6 +222,16 @@ export default function LoginPage() {
         } catch (syncError) {
           console.error('Failed to sync user:', syncError)
           // Don't block signup if sync fails
+        }
+
+        // Refresh groups to load user's groups before redirect
+        try {
+          console.log('🔄 Refreshing groups...')
+          await refreshGroups()
+          console.log('✅ Groups refreshed successfully')
+        } catch (refreshError) {
+          console.error('Failed to refresh groups:', refreshError)
+          // Don't block signup if refresh fails
         }
 
         toast({

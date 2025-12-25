@@ -83,7 +83,7 @@ export default function HomePage() {
         </p>
         <div className="flex gap-4 justify-center">
           <Button size="lg" asChild>
-            <Link href="/onboarding">התחילו עכשיו - חינם</Link>
+            <Link href="/login">התחילו עכשיו - חינם</Link>
           </Button>
           <Button size="lg" variant="outline" asChild>
             <Link href="#features">למד עוד</Link>
@@ -200,7 +200,7 @@ export default function HomePage() {
           הצטרפו עכשיו בחינם וקשרו את כל המשפחה
         </p>
         <Button size="lg" asChild>
-          <Link href="/onboarding">התחילו עכשיו</Link>
+          <Link href="/login">התחילו עכשיו</Link>
         </Button>
       </section>
 
