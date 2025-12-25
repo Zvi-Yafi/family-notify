@@ -53,10 +53,10 @@ export function GroupSelector({
   // One group - already auto-selected, show current selection
   if (groups.length === 1 && familyGroupId) {
     return (
-      <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+      <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
         <div className="flex items-center gap-2">
-          <Users className="h-5 w-5 text-blue-600" />
-          <span className="text-sm text-blue-800 dark:text-blue-200">
+          <Users className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 flex-shrink-0" />
+          <span className="text-xs sm:text-sm text-blue-800 dark:text-blue-200 truncate">
             שולח ל: <strong>{selectedGroup?.name}</strong>
           </span>
         </div>
@@ -66,36 +66,38 @@ export function GroupSelector({
 
   // Multiple groups - show selector (always expandable)
   return (
-    <Card className="mb-6">
-      <CardHeader>
-        <CardTitle className="text-lg">{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
+    <Card className="mb-4 sm:mb-6">
+      <CardHeader className="p-4 sm:p-6">
+        <CardTitle className="text-base sm:text-lg">{title}</CardTitle>
+        <CardDescription className="text-xs sm:text-sm">{description}</CardDescription>
       </CardHeader>
-      <CardContent>
-        <div className="grid gap-3">
+      <CardContent className="p-4 sm:p-6 pt-0">
+        <div className="grid gap-2 sm:gap-3">
           {groups.map((group) => (
             <button
               key={group.id}
               onClick={() => handleSelectGroup(group.id)}
-              className={`w-full p-4 rounded-lg border-2 text-right transition-all ${
+              className={`w-full p-3 sm:p-4 rounded-lg border-2 text-right transition-all touch-target ${
                 familyGroupId === group.id
                   ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
                   : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50 dark:border-gray-700 dark:hover:border-gray-600'
               }`}
             >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-3 flex-1 min-w-0">
                   <Users
-                    className={`h-5 w-5 ${
+                    className={`h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0 ${
                       familyGroupId === group.id ? 'text-blue-600' : 'text-gray-400'
                     }`}
                   />
-                  <div>
-                    <p className="font-medium">{group.name}</p>
-                    <p className="text-sm text-gray-500">קוד: {group.slug}</p>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm sm:text-base truncate">{group.name}</p>
+                    <p className="text-xs sm:text-sm text-gray-500 truncate">קוד: {group.slug}</p>
                   </div>
                 </div>
-                {familyGroupId === group.id && <Check className="h-5 w-5 text-blue-600" />}
+                {familyGroupId === group.id && (
+                  <Check className="h-5 w-5 text-blue-600 flex-shrink-0" />
+                )}
               </div>
             </button>
           ))}

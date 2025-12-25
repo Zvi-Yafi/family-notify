@@ -75,26 +75,28 @@ export default function HomePage() {
       </header>
 
       {/* Hero Section */}
-      <section className="container mx-auto px-4 py-16 text-center">
-        <h2 className="text-5xl font-bold mb-6">שמרו על קשר עם כל המשפחה</h2>
-        <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-2xl mx-auto">
+      <section className="container mx-auto px-4 py-8 sm:py-12 md:py-16 text-center">
+        <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 sm:mb-6">
+          שמרו על קשר עם כל המשפחה
+        </h2>
+        <p className="text-base sm:text-lg md:text-xl text-gray-600 dark:text-gray-300 mb-6 sm:mb-8 max-w-2xl mx-auto px-4">
           פלטפורמה מתקדמת לשליחת הודעות, שמחות ואירועים לכל המשפחה. כל אחד בוחר איך לקבל - אימייל,
           SMS, WhatsApp או התראות.
         </p>
-        <div className="flex gap-4 justify-center">
-          <Button size="lg" asChild>
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center px-4">
+          <Button size="lg" asChild className="w-full sm:w-auto touch-target">
             <Link href="/login">התחילו עכשיו - חינם</Link>
           </Button>
-          <Button size="lg" variant="outline" asChild>
+          <Button size="lg" variant="outline" asChild className="w-full sm:w-auto touch-target">
             <Link href="#features">למד עוד</Link>
           </Button>
         </div>
       </section>
 
       {/* Features */}
-      <section id="features" className="container mx-auto px-4 py-16">
-        <h3 className="text-3xl font-bold text-center mb-12">תכונות עיקריות</h3>
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <section id="features" className="container mx-auto px-4 py-8 sm:py-12 md:py-16">
+        <h3 className="text-2xl sm:text-3xl font-bold text-center mb-8 sm:mb-12">תכונות עיקריות</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           <Card>
             <CardHeader>
               <Mail className="h-10 w-10 text-blue-600 mb-2" />
@@ -150,41 +152,41 @@ export default function HomePage() {
       </section>
 
       {/* How it works */}
-      <section className="bg-gray-50 dark:bg-gray-800 py-16">
+      <section className="bg-gray-50 dark:bg-gray-800 py-8 sm:py-12 md:py-16">
         <div className="container mx-auto px-4">
-          <h3 className="text-3xl font-bold text-center mb-12">איך זה עובד?</h3>
-          <div className="max-w-3xl mx-auto space-y-8">
-            <div className="flex gap-4">
-              <div className="flex-shrink-0 w-12 h-12 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">
+          <h3 className="text-2xl sm:text-3xl font-bold text-center mb-8 sm:mb-12">איך זה עובד?</h3>
+          <div className="max-w-3xl mx-auto space-y-6 sm:space-y-8">
+            <div className="flex gap-3 sm:gap-4">
+              <div className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-sm sm:text-base">
                 1
               </div>
               <div>
-                <h4 className="text-xl font-semibold mb-2">הרשמו ויצרו קבוצה</h4>
-                <p className="text-gray-600 dark:text-gray-300">
+                <h4 className="text-lg sm:text-xl font-semibold mb-2">הרשמו ויצרו קבוצה</h4>
+                <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">
                   הצטרפו למשפחה קיימת או צרו קבוצה חדשה עם שם ייחודי
                 </p>
               </div>
             </div>
 
-            <div className="flex gap-4">
-              <div className="flex-shrink-0 w-12 h-12 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">
+            <div className="flex gap-3 sm:gap-4">
+              <div className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-sm sm:text-base">
                 2
               </div>
               <div>
-                <h4 className="text-xl font-semibold mb-2">בחרו העדפות קבלה</h4>
-                <p className="text-gray-600 dark:text-gray-300">
+                <h4 className="text-lg sm:text-xl font-semibold mb-2">בחרו העדפות קבלה</h4>
+                <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">
                   כל אחד מחליט דרך איזה ערוצים לקבל הודעות ומאמת את הפרטים
                 </p>
               </div>
             </div>
 
-            <div className="flex gap-4">
-              <div className="flex-shrink-0 w-12 h-12 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">
+            <div className="flex gap-3 sm:gap-4">
+              <div className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-sm sm:text-base">
                 3
               </div>
               <div>
-                <h4 className="text-xl font-semibold mb-2">שלחו ותזמנו הודעות</h4>
-                <p className="text-gray-600 dark:text-gray-300">
+                <h4 className="text-lg sm:text-xl font-semibold mb-2">שלחו ותזמנו הודעות</h4>
+                <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">
                   מנהלים יכולים לפרסם הודעות ואירועים, והמערכת דואגת לשלוח לכולם
                 </p>
               </div>
@@ -194,33 +196,33 @@ export default function HomePage() {
       </section>
 
       {/* CTA */}
-      <section className="container mx-auto px-4 py-16 text-center">
-        <h3 className="text-3xl font-bold mb-4">מוכנים להתחיל?</h3>
-        <p className="text-xl text-gray-600 dark:text-gray-300 mb-8">
+      <section className="container mx-auto px-4 py-8 sm:py-12 md:py-16 text-center">
+        <h3 className="text-2xl sm:text-3xl font-bold mb-3 sm:mb-4">מוכנים להתחיל?</h3>
+        <p className="text-base sm:text-lg md:text-xl text-gray-600 dark:text-gray-300 mb-6 sm:mb-8 px-4">
           הצטרפו עכשיו בחינם וקשרו את כל המשפחה
         </p>
-        <Button size="lg" asChild>
+        <Button size="lg" asChild className="w-full sm:w-auto max-w-xs touch-target">
           <Link href="/login">התחילו עכשיו</Link>
         </Button>
       </section>
 
       {/* Footer */}
-      <footer className="border-t mt-16">
-        <div className="container mx-auto px-4 py-8">
+      <footer className="border-t mt-8 sm:mt-12 md:mt-16">
+        <div className="container mx-auto px-4 py-6 sm:py-8">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <p className="text-gray-600 dark:text-gray-400">
+            <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 text-center md:text-right">
               © 2025 FamilyNotify. All rights reserved.
             </p>
-            <div className="flex gap-6">
+            <div className="flex gap-4 sm:gap-6">
               <Link
                 href="/legal/privacy"
-                className="text-gray-600 dark:text-gray-400 hover:text-gray-900"
+                className="text-sm sm:text-base text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 touch-target"
               >
                 מדיניות פרטיות
               </Link>
               <Link
                 href="/legal/terms"
-                className="text-gray-600 dark:text-gray-400 hover:text-gray-900"
+                className="text-sm sm:text-base text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 touch-target"
               >
                 תנאי שימוש
               </Link>

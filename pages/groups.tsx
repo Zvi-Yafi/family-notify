@@ -94,10 +94,10 @@ export default function GroupsPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
-      <main className="container max-w-4xl mx-auto p-6">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">הקבוצות שלי</h1>
-          <p className="text-gray-600">
+      <main className="container max-w-4xl mx-auto p-4 sm:p-6">
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold mb-2">הקבוצות שלי</h1>
+          <p className="text-sm sm:text-base text-gray-600">
             כאן תוכל לראות את כל הקבוצות שאתה חבר בהן ולשתף את קוד הקבוצה עם אחרים
           </p>
         </div>
@@ -115,15 +115,15 @@ export default function GroupsPage() {
           <div className="space-y-4">
             {groups.map((group) => (
               <Card key={group.id} className="hover:shadow-lg transition-shadow">
-                <CardHeader>
+                <CardHeader className="p-4 sm:p-6">
                   <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <CardTitle className="text-xl mb-1">{group.name}</CardTitle>
-                      <CardDescription className="flex items-center gap-2">
+                    <div className="flex-1 min-w-0">
+                      <CardTitle className="text-lg sm:text-xl mb-1">{group.name}</CardTitle>
+                      <CardDescription className="flex flex-wrap items-center gap-2 text-xs sm:text-sm">
                         {getRoleIcon(group.role)}
                         <span>{getRoleLabel(group.role)}</span>
                         <span className="text-gray-400">•</span>
-                        <span>
+                        <span className="break-words">
                           הצטרפת ב-
                           {new Date(group.joinedAt).toLocaleDateString('he-IL', {
                             year: 'numeric',
@@ -135,12 +135,12 @@ export default function GroupsPage() {
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent>
-                  <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-gray-600 mb-1">קוד הקבוצה</p>
-                        <code className="text-lg font-mono font-semibold text-primary">
+                <CardContent className="p-4 sm:p-6 pt-0">
+                  <div className="bg-gray-50 rounded-lg p-3 sm:p-4 border border-gray-200">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs sm:text-sm text-gray-600 mb-1">קוד הקבוצה</p>
+                        <code className="text-base sm:text-lg font-mono font-semibold text-primary break-all">
                           {group.slug}
                         </code>
                       </div>
@@ -148,7 +148,7 @@ export default function GroupsPage() {
                         variant="outline"
                         size="sm"
                         onClick={() => copyGroupCode(group.slug, group.name)}
-                        className="gap-2"
+                        className="gap-2 w-full sm:w-auto touch-target flex-shrink-0"
                       >
                         <Copy className="h-4 w-4" />
                         העתק קוד
@@ -164,8 +164,12 @@ export default function GroupsPage() {
           </div>
         )}
 
-        <div className="mt-8 text-center">
-          <Button variant="outline" onClick={() => router.push('/onboarding')} className="gap-2">
+        <div className="mt-6 sm:mt-8 text-center">
+          <Button
+            variant="outline"
+            onClick={() => router.push('/onboarding')}
+            className="gap-2 w-full sm:w-auto touch-target"
+          >
             <Users className="h-4 w-4" />
             הצטרף לקבוצה נוספת
           </Button>

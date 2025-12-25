@@ -106,24 +106,25 @@ export default function EventsPage() {
       {/* Main Content */}
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
-          <div className="mb-8 flex items-center justify-between">
-            <div>
-              <h2 className="text-3xl font-bold mb-2">לוח אירועים משפחתי</h2>
-              <p className="text-gray-600 dark:text-gray-400">
+          <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex-1">
+              <h2 className="text-2xl sm:text-3xl font-bold mb-2">לוח אירועים משפחתי</h2>
+              <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
                 {showPastEvents ? 'כל האירועים (כולל עבר)' : 'אירועים קרובים ושמחות'}
               </p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
               {familyGroupId && (
                 <>
                   <Button
                     variant={showPastEvents ? 'default' : 'outline'}
                     onClick={() => setShowPastEvents(!showPastEvents)}
                     size="sm"
+                    className="w-full sm:w-auto touch-target"
                   >
                     {showPastEvents ? 'הצג עתידיים' : 'הצג הכל'}
                   </Button>
-                  <Button asChild>
+                  <Button asChild className="w-full sm:w-auto touch-target">
                     <Link href="/admin">
                       <Calendar className="h-4 w-4 ml-2" />
                       הוסף אירוע
@@ -175,12 +176,12 @@ export default function EventsPage() {
                       isPast ? 'opacity-60' : ''
                     } ${isToday ? 'border-blue-500 border-2' : ''}`}
                   >
-                    <CardHeader>
+                    <CardHeader className="p-4 sm:p-6">
                       <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <Calendar className="h-5 w-5 text-blue-600" />
-                            <CardTitle className="text-xl">{event.title}</CardTitle>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-2 flex-wrap">
+                            <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 flex-shrink-0" />
+                            <CardTitle className="text-lg sm:text-xl">{event.title}</CardTitle>
                             {isToday && (
                               <span className="bg-blue-500 text-white px-2 py-1 rounded text-xs font-bold">
                                 היום!
@@ -188,7 +189,7 @@ export default function EventsPage() {
                             )}
                           </div>
                           {event.description && (
-                            <CardDescription className="text-base mb-3">
+                            <CardDescription className="text-sm sm:text-base mb-3">
                               {event.description}
                             </CardDescription>
                           )}
@@ -196,32 +197,42 @@ export default function EventsPage() {
                       </div>
 
                       <div className="space-y-2 mt-4">
-                        <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                          <Clock className="h-4 w-4" />
-                          <span className="text-sm">{formatDateTime(event.startsAt)}</span>
+                        <div className="flex items-start gap-2 text-gray-600 dark:text-gray-400 flex-wrap">
+                          <Clock className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                          <span className="text-xs sm:text-sm">
+                            {formatDateTime(event.startsAt)}
+                          </span>
                         </div>
                         {event.endsAt && (
-                          <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                            <Clock className="h-4 w-4 opacity-0" />
-                            <span className="text-sm">
+                          <div className="flex items-start gap-2 text-gray-600 dark:text-gray-400 flex-wrap">
+                            <Clock className="h-4 w-4 opacity-0 flex-shrink-0" />
+                            <span className="text-xs sm:text-sm">
                               משך: {formatTimeRange(event.startsAt, event.endsAt)}
                             </span>
                           </div>
                         )}
                         {event.location && (
-                          <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                            <MapPin className="h-4 w-4" />
-                            <span className="text-sm">{event.location}</span>
+                          <div className="flex items-start gap-2 text-gray-600 dark:text-gray-400">
+                            <MapPin className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                            <span className="text-xs sm:text-sm break-words">{event.location}</span>
                           </div>
                         )}
                       </div>
                     </CardHeader>
-                    <CardContent>
-                      <div className="flex gap-2">
-                        <Button variant="outline" size="sm">
+                    <CardContent className="p-4 sm:p-6 pt-0">
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full sm:w-auto touch-target"
+                        >
                           הוסף ליומן
                         </Button>
-                        <Button variant="outline" size="sm">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full sm:w-auto touch-target"
+                        >
                           שתף
                         </Button>
                       </div>
@@ -236,8 +247,10 @@ export default function EventsPage() {
             <Card>
               <CardContent className="py-12 text-center">
                 <Calendar className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                <p className="text-gray-600 dark:text-gray-400 mb-4">אין אירועים מתוזמנים</p>
-                <Button asChild>
+                <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mb-4">
+                  אין אירועים מתוזמנים
+                </p>
+                <Button asChild className="touch-target">
                   <Link href="/admin">צור אירוע ראשון</Link>
                 </Button>
               </CardContent>

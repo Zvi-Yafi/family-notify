@@ -255,26 +255,34 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <div className="flex justify-center mb-4">
-            <div className="h-16 w-16 bg-blue-600 rounded-full flex items-center justify-center">
-              <Mail className="h-8 w-8 text-white" />
+        <CardHeader className="text-center p-4 sm:p-6">
+          <div className="flex justify-center mb-3 sm:mb-4">
+            <div className="h-12 w-12 sm:h-16 sm:w-16 bg-blue-600 rounded-full flex items-center justify-center">
+              <Mail className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
             </div>
           </div>
-          <CardTitle className="text-3xl">ברוכים הבאים</CardTitle>
-          <CardDescription>התחברו או הירשמו ל-FamilyNotify</CardDescription>
+          <CardTitle className="text-2xl sm:text-3xl">ברוכים הבאים</CardTitle>
+          <CardDescription className="text-sm sm:text-base">
+            התחברו או הירשמו ל-FamilyNotify
+          </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 p-4 sm:p-6">
           <Tabs defaultValue="signin" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="signin">התחברות</TabsTrigger>
-              <TabsTrigger value="signup">הרשמה</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-2 h-auto">
+              <TabsTrigger value="signin" className="text-sm sm:text-base py-2 sm:py-1.5">
+                התחברות
+              </TabsTrigger>
+              <TabsTrigger value="signup" className="text-sm sm:text-base py-2 sm:py-1.5">
+                הרשמה
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="signin" className="space-y-4">
-              <form onSubmit={handleEmailSignIn} className="space-y-4">
+              <form onSubmit={handleEmailSignIn} className="space-y-4 mt-4">
                 <div className="space-y-2">
-                  <Label htmlFor="signin-email">אימייל</Label>
+                  <Label htmlFor="signin-email" className="text-sm sm:text-base">
+                    אימייל
+                  </Label>
                   <Input
                     id="signin-email"
                     type="email"
@@ -286,7 +294,9 @@ export default function LoginPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="signin-password">סיסמה</Label>
+                  <Label htmlFor="signin-password" className="text-sm sm:text-base">
+                    סיסמה
+                  </Label>
                   <Input
                     id="signin-password"
                     type="password"
@@ -324,10 +334,12 @@ export default function LoginPage() {
               </Button>
             </TabsContent>
 
-            <TabsContent value="signup" className="space-y-4">
+            <TabsContent value="signup" className="space-y-4 mt-4">
               <form onSubmit={handleEmailSignUp} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="signup-name">שם מלא</Label>
+                  <Label htmlFor="signup-name" className="text-sm sm:text-base">
+                    שם מלא
+                  </Label>
                   <Input
                     id="signup-name"
                     type="text"
@@ -339,7 +351,9 @@ export default function LoginPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="signup-email">אימייל</Label>
+                  <Label htmlFor="signup-email" className="text-sm sm:text-base">
+                    אימייל
+                  </Label>
                   <Input
                     id="signup-email"
                     type="email"
@@ -351,7 +365,9 @@ export default function LoginPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="signup-password">סיסמה</Label>
+                  <Label htmlFor="signup-password" className="text-sm sm:text-base">
+                    סיסמה
+                  </Label>
                   <Input
                     id="signup-password"
                     type="password"

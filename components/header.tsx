@@ -1,6 +1,7 @@
 'use client'
 
-import { Bell, LogOut, User, Users } from 'lucide-react'
+import { useState } from 'react'
+import { Bell, LogOut, User, Users, Menu } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/lib/hooks/use-auth'
@@ -13,9 +14,11 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import Image from 'next/image'
+import { MobileMenu } from '@/components/mobile-menu'
 
 export function Header() {
   const { user, loading, signOut } = useAuth()
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   // Get user avatar from Google or default
   const getUserAvatar = () => {
@@ -45,110 +48,155 @@ export function Header() {
   const displayName = getUserDisplayName()
 
   return (
-    <header className="bg-white dark:bg-gray-800 border-b">
-      <div className="container mx-auto px-4 py-4">
-        <div className="flex items-center justify-between">
-          {/* Left side: Logo + Navigation links */}
-          <div className="flex items-center gap-6">
-            <Link href="/" className="flex items-center gap-2">
-              <Bell className="h-6 w-6 text-blue-600" />
-              <h1 className="text-2xl font-bold">FamilyNotify</h1>
-            </Link>
-
-            {/* Navigation links - only when logged in */}
-            {!loading && user && (
-              <nav className="flex items-center gap-2">
-                <Button variant="ghost" asChild>
-                  <Link href="/feed">הודעות</Link>
+    <>
+      <header className="bg-white dark:bg-gray-800 border-b">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            {/* Left side: Logo + Navigation links */}
+            <div className="flex items-center gap-6">
+              {/* Mobile Menu Button - Only show on mobile when logged in */}
+              {!loading && user && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="md:hidden touch-target"
+                  onClick={() => setMobileMenuOpen(true)}
+                  aria-label="פתח תפריט"
+                >
+                  <Menu className="h-6 w-6" />
                 </Button>
-                <Button variant="ghost" asChild>
-                  <Link href="/events">אירועים</Link>
-                </Button>
-                <Button variant="ghost" asChild>
-                  <Link href="/groups">הקבוצות שלי</Link>
-                </Button>
-              </nav>
-            )}
-          </div>
+              )}
 
-          {/* Right side: Admin + Profile */}
-          <nav className="flex items-center gap-4">
-            {!loading && (
-              <>
-                {user ? (
-                  <>
-                    <Button variant="default" asChild>
-                      <Link href="/admin">ניהול</Link>
-                    </Button>
+              <Link href="/" className="flex items-center gap-2">
+                <Bell className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
+                <h1 className="text-lg sm:text-xl md:text-2xl font-bold">FamilyNotify</h1>
+              </Link>
 
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="rounded-full overflow-hidden p-0"
-                        >
-                          {avatarUrl ? (
-                            <Image
-                              src={avatarUrl}
-                              alt={user.email || 'User'}
-                              width={32}
-                              height={32}
-                              className="rounded-full object-cover"
-                            />
-                          ) : (
-                            <User className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>
-                          <div className="flex flex-col gap-1">
-                            <div className="flex items-center gap-2">
-                              {avatarUrl && (
+              {/* Desktop Navigation links - hidden on mobile */}
+              {!loading && user && (
+                <nav className="hidden md:flex items-center gap-2">
+                  <Button variant="ghost" asChild>
+                    <Link href="/feed">הודעות</Link>
+                  </Button>
+                  <Button variant="ghost" asChild>
+                    <Link href="/events">אירועים</Link>
+                  </Button>
+                  <Button variant="ghost" asChild>
+                    <Link href="/groups">הקבוצות שלי</Link>
+                  </Button>
+                </nav>
+              )}
+            </div>
+
+            {/* Right side: Admin + Profile */}
+            <nav className="flex items-center gap-2 sm:gap-4">
+              {!loading && (
+                <>
+                  {user ? (
+                    <>
+                      {/* Admin Button - hidden on mobile, shown in menu instead */}
+                      <Button variant="default" asChild className="hidden md:inline-flex">
+                        <Link href="/admin">ניהול</Link>
+                      </Button>
+
+                      {/* Desktop Dropdown Menu - hidden on mobile */}
+                      <div className="hidden md:block">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="rounded-full overflow-hidden p-0"
+                            >
+                              {avatarUrl ? (
                                 <Image
                                   src={avatarUrl}
-                                  alt={displayName || user.email || 'User'}
-                                  width={24}
-                                  height={24}
+                                  alt={user.email || 'User'}
+                                  width={32}
+                                  height={32}
                                   className="rounded-full object-cover"
                                 />
+                              ) : (
+                                <User className="h-4 w-4" />
                               )}
-                              <span className="font-semibold">{displayName}</span>
-                            </div>
-                            <span className="text-xs text-gray-500 font-normal">{user.email}</span>
-                          </div>
-                        </DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem asChild>
-                          <Link href="/groups">
-                            <Users className="ml-2 h-4 w-4" />
-                            הקבוצות שלי
-                          </Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem asChild>
-                          <Link href="/preferences">העדפות</Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={signOut}>
-                          <LogOut className="ml-2 h-4 w-4" />
-                          התנתק
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </>
-                ) : (
-                  <>
-                    <Button asChild>
-                      <Link href="/login">התחבר / הירשם</Link>
-                    </Button>
-                  </>
-                )}
-              </>
-            )}
-          </nav>
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>
+                              <div className="flex flex-col gap-1">
+                                <div className="flex items-center gap-2">
+                                  {avatarUrl && (
+                                    <Image
+                                      src={avatarUrl}
+                                      alt={displayName || user.email || 'User'}
+                                      width={24}
+                                      height={24}
+                                      className="rounded-full object-cover"
+                                    />
+                                  )}
+                                  <span className="font-semibold">{displayName}</span>
+                                </div>
+                                <span className="text-xs text-gray-500 font-normal">
+                                  {user.email}
+                                </span>
+                              </div>
+                            </DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem asChild>
+                              <Link href="/groups">
+                                <Users className="ml-2 h-4 w-4" />
+                                הקבוצות שלי
+                              </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem asChild>
+                              <Link href="/preferences">העדפות</Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={signOut}>
+                              <LogOut className="ml-2 h-4 w-4" />
+                              התנתק
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+
+                      {/* Mobile Profile Icon - only avatar, opens mobile menu */}
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="md:hidden rounded-full overflow-hidden p-0 touch-target"
+                        onClick={() => setMobileMenuOpen(true)}
+                        aria-label="פתח תפריט משתמש"
+                      >
+                        {avatarUrl ? (
+                          <Image
+                            src={avatarUrl}
+                            alt={user.email || 'User'}
+                            width={32}
+                            height={32}
+                            className="rounded-full object-cover"
+                          />
+                        ) : (
+                          <User className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Button asChild className="text-sm sm:text-base">
+                        <Link href="/login">התחבר / הירשם</Link>
+                      </Button>
+                    </>
+                  )}
+                </>
+              )}
+            </nav>
+          </div>
         </div>
-      </div>
-    </header>
+      </header>
+
+      {/* Mobile Menu */}
+      <MobileMenu isOpen={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />
+    </>
   )
 }

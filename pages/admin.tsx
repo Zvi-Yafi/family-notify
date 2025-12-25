@@ -320,16 +320,16 @@ export default function AdminPage() {
           {!needsGroupSelection && (
             <>
               {/* Stats Overview */}
-              <div className="grid md:grid-cols-4 gap-4 mb-8">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-8">
                 <Card
                   className="cursor-pointer hover:shadow-lg transition-shadow"
                   onClick={() => setShowMembersDialog(true)}
                 >
                   <CardHeader className="pb-3">
-                    <CardDescription>חברי קבוצה</CardDescription>
-                    <CardTitle className="text-3xl">
+                    <CardDescription className="text-xs sm:text-sm">חברי קבוצה</CardDescription>
+                    <CardTitle className="text-2xl sm:text-3xl">
                       {statsLoading ? (
-                        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+                        <Loader2 className="h-6 w-6 sm:h-8 sm:w-8 animate-spin text-blue-600" />
                       ) : (
                         stats.memberCount
                       )}
@@ -344,10 +344,10 @@ export default function AdminPage() {
                   onClick={() => router.push('/feed')}
                 >
                   <CardHeader className="pb-3">
-                    <CardDescription>הודעות חודש זה</CardDescription>
-                    <CardTitle className="text-3xl">
+                    <CardDescription className="text-xs sm:text-sm">הודעות חודש זה</CardDescription>
+                    <CardTitle className="text-2xl sm:text-3xl">
                       {statsLoading ? (
-                        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+                        <Loader2 className="h-6 w-6 sm:h-8 sm:w-8 animate-spin text-blue-600" />
                       ) : (
                         stats.announcementsThisMonth
                       )}
@@ -362,10 +362,10 @@ export default function AdminPage() {
                   onClick={() => router.push('/events')}
                 >
                   <CardHeader className="pb-3">
-                    <CardDescription>אירועים קרובים</CardDescription>
-                    <CardTitle className="text-3xl">
+                    <CardDescription className="text-xs sm:text-sm">אירועים קרובים</CardDescription>
+                    <CardTitle className="text-2xl sm:text-3xl">
                       {statsLoading ? (
-                        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+                        <Loader2 className="h-6 w-6 sm:h-8 sm:w-8 animate-spin text-blue-600" />
                       ) : (
                         stats.upcomingEvents
                       )}
@@ -377,10 +377,12 @@ export default function AdminPage() {
                 </Card>
                 <Card>
                   <CardHeader className="pb-3">
-                    <CardDescription>הודעות נשלחו היום</CardDescription>
-                    <CardTitle className="text-3xl">
+                    <CardDescription className="text-xs sm:text-sm">
+                      הודעות נשלחו היום
+                    </CardDescription>
+                    <CardTitle className="text-2xl sm:text-3xl">
                       {statsLoading ? (
-                        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+                        <Loader2 className="h-6 w-6 sm:h-8 sm:w-8 animate-spin text-blue-600" />
                       ) : (
                         stats.messagesSentToday
                       )}
@@ -394,12 +396,12 @@ export default function AdminPage() {
 
               {/* Members Dialog */}
               {showMembersDialog && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                  <Card className="w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
-                    <CardHeader className="flex flex-row items-center justify-between pb-4">
-                      <div>
-                        <CardTitle>חברי הקבוצה</CardTitle>
-                        <CardDescription>
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-0 sm:p-4">
+                  <Card className="w-full max-w-2xl max-h-[100vh] sm:max-h-[80vh] overflow-hidden flex flex-col rounded-none sm:rounded-lg">
+                    <CardHeader className="flex flex-row items-center justify-between pb-4 p-4 sm:p-6">
+                      <div className="flex-1 min-w-0">
+                        <CardTitle className="text-lg sm:text-xl truncate">חברי הקבוצה</CardTitle>
+                        <CardDescription className="text-xs sm:text-sm truncate">
                           {selectedGroup?.name} - {stats.memberCount} חברים
                         </CardDescription>
                       </div>
@@ -407,11 +409,13 @@ export default function AdminPage() {
                         variant="ghost"
                         size="icon"
                         onClick={() => setShowMembersDialog(false)}
+                        className="flex-shrink-0 touch-target"
+                        aria-label="סגור"
                       >
-                        <X className="h-4 w-4" />
+                        <X className="h-5 w-5 sm:h-4 sm:w-4" />
                       </Button>
                     </CardHeader>
-                    <CardContent className="flex-1 overflow-y-auto">
+                    <CardContent className="flex-1 overflow-y-auto p-4 sm:p-6">
                       {loadingMembers ? (
                         <div className="flex items-center justify-center py-12">
                           <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
@@ -422,7 +426,7 @@ export default function AdminPage() {
                           <p className="text-gray-600">אין חברים בקבוצה</p>
                         </div>
                       ) : (
-                        <div className="space-y-3">
+                        <div className="space-y-3 sm:space-y-4">
                           {members.map((member) => {
                             // Use name if available, otherwise extract from email
                             const displayName = member.name || member.email.split('@')[0]
@@ -430,46 +434,48 @@ export default function AdminPage() {
                             return (
                               <div
                                 key={member.id}
-                                className="flex items-start justify-between p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                                className="flex flex-col sm:flex-row items-start justify-between p-3 sm:p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors gap-3"
                               >
-                                <div className="flex items-start gap-3">
-                                  <div className="h-12 w-12 rounded-full bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900 dark:to-blue-800 flex items-center justify-center flex-shrink-0">
-                                    <UserIcon className="h-6 w-6 text-blue-600 dark:text-blue-300" />
+                                <div className="flex items-start gap-3 flex-1 min-w-0 w-full">
+                                  <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900 dark:to-blue-800 flex items-center justify-center flex-shrink-0">
+                                    <UserIcon className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600 dark:text-blue-300" />
                                   </div>
                                   <div className="flex-1 min-w-0">
                                     {/* שורה 1: שם */}
-                                    <p className="font-semibold text-lg text-gray-900 dark:text-gray-100 truncate">
+                                    <p className="font-semibold text-base sm:text-lg text-gray-900 dark:text-gray-100 truncate">
                                       {displayName}
                                     </p>
 
                                     {/* שורה 2: מייל */}
-                                    <p className="text-sm text-gray-600 dark:text-gray-400 truncate mt-1">
+                                    <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate mt-1">
                                       📧 {member.email}
                                     </p>
 
                                     {/* שורה 3: תאריך הצטרפות */}
-                                    <p className="text-xs text-gray-500 dark:text-gray-500 mt-1 flex items-center gap-1">
+                                    <p className="text-xs text-gray-500 dark:text-gray-500 mt-1 flex items-center gap-1 flex-wrap">
                                       <Calendar className="h-3 w-3 inline" />
-                                      הצטרף ב-{' '}
-                                      {new Date(member.joinedAt).toLocaleDateString('he-IL', {
-                                        year: 'numeric',
-                                        month: 'long',
-                                        day: 'numeric',
-                                      })}
+                                      <span className="truncate">
+                                        הצטרף ב-{' '}
+                                        {new Date(member.joinedAt).toLocaleDateString('he-IL', {
+                                          year: 'numeric',
+                                          month: 'long',
+                                          day: 'numeric',
+                                        })}
+                                      </span>
                                     </p>
 
                                     {/* טלפון (אם קיים) */}
                                     {member.phone && (
-                                      <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                                      <p className="text-xs text-gray-500 dark:text-gray-500 mt-1 truncate">
                                         📱 {member.phone}
                                       </p>
                                     )}
                                   </div>
                                 </div>
 
-                                <div className="flex items-center gap-2 flex-shrink-0 mr-3">
+                                <div className="flex items-center gap-2 flex-shrink-0 sm:mr-3">
                                   {getRoleIcon(member.role)}
-                                  <span className="text-sm text-gray-600 dark:text-gray-400 font-medium">
+                                  <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 font-medium">
                                     {getRoleLabel(member.role)}
                                   </span>
                                 </div>
@@ -484,10 +490,11 @@ export default function AdminPage() {
               )}
 
               {/* Tabs */}
-              <div className="flex gap-2 mb-6">
+              <div className="flex flex-col sm:flex-row gap-2 mb-6">
                 <Button
                   variant={activeTab === 'announcements' ? 'default' : 'outline'}
                   onClick={() => setActiveTab('announcements')}
+                  className="w-full sm:w-auto touch-target justify-center"
                 >
                   <MessageSquare className="h-4 w-4 ml-2" />
                   הודעה חדשה
@@ -495,6 +502,7 @@ export default function AdminPage() {
                 <Button
                   variant={activeTab === 'events' ? 'default' : 'outline'}
                   onClick={() => setActiveTab('events')}
+                  className="w-full sm:w-auto touch-target justify-center"
                 >
                   <Calendar className="h-4 w-4 ml-2" />
                   אירוע חדש
@@ -502,6 +510,7 @@ export default function AdminPage() {
                 <Button
                   variant={activeTab === 'stats' ? 'default' : 'outline'}
                   onClick={() => setActiveTab('stats')}
+                  className="w-full sm:w-auto touch-target justify-center"
                 >
                   <Bell className="h-4 w-4 ml-2" />
                   סטטוסים
@@ -531,7 +540,9 @@ export default function AdminPage() {
                   <CardContent>
                     <form onSubmit={handleAnnouncementSubmit} className="space-y-4">
                       <div>
-                        <Label htmlFor="title">כותרת</Label>
+                        <Label htmlFor="title" className="text-sm sm:text-base">
+                          כותרת
+                        </Label>
                         <Input
                           id="title"
                           placeholder="למשל: ברית למזל טוב"
@@ -540,14 +551,17 @@ export default function AdminPage() {
                             setAnnouncementForm({ ...announcementForm, title: e.target.value })
                           }
                           required
+                          className="text-base touch-target"
                         />
                       </div>
 
                       <div>
-                        <Label htmlFor="body">תוכן ההודעה</Label>
+                        <Label htmlFor="body" className="text-sm sm:text-base">
+                          תוכן ההודעה
+                        </Label>
                         <textarea
                           id="body"
-                          className="flex min-h-[120px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                          className="flex min-h-[120px] w-full rounded-md border border-input bg-background px-3 py-3 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                           placeholder="פרטי ההודעה..."
                           value={announcementForm.body}
                           onChange={(e) =>
@@ -558,14 +572,15 @@ export default function AdminPage() {
                       </div>
 
                       <div>
-                        <Label>סוג הודעה</Label>
-                        <div className="flex gap-4 mt-2">
+                        <Label className="text-sm sm:text-base">סוג הודעה</Label>
+                        <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 mt-2">
                           <Button
                             type="button"
                             variant={announcementForm.type === 'GENERAL' ? 'default' : 'outline'}
                             onClick={() =>
                               setAnnouncementForm({ ...announcementForm, type: 'GENERAL' })
                             }
+                            className="w-full sm:w-auto touch-target"
                           >
                             כללי
                           </Button>
@@ -575,6 +590,7 @@ export default function AdminPage() {
                             onClick={() =>
                               setAnnouncementForm({ ...announcementForm, type: 'SIMCHA' })
                             }
+                            className="w-full sm:w-auto touch-target"
                           >
                             שמחה 🎉
                           </Button>
@@ -582,7 +598,9 @@ export default function AdminPage() {
                       </div>
 
                       <div>
-                        <Label htmlFor="scheduledAt">תזמון שליחה (אופציונלי)</Label>
+                        <Label htmlFor="scheduledAt" className="text-sm sm:text-base">
+                          תזמון שליחה (אופציונלי)
+                        </Label>
                         <Input
                           id="scheduledAt"
                           type="datetime-local"
@@ -593,12 +611,15 @@ export default function AdminPage() {
                               scheduledAt: e.target.value,
                             })
                           }
+                          className="text-base touch-target"
                         />
-                        <p className="text-sm text-gray-500 mt-1">השאר ריק לשליחה מיידית</p>
+                        <p className="text-xs sm:text-sm text-gray-500 mt-1">
+                          השאר ריק לשליחה מיידית
+                        </p>
                       </div>
 
-                      <div className="flex gap-4">
-                        <Button type="submit" className="flex-1" disabled={loading}>
+                      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                        <Button type="submit" className="flex-1 touch-target" disabled={loading}>
                           {loading
                             ? 'שולח...'
                             : announcementForm.scheduledAt
@@ -616,6 +637,7 @@ export default function AdminPage() {
                               scheduledAt: '',
                             })
                           }
+                          className="w-full sm:w-auto touch-target"
                         >
                           נקה
                         </Button>
@@ -646,21 +668,26 @@ export default function AdminPage() {
                   <CardContent>
                     <form onSubmit={handleEventSubmit} className="space-y-4">
                       <div>
-                        <Label htmlFor="eventTitle">כותרת האירוע</Label>
+                        <Label htmlFor="eventTitle" className="text-sm sm:text-base">
+                          כותרת האירוע
+                        </Label>
                         <Input
                           id="eventTitle"
                           placeholder="למשל: יום הולדת לסבתא"
                           value={eventForm.title}
                           onChange={(e) => setEventForm({ ...eventForm, title: e.target.value })}
                           required
+                          className="text-base touch-target"
                         />
                       </div>
 
                       <div>
-                        <Label htmlFor="eventDescription">תיאור (אופציונלי)</Label>
+                        <Label htmlFor="eventDescription" className="text-sm sm:text-base">
+                          תיאור (אופציונלי)
+                        </Label>
                         <textarea
                           id="eventDescription"
-                          className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                          className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-3 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                           placeholder="פרטים נוספים על האירוע..."
                           value={eventForm.description}
                           onChange={(e) =>
@@ -669,9 +696,11 @@ export default function AdminPage() {
                         />
                       </div>
 
-                      <div className="grid md:grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                          <Label htmlFor="startsAt">תחילת האירוע</Label>
+                          <Label htmlFor="startsAt" className="text-sm sm:text-base">
+                            תחילת האירוע
+                          </Label>
                           <Input
                             id="startsAt"
                             type="datetime-local"
@@ -680,43 +709,50 @@ export default function AdminPage() {
                               setEventForm({ ...eventForm, startsAt: e.target.value })
                             }
                             required
+                            className="text-base touch-target"
                           />
                         </div>
                         <div>
-                          <Label htmlFor="endsAt">סיום האירוע (אופציונלי)</Label>
+                          <Label htmlFor="endsAt" className="text-sm sm:text-base">
+                            סיום האירוע (אופציונלי)
+                          </Label>
                           <Input
                             id="endsAt"
                             type="datetime-local"
                             value={eventForm.endsAt}
                             onChange={(e) => setEventForm({ ...eventForm, endsAt: e.target.value })}
+                            className="text-base touch-target"
                           />
                         </div>
                       </div>
 
                       <div>
-                        <Label htmlFor="location">מיקום</Label>
+                        <Label htmlFor="location" className="text-sm sm:text-base">
+                          מיקום
+                        </Label>
                         <Input
                           id="location"
                           placeholder="כתובת או שם המקום"
                           value={eventForm.location}
                           onChange={(e) => setEventForm({ ...eventForm, location: e.target.value })}
+                          className="text-base touch-target"
                         />
                       </div>
 
                       <div>
-                        <Label>תזכורות אוטומטיות</Label>
-                        <div className="flex gap-2 mt-2">
-                          <span className="text-sm bg-blue-100 dark:bg-blue-900 px-3 py-1 rounded">
+                        <Label className="text-sm sm:text-base">תזכורות אוטומטיות</Label>
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          <span className="text-xs sm:text-sm bg-blue-100 dark:bg-blue-900 px-3 py-1 rounded">
                             24 שעות לפני
                           </span>
-                          <span className="text-sm bg-blue-100 dark:bg-blue-900 px-3 py-1 rounded">
+                          <span className="text-xs sm:text-sm bg-blue-100 dark:bg-blue-900 px-3 py-1 rounded">
                             שעה לפני
                           </span>
                         </div>
                       </div>
 
-                      <div className="flex gap-4">
-                        <Button type="submit" className="flex-1" disabled={loading}>
+                      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                        <Button type="submit" className="flex-1 touch-target" disabled={loading}>
                           {loading ? 'יוצר...' : 'צור אירוע'}
                         </Button>
                         <Button
@@ -732,6 +768,7 @@ export default function AdminPage() {
                               reminderOffsets: [1440, 60],
                             })
                           }
+                          className="w-full sm:w-auto touch-target"
                         >
                           נקה
                         </Button>

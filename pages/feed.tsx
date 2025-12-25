@@ -72,15 +72,15 @@ export default function FeedPage() {
       {/* Main Content */}
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-3xl mx-auto">
-          <div className="mb-8 flex items-center justify-between">
-            <div>
-              <h2 className="text-3xl font-bold mb-2">פיד הודעות</h2>
-              <p className="text-gray-600 dark:text-gray-400">
+          <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex-1">
+              <h2 className="text-2xl sm:text-3xl font-bold mb-2">פיד הודעות</h2>
+              <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
                 כל ההודעות והשמחות האחרונות מהמשפחה
               </p>
             </div>
             {familyGroupId && (
-              <Button asChild>
+              <Button asChild className="w-full sm:w-auto touch-target">
                 <Link href="/admin">הוסף הודעה</Link>
               </Button>
             )}
@@ -118,17 +118,19 @@ export default function FeedPage() {
             <div className="space-y-4">
               {announcements.map((announcement) => (
                 <Card key={announcement.id} className="hover:shadow-lg transition-shadow">
-                  <CardHeader>
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <CardTitle className="text-xl mb-2">{announcement.title}</CardTitle>
-                        <CardDescription>
+                  <CardHeader className="p-4 sm:p-6">
+                    <div className="flex flex-col sm:flex-row items-start justify-between gap-3 sm:gap-0">
+                      <div className="flex-1 min-w-0 w-full">
+                        <CardTitle className="text-lg sm:text-xl mb-2">
+                          {announcement.title}
+                        </CardTitle>
+                        <CardDescription className="text-xs sm:text-sm">
                           פורסם על ידי {announcement.creator.email} •{' '}
                           {announcement.createdAt.toLocaleDateString('he-IL')}
                         </CardDescription>
                       </div>
                       <span
-                        className={`px-3 py-1 rounded-full text-xs font-medium ${
+                        className={`px-3 py-1 rounded-full text-xs font-medium flex-shrink-0 self-start sm:self-auto ${
                           announcement.type === 'SIMCHA'
                             ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200'
                             : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
@@ -138,8 +140,8 @@ export default function FeedPage() {
                       </span>
                     </div>
                   </CardHeader>
-                  <CardContent>
-                    <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+                  <CardContent className="p-4 sm:p-6 pt-0">
+                    <p className="text-sm sm:text-base text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
                       {announcement.body}
                     </p>
                   </CardContent>
@@ -152,8 +154,10 @@ export default function FeedPage() {
             <Card>
               <CardContent className="py-12 text-center">
                 <Bell className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                <p className="text-gray-600 dark:text-gray-400 mb-4">אין הודעות חדשות</p>
-                <Button asChild>
+                <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mb-4">
+                  אין הודעות חדשות
+                </p>
+                <Button asChild className="touch-target">
                   <Link href="/admin">פרסם הודעה ראשונה</Link>
                 </Button>
               </CardContent>

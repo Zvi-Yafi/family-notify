@@ -66,3 +66,39 @@
 [dir='rtl'] .rtl\:space-x-reverse > :not([hidden]) ~ :not([hidden]) {
   --tw-space-x-reverse: 1;
 }
+
+/* Mobile Responsive Utilities */
+
+/* Touch-friendly tap targets - minimum 44x44px for mobile */
+.touch-target {
+  @apply min-h-[44px] min-w-[44px];
+}
+
+/* Mobile-safe text that prevents zoom on iOS */
+.mobile-input {
+  @apply text-base;
+}
+
+/* Responsive container with proper mobile padding */
+.container-mobile {
+  @apply px-4 sm:px-6 lg:px-8;
+}
+
+/* Full-screen modal on mobile, regular on desktop */
+.modal-mobile {
+  @apply fixed inset-0 sm:relative sm:inset-auto;
+}
+
+/* Mobile-friendly card padding */
+.card-mobile {
+  @apply p-4 sm:p-6;
+}
+
+/* Responsive text sizes */
+.text-mobile-xl {
+  @apply text-2xl sm:text-3xl;
+}
+
+.text-mobile-2xl {
+  @apply text-3xl sm:text-4xl md:text-5xl;
+}

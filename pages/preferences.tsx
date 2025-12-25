@@ -249,39 +249,46 @@ export default function PreferencesPage() {
       <Header />
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-3xl mx-auto">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold mb-2">העדפות קבלה</h1>
-            <p className="text-gray-600 dark:text-gray-400">
+          <div className="mb-6 sm:mb-8">
+            <h1 className="text-2xl sm:text-3xl font-bold mb-2">העדפות קבלה</h1>
+            <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
               בחרו איך תרצו לקבל הודעות ואירועים ממשפחת FamilyNotify
             </p>
-            {user && <p className="text-sm text-gray-500 mt-2">משתמש: {user.email}</p>}
+            {user && <p className="text-xs sm:text-sm text-gray-500 mt-2">משתמש: {user.email}</p>}
           </div>
 
           <div className="space-y-4">
             {preferences.map((pref, index) => (
               <Card key={pref.channel}>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
+                <CardHeader className="p-4 sm:p-6">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 flex-1">
                       {getChannelIcon(pref.channel)}
-                      <div>
-                        <CardTitle className="text-lg">{getChannelName(pref.channel)}</CardTitle>
-                        <CardDescription>{getChannelDescription(pref.channel)}</CardDescription>
+                      <div className="flex-1 min-w-0">
+                        <CardTitle className="text-base sm:text-lg">
+                          {getChannelName(pref.channel)}
+                        </CardTitle>
+                        <CardDescription className="text-xs sm:text-sm">
+                          {getChannelDescription(pref.channel)}
+                        </CardDescription>
                       </div>
                     </div>
                     <Button
                       variant={pref.enabled ? 'default' : 'outline'}
                       onClick={() => toggleChannel(index)}
+                      className="w-full sm:w-auto touch-target"
                     >
                       {pref.enabled ? 'פעיל' : 'כבוי'}
                     </Button>
                   </div>
                 </CardHeader>
                 {pref.enabled && pref.channel !== 'PUSH' && (
-                  <CardContent>
+                  <CardContent className="p-4 sm:p-6 pt-0">
                     <div className="space-y-2">
-                      <Label>{pref.channel === 'EMAIL' ? 'כתובת אימייל' : 'מספר טלפון'}</Label>
-                      <div className="flex gap-2">
+                      <Label className="text-sm sm:text-base">
+                        {pref.channel === 'EMAIL' ? 'כתובת אימייל' : 'מספר טלפון'}
+                      </Label>
+                      <div className="flex flex-col sm:flex-row gap-2">
                         <Input
                           type={pref.channel === 'EMAIL' ? 'email' : 'tel'}
                           placeholder={
@@ -290,21 +297,33 @@ export default function PreferencesPage() {
                           value={pref.destination}
                           onChange={(e) => updateDestination(index, e.target.value)}
                           disabled={pref.verified}
+                          className="flex-1 text-base touch-target"
                         />
                         {!pref.verified ? (
-                          <Button onClick={() => verifyChannel(index)}>אמת</Button>
+                          <Button
+                            onClick={() => verifyChannel(index)}
+                            className="w-full sm:w-auto touch-target"
+                          >
+                            אמת
+                          </Button>
                         ) : (
-                          <Button variant="outline" disabled>
+                          <Button
+                            variant="outline"
+                            disabled
+                            className="w-full sm:w-auto touch-target"
+                          >
                             מאומת ✓
                           </Button>
                         )}
                       </div>
-                      {pref.verified && <p className="text-sm text-green-600">הערוץ אומת ופעיל</p>}
+                      {pref.verified && (
+                        <p className="text-xs sm:text-sm text-green-600">הערוץ אומת ופעיל</p>
+                      )}
                     </div>
                   </CardContent>
                 )}
                 {pref.enabled && pref.channel === 'PUSH' && (
-                  <CardContent>
+                  <CardContent className="p-4 sm:p-6 pt-0">
                     <Button
                       onClick={async () => {
                         try {
@@ -326,6 +345,7 @@ export default function PreferencesPage() {
                           })
                         }
                       }}
+                      className="w-full sm:w-auto touch-target"
                     >
                       {pref.verified ? 'התראות פעילות ✓' : 'אפשר התראות'}
                     </Button>
@@ -335,11 +355,16 @@ export default function PreferencesPage() {
             ))}
           </div>
 
-          <div className="mt-8 flex gap-4">
-            <Button onClick={savePreferences} size="lg" className="flex-1" disabled={saving}>
+          <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row gap-3 sm:gap-4">
+            <Button
+              onClick={savePreferences}
+              size="lg"
+              className="flex-1 touch-target"
+              disabled={saving}
+            >
               {saving ? 'שומר...' : 'שמור העדפות'}
             </Button>
-            <Button variant="outline" size="lg" asChild>
+            <Button variant="outline" size="lg" asChild className="w-full sm:w-auto touch-target">
               <Link href="/feed">לפיד ההודעות</Link>
             </Button>
           </div>
