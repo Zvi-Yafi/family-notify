@@ -93,6 +93,7 @@ class ApiClient {
     return this.request<{
       memberCount: number
       announcementsThisMonth: number
+      scheduledAnnouncements: number
       upcomingEvents: number
       messagesSentToday: number
       deliveryStats: {

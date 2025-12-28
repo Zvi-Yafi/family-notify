@@ -46,18 +46,27 @@ export class DispatchService {
       },
     })
 
-    console.log(
-      `📢 Dispatching announcement "${announcement.title}" to ${memberships.length} members`
-    )
+    console.log(`\n📢 מתחיל לשלוח הודעה:`)
+    console.log(`   כותרת: "${announcement.title}"`)
+    console.log(`   קבוצה: ${announcement.familyGroup.name}`)
+    console.log(`   סה"כ חברים: ${memberships.length}`)
+
+    // Count total delivery attempts
+    let totalDeliveries = 0
+    memberships.forEach((m) => {
+      totalDeliveries += m.user.preferences.length
+    })
+    console.log(`   סה"כ שליחות (כולל כל הערוצים): ${totalDeliveries}`)
 
     // Create delivery attempts for each user and their enabled channels
     for (const membership of memberships) {
+      const userName = membership.user.name || membership.user.email.split('@')[0]
+      console.log(`\n👤 שולח ל-${userName} (${membership.user.email})...`)
+
       for (const preference of membership.user.preferences) {
         // Skip if not verified
         if (!preference.verifiedAt) {
-          console.log(
-            `⏭️  Skipping ${preference.channel} for ${membership.user.email} - not verified`
-          )
+          console.log(`   ⏭️  ${preference.channel}: לא מאומת - מדלג`)
           continue
         }
 
@@ -76,6 +85,8 @@ export class DispatchService {
         await this.sendDeliveryAttempt(attempt.id, announcement, membership.user, preference)
       }
     }
+
+    console.log(`\n✨ סיום שליחת ההודעה "${announcement.title}"`)
   }
 
   /**
@@ -152,33 +163,48 @@ export class DispatchService {
 
       switch (preference.channel) {
         case 'EMAIL':
-          console.log(`📧 Sending email to ${preference.destination} for user ${user.email}`)
+          console.log(`   📧 שולח מייל ל-${preference.destination}...`)
           result = await emailProvider.send({
             to: preference.destination,
             subject: `${announcement.type === 'SIMCHA' ? '🎉' : '📢'} ${announcement.title}`,
             html: this.buildEmailHtml(announcement, user),
             text: announcement.body,
           })
-          console.log(
-            `📧 Email result: ${result.success ? 'SUCCESS' : 'FAILED'} - ${result.messageId || result.error}`
-          )
+          if (result.success) {
+            console.log(`   ✅ מייל נשלח בהצלחה (ID: ${result.messageId})`)
+          } else {
+            console.log(`   ❌ שגיאה במייל: ${result.error}`)
+          }
           break
 
         case 'SMS':
+          console.log(`   📱 שולח SMS ל-${preference.destination}...`)
           result = await smsProvider.send({
             to: preference.destination,
             message: `${announcement.title}\n\n${announcement.body}`,
           })
+          if (result.success) {
+            console.log(`   ✅ SMS נשלח בהצלחה`)
+          } else {
+            console.log(`   ❌ שגיאה ב-SMS: ${result.error}`)
+          }
           break
 
         case 'WHATSAPP':
+          console.log(`   💬 שולח WhatsApp ל-${preference.destination}...`)
           result = await whatsAppProvider.send({
             to: preference.destination,
             message: `${announcement.title}\n\n${announcement.body}`,
           })
+          if (result.success) {
+            console.log(`   ✅ WhatsApp נשלח בהצלחה`)
+          } else {
+            console.log(`   ❌ שגיאה ב-WhatsApp: ${result.error}`)
+          }
           break
 
         case 'PUSH':
+          console.log(`   🔔 שולח Push notification...`)
           // For push, destination is the subscription JSON
           try {
             const subscription = JSON.parse(preference.destination)
@@ -188,7 +214,13 @@ export class DispatchService {
               body: announcement.body,
               data: { announcementId: announcement.id },
             })
+            if (result.success) {
+              console.log(`   ✅ Push נשלח בהצלחה`)
+            } else {
+              console.log(`   ❌ שגיאה ב-Push: ${result.error}`)
+            }
           } catch (e) {
+            console.log(`   ❌ שגיאה ב-Push: subscription לא תקין`)
             result = { success: false, error: 'Invalid push subscription' }
           }
           break
@@ -206,14 +238,8 @@ export class DispatchService {
           error: result.error,
         },
       })
-
-      if (result.success) {
-        console.log(`✅ Sent ${preference.channel} to ${user.email}`)
-      } else {
-        console.error(`❌ Failed to send ${preference.channel} to ${user.email}: ${result.error}`)
-      }
     } catch (error: any) {
-      console.error(`❌ Error sending to ${user.email}:`, error)
+      console.error(`   ❌ שגיאה לא צפויה: ${error.message}`)
       await prisma.deliveryAttempt.update({
         where: { id: attemptId },
         data: {

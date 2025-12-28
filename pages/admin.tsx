@@ -24,6 +24,7 @@ import { GroupSelector } from '@/components/group-selector'
 interface Stats {
   memberCount: number
   announcementsThisMonth: number
+  scheduledAnnouncements: number
   upcomingEvents: number
   messagesSentToday: number
   deliveryStats: {
@@ -50,6 +51,7 @@ export default function AdminPage() {
   const [stats, setStats] = useState<Stats>({
     memberCount: 0,
     announcementsThisMonth: 0,
+    scheduledAnnouncements: 0,
     upcomingEvents: 0,
     messagesSentToday: 0,
     deliveryStats: {
@@ -77,7 +79,7 @@ export default function AdminPage() {
     startsAt: '',
     endsAt: '',
     location: '',
-    reminderOffsets: [1440, 60], // 24h and 1h before
+    reminderOffsets: [1440, 60], // Default: 24h and 1h before
   })
 
   // Load stats function
@@ -796,14 +798,150 @@ export default function AdminPage() {
 
                       <div>
                         <Label className="text-sm sm:text-base">תזכורות אוטומטיות</Label>
-                        <div className="flex flex-wrap gap-2 mt-2">
-                          <span className="text-xs sm:text-sm bg-blue-100 dark:bg-blue-900 px-3 py-1 rounded">
-                            24 שעות לפני
-                          </span>
-                          <span className="text-xs sm:text-sm bg-blue-100 dark:bg-blue-900 px-3 py-1 rounded">
-                            שעה לפני
-                          </span>
+                        <p className="text-xs text-gray-500 mt-1 mb-3">
+                          בחר מתי לשלוח תזכורות לפני האירוע
+                        </p>
+                        <div className="space-y-2">
+                          {/* 1 week before */}
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={eventForm.reminderOffsets.includes(10080)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setEventForm({
+                                    ...eventForm,
+                                    reminderOffsets: [...eventForm.reminderOffsets, 10080].sort(
+                                      (a, b) => b - a
+                                    ),
+                                  })
+                                } else {
+                                  setEventForm({
+                                    ...eventForm,
+                                    reminderOffsets: eventForm.reminderOffsets.filter(
+                                      (o) => o !== 10080
+                                    ),
+                                  })
+                                }
+                              }}
+                              className="w-4 h-4"
+                            />
+                            <span className="text-sm">שבוע לפני (7 ימים)</span>
+                          </label>
+
+                          {/* 3 days before */}
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={eventForm.reminderOffsets.includes(4320)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setEventForm({
+                                    ...eventForm,
+                                    reminderOffsets: [...eventForm.reminderOffsets, 4320].sort(
+                                      (a, b) => b - a
+                                    ),
+                                  })
+                                } else {
+                                  setEventForm({
+                                    ...eventForm,
+                                    reminderOffsets: eventForm.reminderOffsets.filter(
+                                      (o) => o !== 4320
+                                    ),
+                                  })
+                                }
+                              }}
+                              className="w-4 h-4"
+                            />
+                            <span className="text-sm">3 ימים לפני</span>
+                          </label>
+
+                          {/* 24 hours before */}
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={eventForm.reminderOffsets.includes(1440)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setEventForm({
+                                    ...eventForm,
+                                    reminderOffsets: [...eventForm.reminderOffsets, 1440].sort(
+                                      (a, b) => b - a
+                                    ),
+                                  })
+                                } else {
+                                  setEventForm({
+                                    ...eventForm,
+                                    reminderOffsets: eventForm.reminderOffsets.filter(
+                                      (o) => o !== 1440
+                                    ),
+                                  })
+                                }
+                              }}
+                              className="w-4 h-4"
+                            />
+                            <span className="text-sm">יום לפני (24 שעות)</span>
+                          </label>
+
+                          {/* 3 hours before */}
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={eventForm.reminderOffsets.includes(180)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setEventForm({
+                                    ...eventForm,
+                                    reminderOffsets: [...eventForm.reminderOffsets, 180].sort(
+                                      (a, b) => b - a
+                                    ),
+                                  })
+                                } else {
+                                  setEventForm({
+                                    ...eventForm,
+                                    reminderOffsets: eventForm.reminderOffsets.filter(
+                                      (o) => o !== 180
+                                    ),
+                                  })
+                                }
+                              }}
+                              className="w-4 h-4"
+                            />
+                            <span className="text-sm">3 שעות לפני</span>
+                          </label>
+
+                          {/* 1 hour before */}
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={eventForm.reminderOffsets.includes(60)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setEventForm({
+                                    ...eventForm,
+                                    reminderOffsets: [...eventForm.reminderOffsets, 60].sort(
+                                      (a, b) => b - a
+                                    ),
+                                  })
+                                } else {
+                                  setEventForm({
+                                    ...eventForm,
+                                    reminderOffsets: eventForm.reminderOffsets.filter(
+                                      (o) => o !== 60
+                                    ),
+                                  })
+                                }
+                              }}
+                              className="w-4 h-4"
+                            />
+                            <span className="text-sm">שעה לפני</span>
+                          </label>
                         </div>
+                        {eventForm.reminderOffsets.length === 0 && (
+                          <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">
+                            ⚠️ לא נבחרו תזכורות - לא תישלח שום הודעה
+                          </p>
+                        )}
                       </div>
 
                       <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">

@@ -59,6 +59,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.log('📊 Stats - Announcements this month:', announcementsThisMonth)
     console.log('📊 Stats - Date range:', startOfMonth.toISOString(), 'to', now.toISOString())
 
+    // Count scheduled announcements (not yet published)
+    const scheduledAnnouncements = await prisma.announcement.count({
+      where: {
+        familyGroupId,
+        scheduledAt: {
+          gte: now, // In the future
+        },
+        publishedAt: null, // Not yet published
+      },
+    })
+
+    console.log(
+      '📊 Stats - Scheduled announcements:',
+      scheduledAnnouncements,
+      'now:',
+      now.toISOString()
+    )
+
     // 3. Count upcoming events (optimized - count in database)
     const upcomingEvents = await prisma.event.count({
       where: {
@@ -154,6 +172,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(200).json({
       memberCount,
       announcementsThisMonth,
+      scheduledAnnouncements,
       upcomingEvents,
       messagesSentToday,
       deliveryStats: {

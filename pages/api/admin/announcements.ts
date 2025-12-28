@@ -29,6 +29,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const userId = user.id
 
       // Create announcement
+      const scheduledDate = scheduledAt ? new Date(scheduledAt) : null
       const announcement = await prisma.announcement.create({
         data: {
           title,
@@ -36,10 +37,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           type: type || 'GENERAL',
           familyGroupId,
           createdBy: userId,
-          scheduledAt: scheduledAt ? new Date(scheduledAt) : null,
+          scheduledAt: scheduledDate,
           publishedAt: scheduledAt ? null : new Date(), // Publish immediately if not scheduled
         },
       })
+
+      // Log announcement creation
+      if (scheduledDate) {
+        console.log(`📅 הודעה מתוזמנת נוצרה:`)
+        console.log(`   כותרת: "${announcement.title}"`)
+        console.log(
+          `   מתוזמנת ל: ${scheduledDate.toLocaleString('he-IL', { timeZone: 'Asia/Jerusalem' })} (שעון ישראל)`
+        )
+        console.log(`   UTC: ${scheduledDate.toISOString()}`)
+        console.log(`   תישלח ב-Cron job הבא (כל 10 דקות)`)
+      } else {
+        console.log(`📨 הודעה מיידית נוצרה: "${announcement.title}"`)
+      }
 
       // If not scheduled, dispatch immediately
       if (!scheduledAt) {
@@ -47,6 +61,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           announcementId: announcement.id,
           familyGroupId,
         })
+        console.log(`✅ ההודעה נשלחה מיד`)
       }
 
       return res.status(200).json({

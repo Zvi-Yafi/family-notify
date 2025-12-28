@@ -15,6 +15,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     const now = new Date()
+    const nowIsrael = now.toLocaleString('he-IL', { timeZone: 'Asia/Jerusalem' })
+
+    console.log(`\n⏰ Cron Job - בדיקת הודעות מתוזמנות`)
+    console.log(`   זמן נוכחי: ${nowIsrael} (שעון ישראל)`)
+    console.log(`   UTC: ${now.toISOString()}`)
 
     // Find announcements that are scheduled and due
     const dueAnnouncements = await prisma.announcement.findMany({
@@ -27,10 +32,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       take: 10, // Process in batches
     })
 
-    console.log(`📅 Found ${dueAnnouncements.length} due announcements`)
+    console.log(`📅 נמצאו ${dueAnnouncements.length} הודעות לשליחה`)
 
     for (const announcement of dueAnnouncements) {
       try {
+        const scheduledIsrael = announcement.scheduledAt
+          ? new Date(announcement.scheduledAt).toLocaleString('he-IL', {
+              timeZone: 'Asia/Jerusalem',
+            })
+          : 'לא מוגדר'
+
+        console.log(`\n📤 שולח הודעה:`)
+        console.log(`   כותרת: "${announcement.title}"`)
+        console.log(`   תוזמנה ל: ${scheduledIsrael}`)
+
         // Dispatch
         await dispatchService.dispatchAnnouncement({
           announcementId: announcement.id,
@@ -43,9 +58,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           data: { publishedAt: now },
         })
 
-        console.log(`✅ Dispatched announcement: ${announcement.title}`)
+        console.log(`✅ ההודעה נשלחה בהצלחה!`)
       } catch (error: any) {
-        console.error(`❌ Failed to dispatch announcement ${announcement.id}:`, error)
+        console.error(`❌ שגיאה בשליחת הודעה ${announcement.id}:`, error)
       }
 
       // Small delay between dispatches
