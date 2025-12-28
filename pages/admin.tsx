@@ -160,6 +160,31 @@ export default function AdminPage() {
     }
   }
 
+  const roundToTenMinutes = (dateTimeString: string): string => {
+    if (!dateTimeString) return ''
+
+    const date = new Date(dateTimeString)
+    const minutes = date.getMinutes()
+
+    // עיגול למטה למספר הקרוב ביותר שמתחלק ב-10 (00, 10, 20, 30, 40, 50)
+    const roundedMinutes = Math.floor(minutes / 10) * 10
+
+    date.setMinutes(roundedMinutes)
+    date.setSeconds(0)
+    date.setMilliseconds(0)
+
+    // פורמט YYYY-MM-DDTHH:mm שמתאים ל-datetime-local
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    const hours = String(date.getHours()).padStart(2, '0')
+    const mins = String(date.getMinutes()).padStart(2, '0')
+
+    // טיפול במקרה שהעיגול הקפיץ את השעה (למשל 16:55 הפך ל-17:00)
+    // הפורמט הזה דואג שזה יוצג נכון ב-Input
+    return `${year}-${month}-${day}T${hours}:${mins}`
+  }
+
   const handleAnnouncementSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -604,17 +629,23 @@ export default function AdminPage() {
                         <Input
                           id="scheduledAt"
                           type="datetime-local"
+                          step="600" // זהו המפתח - 600 שניות הן 10 דקות
                           value={announcementForm.scheduledAt}
-                          onChange={(e) =>
-                            setAnnouncementForm({
-                              ...announcementForm,
-                              scheduledAt: e.target.value,
-                            })
-                          }
+                          onChange={(e) => {
+                            const val = e.target.value
+                            if (val) {
+                              setAnnouncementForm({
+                                ...announcementForm,
+                                scheduledAt: roundToTenMinutes(val),
+                              })
+                            } else {
+                              setAnnouncementForm({ ...announcementForm, scheduledAt: '' })
+                            }
+                          }}
                           className="text-base touch-target"
                         />
                         <p className="text-xs sm:text-sm text-gray-500 mt-1">
-                          השאר ריק לשליחה מיידית
+                          הזמן יוגבל לקפיצות של 10 דקות (למשל: 10, 20, 30...)
                         </p>
                       </div>
 
@@ -704,13 +735,24 @@ export default function AdminPage() {
                           <Input
                             id="startsAt"
                             type="datetime-local"
+                            step="600"
                             value={eventForm.startsAt}
-                            onChange={(e) =>
-                              setEventForm({ ...eventForm, startsAt: e.target.value })
-                            }
+                            onChange={(e) => {
+                              const roundedTime = roundToTenMinutes(e.target.value)
+                              setEventForm({ ...eventForm, startsAt: roundedTime })
+                            }}
+                            onBlur={(e) => {
+                              if (e.target.value) {
+                                const roundedTime = roundToTenMinutes(e.target.value)
+                                setEventForm({ ...eventForm, startsAt: roundedTime })
+                              }
+                            }}
                             required
                             className="text-base touch-target"
                           />
+                          <p className="text-xs text-gray-500 mt-1">
+                            הזמן יעוגל אוטומטית לקפיצות של 10 דקות
+                          </p>
                         </div>
                         <div>
                           <Label htmlFor="endsAt" className="text-sm sm:text-base">
@@ -719,10 +761,23 @@ export default function AdminPage() {
                           <Input
                             id="endsAt"
                             type="datetime-local"
+                            step="600"
                             value={eventForm.endsAt}
-                            onChange={(e) => setEventForm({ ...eventForm, endsAt: e.target.value })}
+                            onChange={(e) => {
+                              const roundedTime = roundToTenMinutes(e.target.value)
+                              setEventForm({ ...eventForm, endsAt: roundedTime })
+                            }}
+                            onBlur={(e) => {
+                              if (e.target.value) {
+                                const roundedTime = roundToTenMinutes(e.target.value)
+                                setEventForm({ ...eventForm, endsAt: roundedTime })
+                              }
+                            }}
                             className="text-base touch-target"
                           />
+                          <p className="text-xs text-gray-500 mt-1">
+                            הזמן יעוגל אוטומטית לקפיצות של 10 דקות
+                          </p>
                         </div>
                       </div>
 
