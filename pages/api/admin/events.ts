@@ -29,12 +29,32 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const userId = user.id
 
       // Create event
+      // Convert times from Israel timezone to UTC
+      const israelOffsetMinutes = 2 * 60 // 120 minutes (2 hours) - adjust to 180 for DST
+
+      const startsAtParsed = new Date(startsAt)
+      const startsAtUTC = new Date(startsAtParsed.getTime() - israelOffsetMinutes * 60 * 1000)
+
+      const endsAtUTC = endsAt
+        ? new Date(new Date(endsAt).getTime() - israelOffsetMinutes * 60 * 1000)
+        : null
+
+      console.log(`⏰ Event timezone conversion:`)
+      console.log(
+        `   Starts: ${startsAt} → ${startsAtUTC.toISOString()} (${startsAtUTC.toLocaleString('he-IL', { timeZone: 'Asia/Jerusalem' })} Israel)`
+      )
+      if (endsAt) {
+        console.log(
+          `   Ends: ${endsAt} → ${endsAtUTC?.toISOString()} (${endsAtUTC?.toLocaleString('he-IL', { timeZone: 'Asia/Jerusalem' })} Israel)`
+        )
+      }
+
       const event = await prisma.event.create({
         data: {
           title,
           description,
-          startsAt: new Date(startsAt),
-          endsAt: endsAt ? new Date(endsAt) : null,
+          startsAt: startsAtUTC,
+          endsAt: endsAtUTC,
           location,
           familyGroupId,
           createdBy: userId,
