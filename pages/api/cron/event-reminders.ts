@@ -3,6 +3,8 @@ import { prisma } from '@/lib/prisma'
 import { dispatchService } from '@/lib/dispatch/dispatch.service'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  console.log('Server now (ISO):', new Date().toISOString())
+  console.log('Server now (local):', new Date().toString())
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
