@@ -15,51 +15,68 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     const now = new Date()
-    let remindersSent = 0
+    const nowIsrael = now.toLocaleString('he-IL', { timeZone: 'Asia/Jerusalem' })
 
-    // Find upcoming events in the next 48 hours
+    console.log(`\n⏰ Cron Job - בדיקת תזכורות לאירועים`)
+    console.log(`   זמן נוכחי: ${nowIsrael} (שעון ישראל)`)
+    console.log(`   UTC: ${now.toISOString()}`)
+
+    // Find upcoming events (within the next week)
+    const oneWeekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
     const upcomingEvents = await prisma.event.findMany({
       where: {
         startsAt: {
           gte: now,
-          lte: new Date(now.getTime() + 48 * 60 * 60 * 1000), // Next 48 hours
+          lte: oneWeekFromNow,
         },
       },
     })
 
-    console.log(`📅 Checking ${upcomingEvents.length} upcoming events for reminders`)
+    console.log(`📅 בודק ${upcomingEvents.length} אירועים עתידיים לתזכורות`)
+
+    let remindersSent = 0
 
     for (const event of upcomingEvents) {
       const minutesUntilEvent = Math.floor((event.startsAt.getTime() - now.getTime()) / (1000 * 60))
 
       // Check if any reminder offset matches
       for (const offset of event.scheduledReminderOffsets) {
-        // Allow 5-minute window for reminder
+        // Allow 5-minute window for reminder (since cron runs every 10 minutes)
         if (Math.abs(minutesUntilEvent - offset) <= 5) {
-          // Check if we already sent this reminder
+          // Check if we already sent this reminder (in the last 15 minutes)
           const existingReminder = await prisma.deliveryAttempt.findFirst({
             where: {
               itemType: 'EVENT',
               itemId: event.id,
               createdAt: {
-                gte: new Date(now.getTime() - 10 * 60 * 1000), // In last 10 minutes
+                gte: new Date(now.getTime() - 15 * 60 * 1000), // In last 15 minutes
               },
             },
           })
 
           if (!existingReminder) {
             try {
-              console.log(
-                `🔔 Sending reminder for event "${event.title}" (${offset} minutes before)`
-              )
+              const eventIsrael = new Date(event.startsAt).toLocaleString('he-IL', {
+                timeZone: 'Asia/Jerusalem',
+              })
+
+              console.log(`\n🔔 שולח תזכורת:`)
+              console.log(`   אירוע: "${event.title}"`)
+              console.log(`   מתחיל ב: ${eventIsrael}`)
+              console.log(`   תזכורת: ${offset} דקות לפני`)
+
               await dispatchService.dispatchEventReminder({
                 eventId: event.id,
                 familyGroupId: event.familyGroupId,
               })
+
               remindersSent++
+              console.log(`✅ התזכורת נשלחה בהצלחה!`)
             } catch (error: any) {
-              console.error(`❌ Failed to send reminder for event ${event.id}:`, error)
+              console.error(`❌ שגיאה בשליחת תזכורת לאירוע ${event.id}:`, error)
             }
+          } else {
+            console.log(`⏭️  כבר נשלחה תזכורת לאירוע "${event.title}" (${offset} דקות לפני)`)
           }
         }
       }
@@ -67,6 +84,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       // Small delay between checks
       await new Promise((resolve) => setTimeout(resolve, 50))
     }
+
+    console.log(`\n✨ סיום בדיקת תזכורות - נשלחו ${remindersSent} תזכורות`)
 
     return res.status(200).json({
       success: true,
