@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Calendar, MapPin, Clock, RefreshCw } from 'lucide-react'
+import { Calendar, MapPin, Clock, RefreshCw, Bell } from 'lucide-react'
 import Link from 'next/link'
+import { useRouter } from 'next/router'
 import { apiClient } from '@/lib/api-client'
 import { useFamilyContext } from '@/lib/context/family-context'
 import { Header } from '@/components/header'
@@ -43,6 +44,7 @@ function formatTimeRange(start: Date, end: Date): string {
 }
 
 export default function EventsPage() {
+  const router = useRouter()
   const [events, setEvents] = useState<Event[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -50,7 +52,7 @@ export default function EventsPage() {
   const { familyGroupId, groups, loadingGroups, selectedGroup } = useFamilyContext()
   const { toast } = useToast()
 
-  const loadEvents = async () => {
+  const loadEvents = useCallback(async () => {
     if (!familyGroupId) {
       setLoading(false)
       return
@@ -79,11 +81,34 @@ export default function EventsPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [familyGroupId, showPastEvents, toast])
 
   useEffect(() => {
     loadEvents()
-  }, [familyGroupId, showPastEvents])
+  }, [loadEvents])
+
+  // Refresh events when page becomes visible (user navigates back)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && familyGroupId) {
+        loadEvents()
+      }
+    }
+
+    const handleFocus = () => {
+      if (familyGroupId) {
+        loadEvents()
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('focus', handleFocus)
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('focus', handleFocus)
+    }
+  }, [familyGroupId, loadEvents])
 
   // Show loading while fetching groups
   if (loadingGroups) {
@@ -123,6 +148,16 @@ export default function EventsPage() {
                     className="w-full sm:w-auto touch-target"
                   >
                     {showPastEvents ? 'הצג עתידיים' : 'הצג הכל'}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={loadEvents}
+                    disabled={loading}
+                    className="w-full sm:w-auto touch-target"
+                  >
+                    <RefreshCw className={`h-4 w-4 ml-2 ${loading ? 'animate-spin' : ''}`} />
+                    רענן
                   </Button>
                   <Button asChild className="w-full sm:w-auto touch-target">
                     <Link href="/admin">
@@ -222,18 +257,20 @@ export default function EventsPage() {
                     <CardContent className="p-4 sm:p-6 pt-0">
                       <div className="flex flex-col sm:flex-row gap-2">
                         <Button
-                          variant="outline"
+                          variant="default"
                           size="sm"
                           className="w-full sm:w-auto touch-target"
+                          onClick={() => router.push(`/events/${event.id}`)}
                         >
-                          הוסף ליומן
+                          <Bell className="h-4 w-4 ml-2" />
+                          נהל תזכורות
                         </Button>
                         <Button
                           variant="outline"
                           size="sm"
                           className="w-full sm:w-auto touch-target"
                         >
-                          שתף
+                          הוסף ליומן
                         </Button>
                       </div>
                     </CardContent>

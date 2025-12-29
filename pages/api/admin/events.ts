@@ -58,7 +58,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           location,
           familyGroupId,
           createdBy: userId,
-          scheduledReminderOffsets: reminderOffsets || [1440, 60], // Default: 24h and 1h before
         },
       })
 

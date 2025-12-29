@@ -95,7 +95,6 @@ async function main() {
       startsAt: futureDate,
       location: 'תל אביב',
       createdBy: adminUser.id,
-      scheduledReminderOffsets: [1440, 60], // 24 hours and 1 hour before
     },
   })
 
@@ -113,6 +112,3 @@ main()
     await prisma.$disconnect()
     process.exit(1)
   })
-
-
-

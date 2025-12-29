@@ -80,7 +80,6 @@ class ApiClient {
     endsAt?: string
     location?: string
     familyGroupId: string
-    reminderOffsets?: number[]
   }) {
     return this.request<{ success: boolean; event: any }>('/api/admin/events', {
       method: 'POST',

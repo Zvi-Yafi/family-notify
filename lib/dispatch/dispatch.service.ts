@@ -11,7 +11,8 @@ export interface DispatchAnnouncementOptions {
 }
 
 export interface DispatchEventReminderOptions {
-  eventId: string
+  eventId?: string // For old-style reminders (deprecated)
+  eventReminderId?: string // For new-style reminders
   familyGroupId: string
 }
 
@@ -93,16 +94,45 @@ export class DispatchService {
    * Dispatch event reminders
    */
   async dispatchEventReminder(options: DispatchEventReminderOptions): Promise<void> {
-    const event = await prisma.event.findUnique({
-      where: { id: options.eventId },
-      include: {
-        familyGroup: true,
-        creator: true,
-      },
-    })
+    let event: any
+    let customMessage: string | null = null
 
-    if (!event) {
-      throw new Error('Event not found')
+    // New style: using eventReminderId
+    if (options.eventReminderId) {
+      const reminder = await prisma.eventReminder.findUnique({
+        where: { id: options.eventReminderId },
+        include: {
+          event: {
+            include: {
+              familyGroup: true,
+              creator: true,
+            },
+          },
+        },
+      })
+
+      if (!reminder) {
+        throw new Error('Event reminder not found')
+      }
+
+      event = reminder.event
+      customMessage = reminder.message
+    }
+    // Old style: using eventId (for backward compatibility)
+    else if (options.eventId) {
+      event = await prisma.event.findUnique({
+        where: { id: options.eventId },
+        include: {
+          familyGroup: true,
+          creator: true,
+        },
+      })
+
+      if (!event) {
+        throw new Error('Event not found')
+      }
+    } else {
+      throw new Error('Either eventId or eventReminderId must be provided')
     }
 
     // Get all members of the family group with their preferences
@@ -120,6 +150,9 @@ export class DispatchService {
     })
 
     console.log(`📅 Dispatching event reminder "${event.title}" to ${memberships.length} members`)
+    if (customMessage) {
+      console.log(`   הודעה מותאמת אישית: "${customMessage}"`)
+    }
 
     // Create delivery attempts for each user and their enabled channels
     for (const membership of memberships) {
@@ -135,8 +168,8 @@ export class DispatchService {
         // Create delivery attempt
         const attempt = await prisma.deliveryAttempt.create({
           data: {
-            itemType: 'EVENT',
-            itemId: event.id,
+            itemType: options.eventReminderId ? 'EVENT_REMINDER' : 'EVENT',
+            itemId: options.eventReminderId || event.id,
             userId: membership.user.id,
             channel: preference.channel,
             status: 'QUEUED',
@@ -144,7 +177,7 @@ export class DispatchService {
         })
 
         // Send immediately
-        await this.sendEventReminder(attempt.id, event, membership.user, preference)
+        await this.sendEventReminder(attempt.id, event, membership.user, preference, customMessage)
       }
     }
   }
@@ -257,11 +290,16 @@ export class DispatchService {
     attemptId: string,
     event: any,
     user: any,
-    preference: any
+    preference: any,
+    customMessage?: string | null
   ): Promise<void> {
     try {
       const timeUntil = this.getTimeUntilEvent(event.startsAt)
-      const reminderText = `תזכורת: ${event.title} מתחיל ${timeUntil}${event.location ? ` ב${event.location}` : ''}`
+
+      // Use custom message if provided, otherwise use default
+      const reminderText =
+        customMessage ||
+        `תזכורת: ${event.title} מתחיל ${timeUntil}${event.location ? ` ב${event.location}` : ''}`
 
       let result: { success: boolean; messageId?: string; error?: string }
 
@@ -270,7 +308,7 @@ export class DispatchService {
           result = await emailProvider.send({
             to: preference.destination,
             subject: `⏰ תזכורת: ${event.title}`,
-            html: this.buildEventReminderHtml(event, user, timeUntil),
+            html: this.buildEventReminderHtml(event, user, timeUntil, customMessage),
             text: reminderText,
           })
           break
@@ -295,7 +333,7 @@ export class DispatchService {
             result = await pushProvider.send({
               subscription,
               title: `⏰ תזכורת: ${event.title}`,
-              body: `מתחיל ${timeUntil}`,
+              body: customMessage || `מתחיל ${timeUntil}`,
               data: { eventId: event.id },
             })
           } catch (e) {
@@ -421,7 +459,12 @@ export class DispatchService {
     `
   }
 
-  private buildEventReminderHtml(event: any, user: any, timeUntil: string): string {
+  private buildEventReminderHtml(
+    event: any,
+    user: any,
+    timeUntil: string,
+    customMessage?: string | null
+  ): string {
     const eventDate = new Date(event.startsAt)
     const formattedDate = eventDate.toLocaleDateString('he-IL', {
       weekday: 'long',
@@ -507,6 +550,22 @@ export class DispatchService {
                         <td valign="top" style="padding-right: 16px;">
                           <div style="font-size: 13px; color: #64748b; font-weight: 600; margin-bottom: 4px;">מיקום</div>
                           <div style="font-size: 16px; color: #1e293b; font-weight: 600;">${event.location}</div>
+                        </td>
+                      </tr>
+                    </table>
+                    `
+                        : ''
+                    }
+                    
+                    ${
+                      customMessage
+                        ? `
+                    <!-- Custom Message -->
+                    <table width="100%" cellpadding="0" cellspacing="0" style="background: linear-gradient(to bottom, #fef3c7, #fef9e7); border-radius: 12px; padding: 24px; border: 2px solid #fbbf24; margin-bottom: 16px;">
+                      <tr>
+                        <td>
+                          <div style="font-size: 13px; color: #92400e; font-weight: 600; margin-bottom: 8px;">💬 הודעה</div>
+                          <div style="font-size: 15px; color: #78350f; line-height: 1.6; font-weight: 500;">${customMessage}</div>
                         </td>
                       </tr>
                     </table>

@@ -79,7 +79,8 @@ export default function AdminPage() {
     startsAt: '',
     endsAt: '',
     location: '',
-    reminderOffsets: [1440, 60], // Default: 24h and 1h before
+    reminderMessage: '',
+    reminderScheduledAt: '',
   })
 
   // Load stats function
@@ -263,19 +264,38 @@ export default function AdminPage() {
     setLoading(true)
 
     try {
-      await apiClient.createEvent({
+      const eventResponse = await apiClient.createEvent({
         title: eventForm.title,
         description: eventForm.description || undefined,
         startsAt: eventForm.startsAt,
         endsAt: eventForm.endsAt || undefined,
         location: eventForm.location || undefined,
         familyGroupId,
-        reminderOffsets: eventForm.reminderOffsets,
       })
+
+      // If reminder is provided, create it
+      if (eventForm.reminderMessage) {
+        try {
+          await fetch('/api/admin/event-reminders', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              eventId: eventResponse.event.id,
+              message: eventForm.reminderMessage,
+              scheduledAt: eventForm.reminderScheduledAt || null,
+            }),
+          })
+        } catch (reminderError) {
+          console.error('Failed to create reminder:', reminderError)
+          // Don't fail the whole operation if reminder creation fails
+        }
+      }
 
       toast({
         title: 'אירוע נוצר בהצלחה!',
-        description: 'תזכורות יישלחו אוטומטית לפני האירוע',
+        description: eventForm.reminderMessage
+          ? 'האירוע והתזכורת נוצרו בהצלחה'
+          : 'האירוע נוצר בהצלחה',
       })
 
       // Reload stats to update the count
@@ -288,7 +308,8 @@ export default function AdminPage() {
         startsAt: '',
         endsAt: '',
         location: '',
-        reminderOffsets: [1440, 60],
+        reminderMessage: '',
+        reminderScheduledAt: '',
       })
     } catch (error: any) {
       // Don't show error for unauthorized - redirect is handled by apiClient
@@ -796,152 +817,65 @@ export default function AdminPage() {
                         />
                       </div>
 
-                      <div>
-                        <Label className="text-sm sm:text-base">תזכורות אוטומטיות</Label>
-                        <p className="text-xs text-gray-500 mt-1 mb-3">
-                          בחר מתי לשלוח תזכורות לפני האירוע
-                        </p>
-                        <div className="space-y-2">
-                          {/* 1 week before */}
-                          <label className="flex items-center gap-2 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={eventForm.reminderOffsets.includes(10080)}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  setEventForm({
-                                    ...eventForm,
-                                    reminderOffsets: [...eventForm.reminderOffsets, 10080].sort(
-                                      (a, b) => b - a
-                                    ),
-                                  })
-                                } else {
-                                  setEventForm({
-                                    ...eventForm,
-                                    reminderOffsets: eventForm.reminderOffsets.filter(
-                                      (o) => o !== 10080
-                                    ),
-                                  })
-                                }
-                              }}
-                              className="w-4 h-4"
-                            />
-                            <span className="text-sm">שבוע לפני (7 ימים)</span>
-                          </label>
-
-                          {/* 3 days before */}
-                          <label className="flex items-center gap-2 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={eventForm.reminderOffsets.includes(4320)}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  setEventForm({
-                                    ...eventForm,
-                                    reminderOffsets: [...eventForm.reminderOffsets, 4320].sort(
-                                      (a, b) => b - a
-                                    ),
-                                  })
-                                } else {
-                                  setEventForm({
-                                    ...eventForm,
-                                    reminderOffsets: eventForm.reminderOffsets.filter(
-                                      (o) => o !== 4320
-                                    ),
-                                  })
-                                }
-                              }}
-                              className="w-4 h-4"
-                            />
-                            <span className="text-sm">3 ימים לפני</span>
-                          </label>
-
-                          {/* 24 hours before */}
-                          <label className="flex items-center gap-2 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={eventForm.reminderOffsets.includes(1440)}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  setEventForm({
-                                    ...eventForm,
-                                    reminderOffsets: [...eventForm.reminderOffsets, 1440].sort(
-                                      (a, b) => b - a
-                                    ),
-                                  })
-                                } else {
-                                  setEventForm({
-                                    ...eventForm,
-                                    reminderOffsets: eventForm.reminderOffsets.filter(
-                                      (o) => o !== 1440
-                                    ),
-                                  })
-                                }
-                              }}
-                              className="w-4 h-4"
-                            />
-                            <span className="text-sm">יום לפני (24 שעות)</span>
-                          </label>
-
-                          {/* 3 hours before */}
-                          <label className="flex items-center gap-2 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={eventForm.reminderOffsets.includes(180)}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  setEventForm({
-                                    ...eventForm,
-                                    reminderOffsets: [...eventForm.reminderOffsets, 180].sort(
-                                      (a, b) => b - a
-                                    ),
-                                  })
-                                } else {
-                                  setEventForm({
-                                    ...eventForm,
-                                    reminderOffsets: eventForm.reminderOffsets.filter(
-                                      (o) => o !== 180
-                                    ),
-                                  })
-                                }
-                              }}
-                              className="w-4 h-4"
-                            />
-                            <span className="text-sm">3 שעות לפני</span>
-                          </label>
-
-                          {/* 1 hour before */}
-                          <label className="flex items-center gap-2 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={eventForm.reminderOffsets.includes(60)}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  setEventForm({
-                                    ...eventForm,
-                                    reminderOffsets: [...eventForm.reminderOffsets, 60].sort(
-                                      (a, b) => b - a
-                                    ),
-                                  })
-                                } else {
-                                  setEventForm({
-                                    ...eventForm,
-                                    reminderOffsets: eventForm.reminderOffsets.filter(
-                                      (o) => o !== 60
-                                    ),
-                                  })
-                                }
-                              }}
-                              className="w-4 h-4"
-                            />
-                            <span className="text-sm">שעה לפני</span>
-                          </label>
+                      <div className="border-t pt-4 mt-4">
+                        <div className="flex items-center gap-2 mb-3">
+                          <Bell className="h-5 w-5 text-blue-600" />
+                          <Label className="text-sm sm:text-base font-semibold">
+                            תזכורת לאירוע (אופציונלי)
+                          </Label>
                         </div>
-                        {eventForm.reminderOffsets.length === 0 && (
-                          <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">
-                            ⚠️ לא נבחרו תזכורות - לא תישלח שום הודעה
-                          </p>
-                        )}
+                        <p className="text-xs text-gray-500 mb-4">
+                          הוסף תזכורת שתישלח לפני האירוע. השאר ריק אם אינך רוצה תזכורת.
+                        </p>
+
+                        <div className="space-y-4">
+                          <div>
+                            <Label htmlFor="reminderMessage" className="text-sm sm:text-base">
+                              הודעת התזכורת
+                            </Label>
+                            <textarea
+                              id="reminderMessage"
+                              className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-3 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                              placeholder="למשל: תזכורת! יום הולדת לסבתא מתקרב..."
+                              value={eventForm.reminderMessage}
+                              onChange={(e) =>
+                                setEventForm({ ...eventForm, reminderMessage: e.target.value })
+                              }
+                            />
+                          </div>
+
+                          <div>
+                            <Label htmlFor="reminderScheduledAt" className="text-sm sm:text-base">
+                              תזמון תזכורת (אופציונלי)
+                            </Label>
+                            <Input
+                              id="reminderScheduledAt"
+                              type="datetime-local"
+                              step="600"
+                              value={eventForm.reminderScheduledAt}
+                              onChange={(e) => {
+                                const roundedTime = roundToTenMinutes(e.target.value)
+                                setEventForm({
+                                  ...eventForm,
+                                  reminderScheduledAt: roundedTime,
+                                })
+                              }}
+                              onBlur={(e) => {
+                                if (e.target.value) {
+                                  const roundedTime = roundToTenMinutes(e.target.value)
+                                  setEventForm({
+                                    ...eventForm,
+                                    reminderScheduledAt: roundedTime,
+                                  })
+                                }
+                              }}
+                              className="text-base touch-target"
+                            />
+                            <p className="text-xs text-gray-500 mt-1">
+                              השאר ריק כדי לשלוח מיד. הזמן יעוגל לקפיצות של 10 דקות.
+                            </p>
+                          </div>
+                        </div>
                       </div>
 
                       <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
@@ -958,7 +892,8 @@ export default function AdminPage() {
                               startsAt: '',
                               endsAt: '',
                               location: '',
-                              reminderOffsets: [1440, 60],
+                              reminderMessage: '',
+                              reminderScheduledAt: '',
                             })
                           }
                           className="w-full sm:w-auto touch-target"
