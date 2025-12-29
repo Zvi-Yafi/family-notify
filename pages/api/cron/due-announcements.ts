@@ -9,6 +9,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     // Verify cron secret
+    console.log('Server now (ISO):', new Date().toISOString())
+    console.log('Server now (local):', new Date().toString())
     const authHeader = req.headers.authorization
     if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
       return res.status(401).json({ error: 'Unauthorized' })
