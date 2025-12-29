@@ -34,7 +34,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       take: 10, // Process in batches
     })
 
-    console.log(`📅 נמצאו ${dueAnnouncements.length} הודעות צביקה`)
+    console.log(`📅 נמצאו ${dueAnnouncements.length} הודעות לשליחה`)
 
     for (const announcement of dueAnnouncements) {
       try {
@@ -55,14 +55,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         })
 
         // Mark as published
-        await prisma.announcement.update({
+        console.log(`🔄 מעדכן publishedAt ל-${now.toISOString()}...`)
+        const updated = await prisma.announcement.update({
           where: { id: announcement.id },
           data: { publishedAt: now },
         })
+        console.log(`✅ publishedAt עודכן בהצלחה! (ID: ${updated.id})`)
 
         console.log(`✅ ההודעה נשלחה בהצלחה!`)
       } catch (error: any) {
         console.error(`❌ שגיאה בשליחת הודעה ${announcement.id}:`, error)
+        console.error(`   Error name: ${error.name}`)
+        console.error(`   Error message: ${error.message}`)
+        console.error(`   Stack: ${error.stack}`)
       }
 
       // Small delay between dispatches
