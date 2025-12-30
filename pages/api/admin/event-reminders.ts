@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from 'next'
 import { prisma } from '@/lib/prisma'
 import { createServerClient } from '@/lib/supabase/server'
 import { dispatchService } from '@/lib/dispatch/dispatch.service'
+import { convertIsraelToUTC } from '@/lib/utils/timezone'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method === 'OPTIONS') {
@@ -37,6 +38,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(404).json({ error: 'Event not found' })
       }
 
+      // Convert times from Israel timezone to UTC
+      const scheduledAtUTC = scheduledAt ? convertIsraelToUTC(scheduledAt) : null
+
       // Create reminder
       const reminder = await prisma.eventReminder.create({
         data: {
@@ -44,7 +48,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           familyGroupId: event.familyGroupId,
           message,
           createdBy: userId,
-          scheduledAt: scheduledAt ? new Date(scheduledAt) : null,
+          scheduledAt: scheduledAtUTC,
         },
       })
 

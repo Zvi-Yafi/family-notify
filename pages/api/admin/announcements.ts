@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from 'next'
 import { prisma } from '@/lib/prisma'
 import { dispatchService } from '@/lib/dispatch/dispatch.service'
 import { createServerClient } from '@/lib/supabase/server'
+import { convertIsraelToUTC, formatToIsraelTime } from '@/lib/utils/timezone'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   // Handle CORS preflight
@@ -32,20 +33,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       // Convert scheduled time from Israel timezone to UTC
       let scheduledDate = null
       if (scheduledAt) {
-        // The datetime-local input sends time without timezone info (e.g., "2025-12-29T18:50")
-        // The user means this as Israel time, but new Date() treats it as UTC
-        // So if user selects 18:50 Israel → we want 16:50 UTC (Israel is UTC+2 in winter)
-        const israelOffsetMinutes = 2 * 60 // 120 minutes (2 hours) - adjust to 180 for DST
-        const parsedDate = new Date(scheduledAt)
-        scheduledDate = new Date(parsedDate.getTime() - israelOffsetMinutes * 60 * 1000)
+        scheduledDate = convertIsraelToUTC(scheduledAt)
 
         console.log(`⏰ Timezone conversion:`)
         console.log(`   User input: ${scheduledAt}`)
-        console.log(`   Parsed as UTC: ${parsedDate.toISOString()}`)
-        console.log(`   Adjusted to: ${scheduledDate.toISOString()}`)
-        console.log(
-          `   Will show as: ${scheduledDate.toLocaleString('he-IL', { timeZone: 'Asia/Jerusalem' })} Israel`
-        )
+        console.log(`   Adjusted to UTC: ${scheduledDate.toISOString()}`)
+        console.log(`   Will show as: ${formatToIsraelTime(scheduledDate)} Israel`)
       }
       const announcement = await prisma.announcement.create({
         data: {
@@ -63,9 +56,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       if (scheduledDate) {
         console.log(`📅 הודעה מתוזמנת נוצרה:`)
         console.log(`   כותרת: "${announcement.title}"`)
-        console.log(
-          `   מתוזמנת ל: ${scheduledDate.toLocaleString('he-IL', { timeZone: 'Asia/Jerusalem' })} (שעון ישראל)`
-        )
+        console.log(`   מתוזמנת ל: ${formatToIsraelTime(scheduledDate)} (שעון ישראל)`)
         console.log(`   UTC: ${scheduledDate.toISOString()}`)
         console.log(`   תישלח ב-Cron job הבא (כל 10 דקות)`)
       } else {

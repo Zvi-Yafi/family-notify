@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { prisma } from '@/lib/prisma'
 import { dispatchService } from '@/lib/dispatch/dispatch.service'
+import { formatToIsraelTime } from '@/lib/utils/timezone'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   console.log('Server now (ISO):', new Date().toISOString())
@@ -18,7 +19,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     const now = new Date()
-    const nowIsrael = now.toLocaleString('he-IL', { timeZone: 'Asia/Jerusalem' })
+    const nowIsrael = formatToIsraelTime(now)
 
     console.log(`\n⏰ Cron Job - בדיקת תזכורות מתוזמנות לאירועים`)
     console.log(`   זמן נוכחי: ${nowIsrael} (שעון ישראל)`)
@@ -41,11 +42,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.log(`📅 נמצאו ${dueReminders.length} תזכורות לשליחה`)
 
     for (const reminder of dueReminders) {
+      // Optimistic locking: Try to claim the reminder first
+      const { count } = await prisma.eventReminder.updateMany({
+        where: {
+          id: reminder.id,
+          sentAt: null, // Only update if still null
+        },
+        data: {
+          sentAt: now,
+        },
+      })
+
+      if (count === 0) {
+        console.log(`⏭️ התזכורת "${reminder.message}" כבר טופלה על ידי תהליך אחר. מדלג.`)
+        continue
+      }
+
+      console.log(`🔒 התזכורת "${reminder.message}" ננעלה לשליחה (sentAt עודכן)`)
+
       try {
         const scheduledIsrael = reminder.scheduledAt
-          ? new Date(reminder.scheduledAt).toLocaleString('he-IL', {
-              timeZone: 'Asia/Jerusalem',
-            })
+          ? formatToIsraelTime(reminder.scheduledAt)
           : 'לא מוגדר'
 
         console.log(`\n📤 שולח תזכורת:`)
@@ -59,20 +76,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           familyGroupId: reminder.familyGroupId,
         })
 
-        // Mark as sent
-        console.log(`🔄 מעדכן sentAt ל-${now.toISOString()}...`)
-        const updated = await prisma.eventReminder.update({
-          where: { id: reminder.id },
-          data: { sentAt: now },
-        })
-        console.log(`✅ sentAt עודכן בהצלחה! (ID: ${updated.id})`)
-
         console.log(`✅ התזכורת נשלחה בהצלחה!`)
       } catch (error: any) {
         console.error(`❌ שגיאה בשליחת תזכורת ${reminder.id}:`, error)
         console.error(`   Error name: ${error.name}`)
         console.error(`   Error message: ${error.message}`)
         console.error(`   Stack: ${error.stack}`)
+
+        // Revert sentAt so it can be retried
+        console.log(`🔄 משחזר את sentAt ל-null עקב כישלון בשליחה...`)
+        await prisma.eventReminder.update({
+          where: { id: reminder.id },
+          data: { sentAt: null },
+        })
       }
 
       // Small delay between dispatches
