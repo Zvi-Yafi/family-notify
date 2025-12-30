@@ -37,6 +37,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.log(`📅 נמצאו ${dueAnnouncements.length} הודעות לשליחה`)
 
     for (const announcement of dueAnnouncements) {
+      // Optimistic locking: Try to claim the announcement first
+      // This ensures that if two cron jobs run simultaneously, only one will successfully 'claim' it
+      const { count } = await prisma.announcement.updateMany({
+        where: {
+          id: announcement.id,
+          publishedAt: null, // Only update if still null
+        },
+        data: {
+          publishedAt: now,
+        },
+      })
+
+      if (count === 0) {
+        console.log(`⏭️ ההודעה "${announcement.title}" כבר טופלה על ידי תהליך אחר. מדלג.`)
+        continue
+      }
+
+      console.log(`🔒 ההודעה "${announcement.title}" ננעלה לשליחה (publishedAt עודכן)`)
+
       try {
         const scheduledIsrael = announcement.scheduledAt
           ? new Date(announcement.scheduledAt).toLocaleString('he-IL', {
@@ -53,21 +72,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           announcementId: announcement.id,
           familyGroupId: announcement.familyGroupId,
         })
-
-        // Mark as published
-        console.log(`🔄 מעדכן publishedAt ל-${now.toISOString()}...`)
-        const updated = await prisma.announcement.update({
-          where: { id: announcement.id },
-          data: { publishedAt: now },
-        })
-        console.log(`✅ publishedAt עודכן בהצלחה! (ID: ${updated.id})`)
-
         console.log(`✅ ההודעה נשלחה בהצלחה!`)
       } catch (error: any) {
         console.error(`❌ שגיאה בשליחת הודעה ${announcement.id}:`, error)
         console.error(`   Error name: ${error.name}`)
         console.error(`   Error message: ${error.message}`)
         console.error(`   Stack: ${error.stack}`)
+
+        // Revert publishedAt so it can be retried (optional, but good for reliability)
+        console.log(`🔄 משחזר את publishedAt ל-null עקב כישלון בשליחה...`)
+        await prisma.announcement.update({
+          where: { id: announcement.id },
+          data: { publishedAt: null },
+        })
       }
 
       // Small delay between dispatches
