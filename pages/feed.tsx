@@ -81,7 +81,7 @@ export default function FeedPage() {
             </div>
             {familyGroupId && (
               <Button asChild className="w-full sm:w-auto touch-target">
-                <Link href="/admin">הוסף הודעה</Link>
+                <Link href="/admin?tab=announcements">הוסף הודעה</Link>
               </Button>
             )}
           </div>
@@ -158,7 +158,7 @@ export default function FeedPage() {
                   אין הודעות חדשות
                 </p>
                 <Button asChild className="touch-target">
-                  <Link href="/admin">פרסם הודעה ראשונה</Link>
+                  <Link href="/admin?tab=announcements">פרסם הודעה ראשונה</Link>
                 </Button>
               </CardContent>
             </Card>

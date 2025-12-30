@@ -46,6 +46,17 @@ interface Member {
 export default function AdminPage() {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState<'announcements' | 'events' | 'stats'>('announcements')
+
+  // Set active tab from query param
+  useEffect(() => {
+    if (
+      router.query.tab &&
+      ['announcements', 'events', 'stats'].includes(router.query.tab as string)
+    ) {
+      setActiveTab(router.query.tab as 'announcements' | 'events' | 'stats')
+    }
+  }, [router.query.tab])
+
   const [loading, setLoading] = useState(false)
   const [statsLoading, setStatsLoading] = useState(true)
   const [stats, setStats] = useState<Stats>({

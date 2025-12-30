@@ -160,7 +160,7 @@ export default function EventsPage() {
                     רענן
                   </Button>
                   <Button asChild className="w-full sm:w-auto touch-target">
-                    <Link href="/admin">
+                    <Link href="/admin?tab=events">
                       <Calendar className="h-4 w-4 ml-2" />
                       הוסף אירוע
                     </Link>
@@ -288,7 +288,7 @@ export default function EventsPage() {
                   אין אירועים מתוזמנים
                 </p>
                 <Button asChild className="touch-target">
-                  <Link href="/admin">צור אירוע ראשון</Link>
+                  <Link href="/admin?tab=events">צור אירוע ראשון</Link>
                 </Button>
               </CardContent>
             </Card>
