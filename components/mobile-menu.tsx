@@ -51,7 +51,7 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
     return () => {
       router.events?.off('routeChangeStart', handleRouteChange)
     }
-  }, [router])
+  }, [router.events, handleClose])
 
   // Prevent body scroll when menu is open
   useEffect(() => {

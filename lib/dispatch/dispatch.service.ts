@@ -331,7 +331,14 @@ export class DispatchService {
           result = await emailProvider.send({
             to: preference.destination,
             subject,
-            html: this.buildEventReminderHtml(event, user, timeUntil, customMessage, isInitial),
+            html: this.buildEventReminderHtml(
+              event,
+              user,
+              timeUntil,
+              customMessage,
+              isInitial,
+              event.familyGroup?.name || 'המשפחה'
+            ),
             text: reminderText,
           })
           if (result.success) {
@@ -492,7 +499,8 @@ export class DispatchService {
     user: any,
     timeUntil: string,
     customMessage?: string | null,
-    isInitial: boolean = false
+    isInitial: boolean = false,
+    groupName: string = 'המשפחה'
   ): string {
     const tz = 'Asia/Jerusalem'
     const eventStartsAt = event.startsAt instanceof Date ? event.startsAt : new Date(event.startsAt)
@@ -646,7 +654,7 @@ export class DispatchService {
                       </a>
                     </div>
                     <p style="margin: 20px 0 0 0; color: #94a3b8; font-size: 13px;">
-                      משפחת Yafi • FamilyNotify
+                      ${groupName} • FamilyNotify
                     </p>
                   </td>
                 </tr>
@@ -695,18 +703,11 @@ export class DispatchService {
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
 
       if (diffDays <= 6) {
-        const dayName = start.toLocaleDateString('he-IL', {
-          weekday: 'long',
-          timeZone: 'Asia/Jerusalem',
-        })
+        const dayName = formatInTimeZone(start, tz, 'eeee', { locale: he })
         return `ביום ${dayName} בשעה ${timeString}`
       } else {
         // Full date
-        const dateString = start.toLocaleDateString('he-IL', {
-          day: 'numeric',
-          month: 'numeric',
-          timeZone: 'Asia/Jerusalem',
-        })
+        const dateString = formatInTimeZone(start, tz, 'd/M')
         return `בתאריך ${dateString} בשעה ${timeString}`
       }
     }
