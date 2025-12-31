@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { dispatchService } from '@/lib/dispatch/dispatch.service'
 import { createServerClient } from '@/lib/supabase/server'
 import { convertIsraelToUTC, formatToIsraelTime } from '@/lib/utils/timezone'
+import { roundDateToTenMinutes } from '@/lib/utils/time-utils'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   // Handle CORS preflight
@@ -33,10 +34,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       // Convert scheduled time from Israel timezone to UTC
       let scheduledDate = null
       if (scheduledAt) {
-        scheduledDate = convertIsraelToUTC(scheduledAt)
+        // Enforce 10-minute rounding
+        const roundedTime = roundDateToTenMinutes(scheduledAt)
+        scheduledDate = convertIsraelToUTC(roundedTime)
 
-        console.log(`⏰ Timezone conversion:`)
+        console.log(`⏰ Timezone conversion & Rounding:`)
         console.log(`   User input: ${scheduledAt}`)
+        console.log(`   Rounded: ${roundedTime.toISOString()}`)
         console.log(`   Adjusted to UTC: ${scheduledDate.toISOString()}`)
         console.log(`   Will show as: ${formatToIsraelTime(scheduledDate)} Israel`)
       }

@@ -4,6 +4,8 @@ import { pushProvider } from '@/lib/providers/push.provider'
 import { smsProvider } from '@/lib/providers/sms.provider'
 import { whatsAppProvider } from '@/lib/providers/whatsapp.provider'
 import { CommunicationChannel, DeliveryStatus } from '@prisma/client'
+import { formatInTimeZone } from 'date-fns-tz'
+import { he } from 'date-fns/locale'
 
 export interface DispatchAnnouncementOptions {
   announcementId: string
@@ -14,6 +16,7 @@ export interface DispatchEventReminderOptions {
   eventId?: string // For old-style reminders (deprecated)
   eventReminderId?: string // For new-style reminders
   familyGroupId: string
+  isInitial?: boolean // Added: true for the first "New Event" notification
 }
 
 export class DispatchService {
@@ -150,6 +153,14 @@ export class DispatchService {
     })
 
     console.log(`📅 Dispatching event reminder "${event.title}" to ${memberships.length} members`)
+    console.log(`   Detailed Event Data:`, {
+      id: event.id,
+      title: event.title,
+      startsAt: event.startsAt,
+      endsAt: event.endsAt,
+      typeOfStartsAt: typeof event.startsAt,
+      instanceOfStartsAt: event.startsAt instanceof Date,
+    })
     if (customMessage) {
       console.log(`   הודעה מותאמת אישית: "${customMessage}"`)
     }
@@ -177,7 +188,14 @@ export class DispatchService {
         })
 
         // Send immediately
-        await this.sendEventReminder(attempt.id, event, membership.user, preference, customMessage)
+        await this.sendEventReminder(
+          attempt.id,
+          event,
+          membership.user,
+          preference,
+          customMessage,
+          options.isInitial
+        )
       }
     }
   }
@@ -291,15 +309,20 @@ export class DispatchService {
     event: any,
     user: any,
     preference: any,
-    customMessage?: string | null
+    customMessage?: string | null,
+    isInitial: boolean = false
   ): Promise<void> {
     try {
       const timeUntil = this.getTimeUntilEvent(event.startsAt)
 
+      const subject = isInitial ? `📅 אירוע חדש: ${event.title}` : `⏰ תזכורת: ${event.title}`
+
       // Use custom message if provided, otherwise use default
       const reminderText =
         customMessage ||
-        `תזכורת: ${event.title} מתחיל ${timeUntil}${event.location ? ` ב${event.location}` : ''}`
+        (isInitial
+          ? `אירוע חדש: ${event.title} מתחיל ${timeUntil}${event.location ? ` ב${event.location}` : ''}`
+          : `תזכורת: ${event.title} מתחיל ${timeUntil}${event.location ? ` ב${event.location}` : ''}`)
 
       let result: { success: boolean; messageId?: string; error?: string }
 
@@ -307,10 +330,15 @@ export class DispatchService {
         case 'EMAIL':
           result = await emailProvider.send({
             to: preference.destination,
-            subject: `⏰ תזכורת: ${event.title}`,
-            html: this.buildEventReminderHtml(event, user, timeUntil, customMessage),
+            subject,
+            html: this.buildEventReminderHtml(event, user, timeUntil, customMessage, isInitial),
             text: reminderText,
           })
+          if (result.success) {
+            console.log(
+              `   ✅ EMAIL sent to ${preference.destination} (Starts: ${event.startsAt instanceof Date ? event.startsAt.toISOString() : event.startsAt})`
+            )
+          }
           break
 
         case 'SMS':
@@ -332,8 +360,8 @@ export class DispatchService {
             const subscription = JSON.parse(preference.destination)
             result = await pushProvider.send({
               subscription,
-              title: `⏰ תזכורת: ${event.title}`,
-              body: customMessage || `מתחיל ${timeUntil}`,
+              title: subject,
+              body: isInitial ? `אירוע חדש: ${event.title}` : customMessage || `מתחיל ${timeUntil}`,
               data: { eventId: event.id },
             })
           } catch (e) {
@@ -463,19 +491,31 @@ export class DispatchService {
     event: any,
     user: any,
     timeUntil: string,
-    customMessage?: string | null
+    customMessage?: string | null,
+    isInitial: boolean = false
   ): string {
-    const eventDate = new Date(event.startsAt)
-    const formattedDate = eventDate.toLocaleDateString('he-IL', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    })
-    const formattedTime = eventDate.toLocaleTimeString('he-IL', {
-      hour: '2-digit',
-      minute: '2-digit',
-    })
+    const tz = 'Asia/Jerusalem'
+    const eventStartsAt = event.startsAt instanceof Date ? event.startsAt : new Date(event.startsAt)
+
+    const formattedDate = formatInTimeZone(eventStartsAt, tz, 'eeee, d MMMM yyyy', { locale: he })
+    const formattedTime = formatInTimeZone(eventStartsAt, tz, 'HH:mm')
+
+    // If there is an end time, format it too
+    let formattedEndTime = ''
+    if (event.endsAt) {
+      const eventEndsAt = event.endsAt instanceof Date ? event.endsAt : new Date(event.endsAt)
+      formattedEndTime = formatInTimeZone(eventEndsAt, tz, 'HH:mm')
+    }
+
+    const headerEmoji = isInitial ? '📅' : '⏰'
+    const badgeText = isInitial ? 'אירוע משפחתי חדש' : 'תזכורת לאירוע'
+    const headerGradient = isInitial
+      ? 'linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%)'
+      : 'linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%)'
+    const bodyBackground = isInitial
+      ? 'linear-gradient(to bottom, #eff6ff, #f8fafc)'
+      : 'linear-gradient(to bottom, #fef3c7, #fef9e7)'
+    const badgeColor = isInitial ? '#3B82F6' : '#f59e0b'
 
     return `
       <!DOCTYPE html>
@@ -483,10 +523,10 @@ export class DispatchService {
       <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>תזכורת: ${event.title}</title>
+        <title>${isInitial ? 'אירוע חדש' : 'תזכורת'}: ${event.title}</title>
       </head>
-      <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background: linear-gradient(to bottom, #fef3c7, #fef9e7); direction: rtl;">
-        <table width="100%" cellpadding="0" cellspacing="0" style="background: linear-gradient(to bottom, #fef3c7, #fef9e7);">
+      <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background: ${bodyBackground}; direction: rtl;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="background: ${bodyBackground};">
           <tr>
             <td align="center" style="padding: 40px 20px;">
               
@@ -495,10 +535,10 @@ export class DispatchService {
                 
                 <!-- Header with reminder badge -->
                 <tr>
-                  <td style="background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%); padding: 40px 40px 35px; text-align: center; position: relative;">
-                    <div style="font-size: 56px; margin-bottom: 8px;">⏰</div>
+                  <td style="background: ${headerGradient}; padding: 40px 40px 35px; text-align: center; position: relative;">
+                    <div style="font-size: 56px; margin-bottom: 8px;">${headerEmoji}</div>
                     <div style="display: inline-block; background: rgba(255, 255, 255, 0.25); color: #ffffff; padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: 600; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px;">
-                      תזכורת לאירוע
+                      ${badgeText}
                     </div>
                     <h1 style="color: #ffffff; font-size: 28px; font-weight: 700; margin: 12px 0 0 0; text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); line-height: 1.3;">
                       ${event.title}
@@ -509,9 +549,9 @@ export class DispatchService {
                 <!-- Time Until Badge -->
                 <tr>
                   <td style="padding: 32px 40px; text-align: center;">
-                    <div style="display: inline-block; background: linear-gradient(135deg, #fef3c7, #fde68a); padding: 20px 32px; border-radius: 12px; border: 2px solid #fbbf24;">
-                      <div style="font-size: 14px; color: #92400e; font-weight: 600; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">מתחיל</div>
-                      <div style="font-size: 32px; font-weight: 700; color: #b45309; margin: 0;">${timeUntil}</div>
+                    <div style="display: inline-block; background: ${isInitial ? '#eff6ff' : '#fef3c7'}; padding: 20px 32px; border-radius: 12px; border: 2px solid ${badgeColor};">
+                      <div style="font-size: 14px; color: ${isInitial ? '#1e40af' : '#92400e'}; font-weight: 600; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">מתחיל</div>
+                      <div style="font-size: 32px; font-weight: 700; color: ${isInitial ? '#1d4ed8' : '#b45309'}; margin: 0;">${timeUntil}</div>
                     </div>
                   </td>
                 </tr>
@@ -520,18 +560,36 @@ export class DispatchService {
                 <tr>
                   <td style="padding: 0 40px 32px;">
                     
+                    ${
+                      event.description
+                        ? `
+                    <!-- Description -->
+                    <table width="100%" cellpadding="0" cellspacing="0" style="background: linear-gradient(to bottom, #f8fafc, #ffffff); border-radius: 12px; padding: 24px; border: 1px solid #e2e8f0; margin-bottom: 16px;">
+                      <tr>
+                        <td>
+                          <div style="font-size: 13px; color: #64748b; font-weight: 600; margin-bottom: 8px;">פרטים נוספים</div>
+                          <div style="font-size: 15px; color: #475569; line-height: 1.6;">${event.description}</div>
+                        </td>
+                      </tr>
+                    </table>
+                    `
+                        : ''
+                    }
+                    
                     <!-- Date & Time -->
                     <table width="100%" cellpadding="0" cellspacing="0" style="background: linear-gradient(to bottom, #f8fafc, #ffffff); border-radius: 12px; padding: 24px; border: 1px solid #e2e8f0; margin-bottom: 16px;">
                       <tr>
                         <td width="48" valign="top">
-                          <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #f59e0b, #fbbf24); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                          <div style="width: 40px; height: 40px; background: ${headerGradient}; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
                             <span style="font-size: 20px;">📅</span>
                           </div>
                         </td>
                         <td valign="top" style="padding-right: 16px;">
                           <div style="font-size: 13px; color: #64748b; font-weight: 600; margin-bottom: 4px;">תאריך ושעה</div>
                           <div style="font-size: 16px; color: #1e293b; font-weight: 600;">${formattedDate}</div>
-                          <div style="font-size: 15px; color: #475569; margin-top: 2px;">שעה ${formattedTime}</div>
+                          <div style="font-size: 15px; color: #475569; margin-top: 2px;">
+                            ${formattedEndTime ? `בין השעות ${formattedTime} עד ${formattedEndTime}` : `בשעה ${formattedTime}`}
+                          </div>
                         </td>
                       </tr>
                     </table>
@@ -550,38 +608,6 @@ export class DispatchService {
                         <td valign="top" style="padding-right: 16px;">
                           <div style="font-size: 13px; color: #64748b; font-weight: 600; margin-bottom: 4px;">מיקום</div>
                           <div style="font-size: 16px; color: #1e293b; font-weight: 600;">${event.location}</div>
-                        </td>
-                      </tr>
-                    </table>
-                    `
-                        : ''
-                    }
-                    
-                    ${
-                      customMessage
-                        ? `
-                    <!-- Custom Message -->
-                    <table width="100%" cellpadding="0" cellspacing="0" style="background: linear-gradient(to bottom, #fef3c7, #fef9e7); border-radius: 12px; padding: 24px; border: 2px solid #fbbf24; margin-bottom: 16px;">
-                      <tr>
-                        <td>
-                          <div style="font-size: 13px; color: #92400e; font-weight: 600; margin-bottom: 8px;">💬 הודעה</div>
-                          <div style="font-size: 15px; color: #78350f; line-height: 1.6; font-weight: 500;">${customMessage}</div>
-                        </td>
-                      </tr>
-                    </table>
-                    `
-                        : ''
-                    }
-                    
-                    ${
-                      event.description
-                        ? `
-                    <!-- Description -->
-                    <table width="100%" cellpadding="0" cellspacing="0" style="background: linear-gradient(to bottom, #f8fafc, #ffffff); border-radius: 12px; padding: 24px; border: 1px solid #e2e8f0;">
-                      <tr>
-                        <td>
-                          <div style="font-size: 13px; color: #64748b; font-weight: 600; margin-bottom: 8px;">פרטים נוספים</div>
-                          <div style="font-size: 15px; color: #475569; line-height: 1.6;">${event.description}</div>
                         </td>
                       </tr>
                     </table>
@@ -612,10 +638,10 @@ export class DispatchService {
                 <tr>
                   <td style="padding: 32px 40px; text-align: center;">
                     <p style="margin: 0 0 16px 0; color: #64748b; font-size: 14px; line-height: 1.6;">
-                      תזכורת אוטומטית מ-<strong style="color: #f59e0b;">FamilyNotify</strong>
+                      ${isInitial ? 'הודעה חדשה' : 'תזכורת אוטומטית'} מ-<strong style="color: ${badgeColor};">FamilyNotify</strong>
                     </p>
                     <div style="margin-top: 20px;">
-                      <a href="${process.env.NEXT_PUBLIC_APP_URL}/preferences" style="color: #f59e0b; text-decoration: none; font-size: 14px; font-weight: 500; padding: 8px 16px; border: 1px solid #f59e0b; border-radius: 6px; display: inline-block;">
+                      <a href="${process.env.NEXT_PUBLIC_APP_URL}/preferences" style="color: ${badgeColor}; text-decoration: none; font-size: 14px; font-weight: 500; padding: 8px 16px; border: 1px solid ${badgeColor}; border-radius: 6px; display: inline-block;">
                         ⚙️ נהל תזכורות
                       </a>
                     </div>
@@ -641,17 +667,48 @@ export class DispatchService {
   private getTimeUntilEvent(startsAt: Date): string {
     const now = new Date()
     const start = new Date(startsAt)
-    const diffMs = start.getTime() - now.getTime()
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
-    const diffDays = Math.floor(diffHours / 24)
 
-    if (diffDays > 0) {
-      return `בעוד ${diffDays} ימים`
-    } else if (diffHours > 0) {
-      return `בעוד ${diffHours} שעות`
+    // Check if it's today
+    const isToday =
+      now.getDate() === start.getDate() &&
+      now.getMonth() === start.getMonth() &&
+      now.getFullYear() === start.getFullYear()
+
+    // Check if it's tomorrow
+    const tomorrow = new Date(now)
+    tomorrow.setDate(tomorrow.getDate() + 1)
+    const isTomorrow =
+      tomorrow.getDate() === start.getDate() &&
+      tomorrow.getMonth() === start.getMonth() &&
+      tomorrow.getFullYear() === start.getFullYear()
+
+    const tz = 'Asia/Jerusalem'
+    const timeString = formatInTimeZone(start, tz, 'HH:mm')
+
+    if (isToday) {
+      return `היום בשעה ${timeString}`
+    } else if (isTomorrow) {
+      return `מחר בשעה ${timeString}`
     } else {
-      const diffMinutes = Math.floor(diffMs / (1000 * 60))
-      return `בעוד ${diffMinutes} דקות`
+      // Check if it's within the next 6 days (show day name)
+      const diffTime = start.getTime() - now.getTime()
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+
+      if (diffDays <= 6) {
+        const dayName = start.toLocaleDateString('he-IL', {
+          weekday: 'long',
+          timeZone: 'Asia/Jerusalem',
+        })
+        return `ביום ${dayName} בשעה ${timeString}`
+      } else {
+        // Full date
+        const dateString = start.toLocaleDateString('he-IL', {
+          day: 'numeric',
+          month: 'numeric',
+          timeZone: 'Asia/Jerusalem',
+        })
+        return `בתאריך ${dateString} בשעה ${timeString}`
+      }
     }
   }
 }

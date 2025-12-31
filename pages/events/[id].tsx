@@ -1,5 +1,5 @@
 import { useRouter } from 'next/router'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { Header } from '@/components/header'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -7,8 +7,9 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
 import { Calendar, Clock, MapPin, ArrowRight, Bell, Send, Loader2 } from 'lucide-react'
-import { apiClient } from '@/lib/api-client'
 import { useFamilyContext } from '@/lib/context/family-context'
+import { formatInTimeZone } from 'date-fns-tz'
+import { he } from 'date-fns/locale'
 
 interface Event {
   id: string
@@ -43,24 +44,19 @@ export default function EventDetailPage() {
   const [reminders, setReminders] = useState<EventReminder[]>([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const [reminderForm, setReminderForm] = useState({
     message: '',
     scheduledAt: '',
   })
 
-  useEffect(() => {
-    if (id && typeof id === 'string') {
-      loadEventDetails()
-    }
-  }, [id])
-
-  const loadEventDetails = async () => {
+  const loadEventDetails = useCallback(async () => {
     if (!id || typeof id !== 'string') return
+    setLoading(true)
+    setError(null)
 
     try {
-      setLoading(true)
-
       // Load event
       const eventResponse = await fetch(`/api/admin/events/${id}`)
       if (!eventResponse.ok) throw new Error('Failed to load event')
@@ -72,8 +68,9 @@ export default function EventDetailPage() {
       if (!remindersResponse.ok) throw new Error('Failed to load reminders')
       const remindersData = await remindersResponse.json()
       setReminders(remindersData.reminders)
-    } catch (error: any) {
-      console.error('Error loading event:', error)
+    } catch (err: any) {
+      console.error('Error loading event:', err)
+      setError(err.message || 'שגיאה בטעינת פרטי האירוע')
       toast({
         title: 'שגיאה',
         description: 'נכשל לטעון את פרטי האירוע',
@@ -82,7 +79,13 @@ export default function EventDetailPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [id, toast])
+
+  useEffect(() => {
+    if (id && typeof id === 'string') {
+      loadEventDetails()
+    }
+  }, [loadEventDetails, id])
 
   const handleReminderSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -144,13 +147,13 @@ export default function EventDetailPage() {
     )
   }
 
-  if (!event) {
+  if (!event || error) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
         <Header />
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-4xl mx-auto text-center py-12">
-            <p className="text-gray-600 dark:text-gray-400">אירוע לא נמצא</p>
+            <p className="text-gray-600 dark:text-gray-400">{error || 'אירוע לא נמצא'}</p>
             <Button onClick={() => router.push('/events')} className="mt-4">
               חזרה לאירועים
             </Button>
@@ -160,17 +163,16 @@ export default function EventDetailPage() {
     )
   }
 
+  const tz = 'Asia/Jerusalem'
   const eventDate = new Date(event.startsAt)
-  const formattedDate = eventDate.toLocaleDateString('he-IL', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  })
-  const formattedTime = eventDate.toLocaleTimeString('he-IL', {
-    hour: '2-digit',
-    minute: '2-digit',
-  })
+  const formattedDate = formatInTimeZone(eventDate, tz, 'eeee, d MMMM yyyy', { locale: he })
+  const formattedTime = formatInTimeZone(eventDate, tz, 'HH:mm')
+
+  // Handle end time if exists
+  let formattedEndTime = ''
+  if (event.endsAt) {
+    formattedEndTime = formatInTimeZone(new Date(event.endsAt), tz, 'HH:mm')
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -195,7 +197,11 @@ export default function EventDetailPage() {
                 <Calendar className="h-5 w-5 text-blue-600 mt-0.5" />
                 <div>
                   <p className="font-medium">{formattedDate}</p>
-                  <p className="text-sm text-gray-600">{formattedTime}</p>
+                  <p className="text-sm text-gray-600">
+                    {formattedEndTime
+                      ? `בין השעות ${formattedTime} עד ${formattedEndTime}`
+                      : `בשעה ${formattedTime}`}
+                  </p>
                 </div>
               </div>
 
@@ -215,9 +221,10 @@ export default function EventDetailPage() {
               )}
             </CardContent>
           </Card>
+
           {/* Existing Reminders */}
           {reminders.length > 0 && (
-            <Card>
+            <Card className="mb-6">
               <CardHeader>
                 <CardTitle>תזכורות קיימות</CardTitle>
                 <CardDescription>{reminders.length} תזכורות עבור אירוע זה</CardDescription>
@@ -252,6 +259,7 @@ export default function EventDetailPage() {
               </CardContent>
             </Card>
           )}
+
           {/* Create Reminder */}
           <Card className="mb-6">
             <CardHeader>

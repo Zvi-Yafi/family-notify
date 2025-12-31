@@ -20,6 +20,8 @@ import { apiClient, UnauthorizedError } from '@/lib/api-client'
 import { useFamilyContext } from '@/lib/context/family-context'
 import { Header } from '@/components/header'
 import { GroupSelector } from '@/components/group-selector'
+import { StrictDateTimePicker } from '@/components/strict-date-time-picker'
+import { roundToTenMinutes } from '@/lib/utils/time-utils'
 
 interface Stats {
   memberCount: number
@@ -174,31 +176,6 @@ export default function AdminPage() {
     }
   }
 
-  const roundToTenMinutes = (dateTimeString: string): string => {
-    if (!dateTimeString) return ''
-
-    const date = new Date(dateTimeString)
-    const minutes = date.getMinutes()
-
-    // עיגול למטה למספר הקרוב ביותר שמתחלק ב-10 (00, 10, 20, 30, 40, 50)
-    const roundedMinutes = Math.floor(minutes / 10) * 10
-
-    date.setMinutes(roundedMinutes)
-    date.setSeconds(0)
-    date.setMilliseconds(0)
-
-    // פורמט YYYY-MM-DDTHH:mm שמתאים ל-datetime-local
-    const year = date.getFullYear()
-    const month = String(date.getMonth() + 1).padStart(2, '0')
-    const day = String(date.getDate()).padStart(2, '0')
-    const hours = String(date.getHours()).padStart(2, '0')
-    const mins = String(date.getMinutes()).padStart(2, '0')
-
-    // טיפול במקרה שהעיגול הקפיץ את השעה (למשל 16:55 הפך ל-17:00)
-    // הפורמט הזה דואג שזה יוצג נכון ב-Input
-    return `${year}-${month}-${day}T${hours}:${mins}`
-  }
-
   const handleAnnouncementSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -284,44 +261,36 @@ export default function AdminPage() {
         familyGroupId,
       })
 
-      // If reminder is provided, create it
-      if (eventForm.reminderMessage) {
-        try {
-          await fetch('/api/admin/event-reminders', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              eventId: eventResponse.event.id,
-              message: eventForm.reminderMessage,
-              scheduledAt: eventForm.reminderScheduledAt || null,
-            }),
-          })
-        } catch (reminderError) {
-          console.error('Failed to create reminder:', reminderError)
-          // Don't fail the whole operation if reminder creation fails
-        }
+      // Create reminder (either scheduled or immediate default)
+      const reminderToCreate = {
+        eventId: eventResponse.event.id,
+        message: eventForm.reminderMessage || `פורסם אירוע חדש: ${eventForm.title}`,
+        scheduledAt: eventForm.reminderScheduledAt || null,
+      }
+
+      try {
+        await fetch('/api/admin/event-reminders', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(reminderToCreate),
+        })
+      } catch (reminderError) {
+        console.error('Failed to create reminder:', reminderError)
+        // Don't fail the whole operation if reminder creation fails
       }
 
       toast({
         title: 'אירוע נוצר בהצלחה!',
-        description: eventForm.reminderMessage
-          ? 'האירוע והתזכורת נוצרו בהצלחה'
-          : 'האירוע נוצר בהצלחה',
+        description: reminderToCreate.scheduledAt
+          ? 'האירוע והתזכורת המתוזמנת נוצרו בהצלחה'
+          : 'האירוע נוצר ונשלחה הודעה לחברים',
       })
 
       // Reload stats to update the count
       await loadStats()
 
-      // Reset form
-      setEventForm({
-        title: '',
-        description: '',
-        startsAt: '',
-        endsAt: '',
-        location: '',
-        reminderMessage: '',
-        reminderScheduledAt: '',
-      })
+      // Redirect to events page
+      router.push('/events')
     } catch (error: any) {
       // Don't show error for unauthorized - redirect is handled by apiClient
       if (error instanceof UnauthorizedError) {
@@ -657,30 +626,15 @@ export default function AdminPage() {
                       </div>
 
                       <div>
-                        <Label htmlFor="scheduledAt" className="text-sm sm:text-base">
-                          תזמון שליחה (אופציונלי)
-                        </Label>
-                        <Input
+                        <StrictDateTimePicker
                           id="scheduledAt"
-                          type="datetime-local"
-                          step="600" // זהו המפתח - 600 שניות הן 10 דקות
+                          label="תזמון שליחה (אופציונלי)"
                           value={announcementForm.scheduledAt}
-                          onChange={(e) => {
-                            const val = e.target.value
-                            if (val) {
-                              setAnnouncementForm({
-                                ...announcementForm,
-                                scheduledAt: roundToTenMinutes(val),
-                              })
-                            } else {
-                              setAnnouncementForm({ ...announcementForm, scheduledAt: '' })
-                            }
-                          }}
-                          className="text-base touch-target"
+                          onChange={(val) =>
+                            setAnnouncementForm({ ...announcementForm, scheduledAt: val })
+                          }
+                          helperText="הזמן יוגבל לקפיצות של 10 דקות (למשל: 10, 20, 30...)"
                         />
-                        <p className="text-xs sm:text-sm text-gray-500 mt-1">
-                          הזמן יוגבל לקפיצות של 10 דקות (למשל: 10, 20, 30...)
-                        </p>
                       </div>
 
                       <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
@@ -762,57 +716,21 @@ export default function AdminPage() {
                       </div>
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                          <Label htmlFor="startsAt" className="text-sm sm:text-base">
-                            תחילת האירוע
-                          </Label>
-                          <Input
-                            id="startsAt"
-                            type="datetime-local"
-                            step="600"
-                            value={eventForm.startsAt}
-                            onChange={(e) => {
-                              const roundedTime = roundToTenMinutes(e.target.value)
-                              setEventForm({ ...eventForm, startsAt: roundedTime })
-                            }}
-                            onBlur={(e) => {
-                              if (e.target.value) {
-                                const roundedTime = roundToTenMinutes(e.target.value)
-                                setEventForm({ ...eventForm, startsAt: roundedTime })
-                              }
-                            }}
-                            required
-                            className="text-base touch-target"
-                          />
-                          <p className="text-xs text-gray-500 mt-1">
-                            הזמן יעוגל אוטומטית לקפיצות של 10 דקות
-                          </p>
-                        </div>
-                        <div>
-                          <Label htmlFor="endsAt" className="text-sm sm:text-base">
-                            סיום האירוע (אופציונלי)
-                          </Label>
-                          <Input
-                            id="endsAt"
-                            type="datetime-local"
-                            step="600"
-                            value={eventForm.endsAt}
-                            onChange={(e) => {
-                              const roundedTime = roundToTenMinutes(e.target.value)
-                              setEventForm({ ...eventForm, endsAt: roundedTime })
-                            }}
-                            onBlur={(e) => {
-                              if (e.target.value) {
-                                const roundedTime = roundToTenMinutes(e.target.value)
-                                setEventForm({ ...eventForm, endsAt: roundedTime })
-                              }
-                            }}
-                            className="text-base touch-target"
-                          />
-                          <p className="text-xs text-gray-500 mt-1">
-                            הזמן יעוגל אוטומטית לקפיצות של 10 דקות
-                          </p>
-                        </div>
+                        <StrictDateTimePicker
+                          id="startsAt"
+                          label="תחילת האירוע"
+                          value={eventForm.startsAt}
+                          onChange={(val) => setEventForm({ ...eventForm, startsAt: val })}
+                          required
+                          helperText="הזמן יעוגל אוטומטית לקפיצות של 10 דקות"
+                        />
+                        <StrictDateTimePicker
+                          id="endsAt"
+                          label="סיום האירוע (אופציונלי)"
+                          value={eventForm.endsAt}
+                          onChange={(val) => setEventForm({ ...eventForm, endsAt: val })}
+                          helperText="הזמן יעוגל אוטומטית לקפיצות של 10 דקות"
+                        />
                       </div>
 
                       <div>
@@ -855,37 +773,15 @@ export default function AdminPage() {
                             />
                           </div>
 
-                          <div>
-                            <Label htmlFor="reminderScheduledAt" className="text-sm sm:text-base">
-                              תזמון תזכורת (אופציונלי)
-                            </Label>
-                            <Input
-                              id="reminderScheduledAt"
-                              type="datetime-local"
-                              step="600"
-                              value={eventForm.reminderScheduledAt}
-                              onChange={(e) => {
-                                const roundedTime = roundToTenMinutes(e.target.value)
-                                setEventForm({
-                                  ...eventForm,
-                                  reminderScheduledAt: roundedTime,
-                                })
-                              }}
-                              onBlur={(e) => {
-                                if (e.target.value) {
-                                  const roundedTime = roundToTenMinutes(e.target.value)
-                                  setEventForm({
-                                    ...eventForm,
-                                    reminderScheduledAt: roundedTime,
-                                  })
-                                }
-                              }}
-                              className="text-base touch-target"
-                            />
-                            <p className="text-xs text-gray-500 mt-1">
-                              השאר ריק כדי לשלוח מיד. הזמן יעוגל לקפיצות של 10 דקות.
-                            </p>
-                          </div>
+                          <StrictDateTimePicker
+                            id="reminderScheduledAt"
+                            label="תזמון תזכורת (אופציונלי)"
+                            value={eventForm.reminderScheduledAt}
+                            onChange={(val) =>
+                              setEventForm({ ...eventForm, reminderScheduledAt: val })
+                            }
+                            helperText="השאר ריק כדי לשלוח מיד. הזמן יוגבל לקפיצות של 10 דקות."
+                          />
                         </div>
                       </div>
 

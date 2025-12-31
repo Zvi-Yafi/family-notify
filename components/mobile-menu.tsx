@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import {
@@ -36,10 +36,10 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
     }
   }, [isOpen])
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     setIsAnimating(false)
     setTimeout(onClose, 300) // Wait for animation to finish
-  }
+  }, [onClose])
 
   // Close menu on route change
   useEffect(() => {

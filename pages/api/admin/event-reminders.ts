@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { createServerClient } from '@/lib/supabase/server'
 import { dispatchService } from '@/lib/dispatch/dispatch.service'
 import { convertIsraelToUTC } from '@/lib/utils/timezone'
+import { roundDateToTenMinutes } from '@/lib/utils/time-utils'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method === 'OPTIONS') {
@@ -39,7 +40,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
 
       // Convert times from Israel timezone to UTC
-      const scheduledAtUTC = scheduledAt ? convertIsraelToUTC(scheduledAt) : null
+      // Enforce 10-minute rounding
+      const scheduledAtUTC = scheduledAt
+        ? convertIsraelToUTC(roundDateToTenMinutes(scheduledAt))
+        : null
 
       // Create reminder
       const reminder = await prisma.eventReminder.create({
@@ -58,6 +62,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         await dispatchService.dispatchEventReminder({
           eventReminderId: reminder.id,
           familyGroupId: event.familyGroupId,
+          isInitial: true,
         })
 
         // Mark as sent
