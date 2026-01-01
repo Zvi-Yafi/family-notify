@@ -548,7 +548,7 @@ export class DispatchService {
                     <div style="display: inline-block; background: rgba(255, 255, 255, 0.25); color: #ffffff; padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: 600; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px;">
                       ${badgeText}
                     </div>
-                    <h1 style="color: #ffffff; font-size: 28px; font-weight: 700; margin: 12px 0 0 0; text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); line-height: 1.3;">
+                    <h1 style="color: #ffffff; font-size: 28px; font-weight: 700; margin: 12px 0 0 0; text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); line-height: 1.4; word-break: break-word;">
                       ${event.title}
                     </h1>
                   </td>
@@ -576,7 +576,7 @@ export class DispatchService {
                       <tr>
                         <td>
                           <div style="font-size: 13px; color: #64748b; font-weight: 600; margin-bottom: 8px;">פרטים נוספים</div>
-                          <div style="font-size: 15px; color: #475569; line-height: 1.6;">${event.description}</div>
+                          <div style="font-size: 15px; color: #475569; line-height: 1.6; white-space: pre-wrap;">${event.description}</div>
                         </td>
                       </tr>
                     </table>
@@ -587,12 +587,12 @@ export class DispatchService {
                     <!-- Date & Time -->
                     <table width="100%" cellpadding="0" cellspacing="0" style="background: linear-gradient(to bottom, #f8fafc, #ffffff); border-radius: 12px; padding: 24px; border: 1px solid #e2e8f0; margin-bottom: 16px;">
                       <tr>
-                        <td width="48" valign="top">
+                        <td width="48" valign="middle">
                           <div style="width: 40px; height: 40px; background: ${headerGradient}; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
                             <span style="font-size: 20px;">📅</span>
                           </div>
                         </td>
-                        <td valign="top" style="padding-right: 16px;">
+                        <td valign="middle" style="padding-right: 16px;">
                           <div style="font-size: 13px; color: #64748b; font-weight: 600; margin-bottom: 4px;">תאריך ושעה</div>
                           <div style="font-size: 16px; color: #1e293b; font-weight: 600;">${formattedDate}</div>
                           <div style="font-size: 15px; color: #475569; margin-top: 2px;">
@@ -608,12 +608,12 @@ export class DispatchService {
                     <!-- Location -->
                     <table width="100%" cellpadding="0" cellspacing="0" style="background: linear-gradient(to bottom, #f8fafc, #ffffff); border-radius: 12px; padding: 24px; border: 1px solid #e2e8f0; margin-bottom: 16px;">
                       <tr>
-                        <td width="48" valign="top">
+                        <td width="48" valign="middle">
                           <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #ec4899, #f472b6); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
                             <span style="font-size: 20px;">📍</span>
                           </div>
                         </td>
-                        <td valign="top" style="padding-right: 16px;">
+                        <td valign="middle" style="padding-right: 16px;">
                           <div style="font-size: 13px; color: #64748b; font-weight: 600; margin-bottom: 4px;">מיקום</div>
                           <div style="font-size: 16px; color: #1e293b; font-weight: 600;">${event.location}</div>
                         </td>
