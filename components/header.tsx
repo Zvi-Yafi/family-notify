@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Bell, LogOut, User, Users, Menu } from 'lucide-react'
+import { Bell, LogOut, User, Users, Menu, Settings } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/lib/hooks/use-auth'
@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import Image from 'next/image'
 import { MobileMenu } from '@/components/mobile-menu'
+import { Logo } from '@/components/logo'
 
 export function Header() {
   const { user, loading, signOut } = useAuth()
@@ -67,8 +68,8 @@ export function Header() {
                 </Button>
               )}
 
-              <Link href="/" className="flex items-center gap-2">
-                <Bell className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
+              <Link href="/" className="flex items-center gap-2 group">
+                <Logo className="h-8 w-8 p-1.5" />
                 <h1 className="text-lg sm:text-xl md:text-2xl font-bold">FamilyNotify</h1>
               </Link>
 
@@ -101,7 +102,7 @@ export function Header() {
 
                       {/* Desktop Dropdown Menu - hidden on mobile */}
                       <div className="hidden md:block">
-                        <DropdownMenu>
+                        <DropdownMenu dir="rtl">
                           <DropdownMenuTrigger asChild>
                             <Button
                               variant="outline"
@@ -142,18 +143,21 @@ export function Header() {
                               </div>
                             </DropdownMenuLabel>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem asChild>
+                            <DropdownMenuItem asChild className="gap-2">
                               <Link href="/groups">
-                                <Users className="ml-2 h-4 w-4" />
+                                <Users className="ms-2 h-4 w-4" />
                                 הקבוצות שלי
                               </Link>
                             </DropdownMenuItem>
-                            <DropdownMenuItem asChild>
-                              <Link href="/preferences">העדפות</Link>
+                            <DropdownMenuItem asChild className="gap-2">
+                              <Link href="/preferences">
+                                <Settings className="ms-2 h-4 w-4" />
+                                העדפות
+                              </Link>
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={signOut}>
-                              <LogOut className="ml-2 h-4 w-4" />
+                            <DropdownMenuItem onClick={signOut} className="gap-2">
+                              <LogOut className="ms-2 h-4 w-4" />
                               התנתק
                             </DropdownMenuItem>
                           </DropdownMenuContent>
