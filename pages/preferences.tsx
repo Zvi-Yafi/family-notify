@@ -223,10 +223,33 @@ export default function PreferencesPage() {
         const updated = [...preferences]
         updated[index].verified = true
         setPreferences(updated)
-        toast({
-          title: 'הודעת ניסיון נשלחה! ✅',
-          description: `הודעת ניסיון נשלחה ל-${pref.destination}. הערוץ סומן כמאומת.`,
-        })
+
+        // Auto-save preferences after successful test message
+        try {
+          const saveResponse = await fetch('/api/preferences', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ preferences: updated }),
+          })
+
+          if (saveResponse.ok) {
+            toast({
+              title: 'הודעת ניסיון נשלחה! ✅',
+              description: `הודעת ניסיון נשלחה ל-${pref.destination}. הערוץ אומת ונשמר.`,
+            })
+          } else {
+            toast({
+              title: 'הודעת ניסיון נשלחה! ✅',
+              description: `הודעת ניסיון נשלחה ל-${pref.destination}. נא לשמור את ההעדפות.`,
+            })
+          }
+        } catch (saveError) {
+          console.error('Error auto-saving preferences:', saveError)
+          toast({
+            title: 'הודעת ניסיון נשלחה! ✅',
+            description: `הודעת ניסיון נשלחה ל-${pref.destination}. נא לשמור את ההעדפות.`,
+          })
+        }
       } else {
         toast({
           title: 'נכשלה שליחת בדיקה',
