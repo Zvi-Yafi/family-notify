@@ -1,5 +1,5 @@
-// WhatsApp Provider (Cloud API) - Stub implementation
-// To enable: Set WHATSAPP_PHONE_NUMBER_ID, WHATSAPP_ACCESS_TOKEN, and WHATSAPP_BUSINESS_ACCOUNT_ID in .env
+// WhatsApp Provider (Green API) - Implementation
+// To enable: Set GREEN_API_ID_INSTANCE and GREEN_API_TOKEN_INSTANCE in .env
 
 export interface WhatsAppOptions {
   to: string
@@ -7,94 +7,115 @@ export interface WhatsAppOptions {
 }
 
 export class WhatsAppProvider {
-  private phoneNumberId: string | undefined
-  private accessToken: string | undefined
-  private businessAccountId: string | undefined
+  private idInstance: string | undefined
+  private apiTokenInstance: string | undefined
 
   constructor() {
-    this.phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID
-    this.accessToken = process.env.WHATSAPP_ACCESS_TOKEN
-    this.businessAccountId = process.env.WHATSAPP_BUSINESS_ACCOUNT_ID
+    this.idInstance = process.env.GREEN_API_ID_INSTANCE
+    this.apiTokenInstance = process.env.GREEN_API_TOKEN_INSTANCE
 
     if (!this.isConfigured()) {
       console.warn('⚠️  WhatsApp credentials not configured - WhatsApp sending disabled')
-      console.warn('   To enable WhatsApp: Set WHATSAPP_PHONE_NUMBER_ID, WHATSAPP_ACCESS_TOKEN, and WHATSAPP_BUSINESS_ACCOUNT_ID')
+      console.warn('   To enable WhatsApp: Set GREEN_API_ID_INSTANCE and GREEN_API_TOKEN_INSTANCE')
     }
   }
 
   isConfigured(): boolean {
-    return !!(this.phoneNumberId && this.accessToken && this.businessAccountId)
+    return !!(this.idInstance && this.apiTokenInstance)
   }
 
-  async send(options: WhatsAppOptions): Promise<{ success: boolean; messageId?: string; error?: string }> {
+  /**
+   * Normalize phone number to Green API format (number@c.us)
+   * Converts to international format (972 for Israel)
+   * Handles Israeli numbers starting with 0 (converts to 972)
+   */
+  private normalizePhoneNumber(phone: string): string {
+    // Remove all non-digit characters
+    let digits = phone.replace(/\D/g, '')
+
+    // Handle Israeli numbers that start with 0
+    // Convert 0XX to 972XX (Israeli country code)
+    if (digits.startsWith('0') && digits.length === 10) {
+      // Israeli mobile/landline: remove leading 0 and add 972
+      digits = '972' + digits.substring(1)
+    } else if (digits.startsWith('972') && digits.length === 12) {
+      // Already in international format with 972
+      // Keep as is
+    } else if (!digits.startsWith('972') && digits.length >= 9 && digits.length <= 10) {
+      // Assume it's an Israeli number without country code
+      // Add 972 prefix
+      digits = '972' + digits
+    }
+
+    // Return in format: number@c.us
+    return `${digits}@c.us`
+  }
+
+  async send(
+    options: WhatsAppOptions
+  ): Promise<{ success: boolean; messageId?: string; error?: string }> {
     if (!this.isConfigured()) {
       return {
         success: false,
-        error: 'WhatsApp provider not configured. Please add WhatsApp Cloud API credentials to enable WhatsApp.',
+        error:
+          'WhatsApp provider not configured. Please add Green API credentials to enable WhatsApp.',
       }
     }
 
     try {
-      // Normalize phone number (remove +, spaces, dashes)
-      const normalizedPhone = options.to.replace(/[\s\-+]/g, '')
-      
-      console.log(`💬 Sending WhatsApp to ${normalizedPhone}`)
+      // Normalize phone number to Green API format
+      const chatId = this.normalizePhoneNumber(options.to)
 
-      // WhatsApp Cloud API implementation
-      const response = await fetch(
-        `https://graph.facebook.com/v18.0/${this.phoneNumberId}/messages`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${this.accessToken}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            messaging_product: 'whatsapp',
-            to: normalizedPhone,
-            type: 'text',
-            text: { 
-              body: options.message,
-              preview_url: false,
-            },
-          }),
-        }
-      )
+      console.log(`💬 Sending WhatsApp to ${chatId}`)
+
+      // Green API implementation
+      const apiUrl = `https://api.green-api.com/waInstance${this.idInstance}/sendMessage/${this.apiTokenInstance}`
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          chatId: chatId,
+          message: options.message,
+        }),
+      })
 
       const data = await response.json()
 
       if (!response.ok) {
-        const errorMessage = data.error?.message || JSON.stringify(data.error) || 'Unknown error'
-        console.error(`❌ WhatsApp API error:`, data.error)
+        const errorMessage = data.error || data.message || JSON.stringify(data) || 'Unknown error'
+        console.error(`❌ Green API error:`, data)
         return {
           success: false,
           error: errorMessage,
         }
       }
 
-      if (data.messages && data.messages[0]) {
-        console.log(`✅ WhatsApp sent successfully! Message ID: ${data.messages[0].id}`)
+      if (data.idMessage) {
+        console.log(`✅ WhatsApp sent successfully! Message ID: ${data.idMessage}`)
         return {
           success: true,
-          messageId: data.messages[0].id,
+          messageId: data.idMessage,
         }
       }
 
       return {
         success: false,
-        error: 'Unexpected response from WhatsApp API',
+        error: 'Unexpected response from Green API',
       }
     } catch (error: any) {
       console.error('WhatsApp send error:', error)
-      
+
       // Check for common errors
       if (error.message?.includes('fetch')) {
         return {
           success: false,
-          error: 'Network error. Check your internet connection and WhatsApp API endpoint.',
+          error: 'Network error. Check your internet connection and Green API endpoint.',
         }
       }
-      
+
       return {
         success: false,
         error: error.message || 'Unknown error',
@@ -104,6 +125,3 @@ export class WhatsAppProvider {
 }
 
 export const whatsAppProvider = new WhatsAppProvider()
-
-
-

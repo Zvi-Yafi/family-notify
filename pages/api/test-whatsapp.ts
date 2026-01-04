@@ -36,7 +36,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (!whatsAppProvider.isConfigured()) {
       return res.status(500).json({
         error: 'WhatsApp provider not configured',
-        details: 'WHATSAPP_PHONE_NUMBER_ID, WHATSAPP_ACCESS_TOKEN, and WHATSAPP_BUSINESS_ACCOUNT_ID are required',
+        details: 'GREEN_API_ID_INSTANCE and GREEN_API_TOKEN_INSTANCE are required',
       })
     }
 
@@ -69,4 +69,3 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     })
   }
 }
-

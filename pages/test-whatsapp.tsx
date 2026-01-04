@@ -13,7 +13,11 @@ import { Header } from '@/components/header'
 export default function TestWhatsAppPage() {
   const [phone, setPhone] = useState('')
   const [loading, setLoading] = useState(false)
-  const [result, setResult] = useState<{ success: boolean; message?: string; error?: string } | null>(null)
+  const [result, setResult] = useState<{
+    success: boolean
+    message?: string
+    error?: string
+  } | null>(null)
   const { toast } = useToast()
   const { user } = useAuth()
 
@@ -87,9 +91,7 @@ export default function TestWhatsAppPage() {
                 <MessageSquare className="h-6 w-6 text-green-600" />
                 <CardTitle>בדיקת שליחת WhatsApp</CardTitle>
               </div>
-              <CardDescription>
-                בדוק שההגדרות של WhatsApp Cloud API עובדות נכון
-              </CardDescription>
+              <CardDescription>בדוק שההגדרות של Green API עובדות נכון</CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleTest} className="space-y-4">
@@ -134,9 +136,7 @@ export default function TestWhatsAppPage() {
                         <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                           {result.message}
                         </p>
-                        <p className="text-xs text-gray-500 mt-2">
-                          בדוק את WhatsApp של {phone}
-                        </p>
+                        <p className="text-xs text-gray-500 mt-2">בדוק את WhatsApp של {phone}</p>
                       </div>
                     </div>
                   ) : (
@@ -156,9 +156,9 @@ export default function TestWhatsAppPage() {
                               הוסף את המשתנים הבאים ל-.env.local:
                             </p>
                             <code className="text-xs block mt-2 bg-white p-2 rounded">
-                              WHATSAPP_PHONE_NUMBER_ID=&quot;...&quot;<br />
-                              WHATSAPP_ACCESS_TOKEN=&quot;...&quot;<br />
-                              WHATSAPP_BUSINESS_ACCOUNT_ID=&quot;...&quot;
+                              GREEN_API_ID_INSTANCE=&quot;...&quot;
+                              <br />
+                              GREEN_API_TOKEN_INSTANCE=&quot;...&quot;
                             </code>
                           </div>
                         )}
@@ -184,4 +184,3 @@ export default function TestWhatsAppPage() {
     </div>
   )
 }
-
