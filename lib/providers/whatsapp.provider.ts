@@ -3,7 +3,9 @@
 
 export interface WhatsAppOptions {
   to: string
-  message: string
+  message?: string
+  fileUrl?: string
+  fileName?: string
 }
 
 export class WhatsAppProvider {
@@ -66,6 +68,10 @@ export class WhatsAppProvider {
       // Normalize phone number to Green API format
       const chatId = this.normalizePhoneNumber(options.to)
 
+      if (options.fileUrl) {
+        return this.sendFile(chatId, options.fileUrl, options.fileName, options.message)
+      }
+
       console.log(`💬 Sending WhatsApp to ${chatId}`)
 
       // Green API implementation
@@ -120,6 +126,54 @@ export class WhatsAppProvider {
         success: false,
         error: error.message || 'Unknown error',
       }
+    }
+  }
+
+  private async sendFile(
+    chatId: string,
+    fileUrl: string,
+    fileName?: string,
+    caption?: string
+  ): Promise<{ success: boolean; messageId?: string; error?: string }> {
+    console.log(`💬 Sending WhatsApp file to ${chatId}: ${fileUrl}`)
+
+    const apiUrl = `https://api.green-api.com/waInstance${this.idInstance}/sendFileByUrl/${this.apiTokenInstance}`
+
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        chatId,
+        urlFile: fileUrl,
+        fileName: fileName || fileUrl.split('/').pop() || 'file',
+        caption: caption,
+      }),
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      const errorMessage = data.error || data.message || JSON.stringify(data) || 'Unknown error'
+      console.error(`❌ Green API error (sendFile):`, data)
+      return {
+        success: false,
+        error: errorMessage,
+      }
+    }
+
+    if (data.idMessage) {
+      console.log(`✅ WhatsApp file sent successfully! Message ID: ${data.idMessage}`)
+      return {
+        success: true,
+        messageId: data.idMessage,
+      }
+    }
+
+    return {
+      success: false,
+      error: 'Unexpected response from Green API',
     }
   }
 }

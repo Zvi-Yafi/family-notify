@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Calendar, MapPin, Clock, RefreshCw, Bell } from 'lucide-react'
+import { Calendar, MapPin, Clock, RefreshCw, Bell, Paperclip } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { apiClient } from '@/lib/api-client'
@@ -26,6 +26,8 @@ interface Event {
   endsAt: Date | null
   location: string | null
   creator: { email: string }
+  imageUrl?: string | null
+  fileUrl?: string | null
 }
 
 function formatDateTime(date: Date): string {
@@ -225,6 +227,30 @@ export default function EventsPage() {
                           )}
                         </div>
                       </div>
+
+                      {event.imageUrl && (
+                        <div className="mt-3 mb-4 rounded-lg overflow-hidden border">
+                          <img
+                            src={event.imageUrl}
+                            alt={event.title}
+                            className="w-full h-auto max-h-60 object-contain bg-gray-50"
+                          />
+                        </div>
+                      )}
+
+                      {event.fileUrl && (
+                        <div className="mt-3 mb-4">
+                          <a
+                            href={event.fileUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 p-3 border rounded-lg bg-red-50 hover:bg-red-100 transition-colors text-red-700 font-semibold"
+                          >
+                            <Paperclip className="h-5 w-5" />
+                            <span className="text-sm">צפה בהזמנה (PDF)</span>
+                          </a>
+                        </div>
+                      )}
 
                       <div className="space-y-2 mt-4">
                         <div className="flex items-start gap-2 text-gray-600 dark:text-gray-400 flex-wrap">

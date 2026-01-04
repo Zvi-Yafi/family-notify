@@ -80,6 +80,8 @@ class ApiClient {
     endsAt?: string
     location?: string
     familyGroupId: string
+    imageUrl?: string
+    fileUrl?: string
   }) {
     return this.request<{ success: boolean; event: any }>('/api/admin/events', {
       method: 'POST',

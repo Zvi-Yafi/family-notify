@@ -359,7 +359,18 @@ export class DispatchService {
         case 'WHATSAPP':
           result = await whatsAppProvider.send({
             to: preference.destination,
-            message: reminderText,
+            message: this.buildEventReminderWhatsAppMessage(
+              event,
+              timeUntil,
+              customMessage,
+              isInitial
+            ),
+            fileUrl: event.fileUrl || event.imageUrl || undefined,
+            fileName: event.fileUrl
+              ? event.fileUrl.split('/').pop() || 'document.pdf'
+              : event.imageUrl
+                ? event.imageUrl.split('/').pop() || 'image.jpg'
+                : undefined,
           })
           break
 
@@ -625,6 +636,42 @@ export class DispatchService {
                     `
                         : ''
                     }
+
+                    ${
+                      event.imageUrl
+                        ? `
+                    <!-- Image -->
+                    <table width="100%" cellpadding="0" cellspacing="0" style="background: #f8fafc; border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0; margin-bottom: 16px;">
+                      <tr>
+                        <td align="center">
+                          <img src="${event.imageUrl}" alt="Event Image" style="max-width: 100%; display: block;" />
+                        </td>
+                      </tr>
+                    </table>
+                    `
+                        : ''
+                    }
+
+                    ${
+                      event.fileUrl
+                        ? `
+                    <!-- File Download -->
+                    <table width="100%" cellpadding="0" cellspacing="0" style="background: linear-gradient(to bottom, #f8fafc, #ffffff); border-radius: 12px; padding: 24px; border: 1px solid #e2e8f0; margin-bottom: 16px;">
+                      <tr>
+                        <td width="48" valign="middle">
+                          <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #ef4444, #f87171); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                            <span style="font-size: 20px;">📄</span>
+                          </div>
+                        </td>
+                        <td valign="middle" style="padding-right: 16px;">
+                          <div style="font-size: 13px; color: #64748b; font-weight: 600; margin-bottom: 4px;">קובץ מצורף</div>
+                          <a href="${event.fileUrl}" style="font-size: 16px; color: #ef4444; font-weight: 600; text-decoration: none;">הורד קובץ PDF</a>
+                        </td>
+                      </tr>
+                    </table>
+                    `
+                        : ''
+                    }
                     
                   </td>
                 </tr>
@@ -673,6 +720,74 @@ export class DispatchService {
       </body>
       </html>
     `
+  }
+
+  /**
+   * Build WhatsApp message for event reminder
+   */
+  private buildEventReminderWhatsAppMessage(
+    event: any,
+    timeUntil: string,
+    customMessage?: string | null,
+    isInitial: boolean = false
+  ): string {
+    const tz = 'Asia/Jerusalem'
+    const eventStartsAt = event.startsAt instanceof Date ? event.startsAt : new Date(event.startsAt)
+
+    const formattedDate = formatInTimeZone(eventStartsAt, tz, 'd.M.yyyy', { locale: he })
+    const hebrewDate = getFullHebrewDate(eventStartsAt)
+    const formattedTime = formatInTimeZone(eventStartsAt, tz, 'HH:mm')
+
+    // If there is an end time, format it too
+    let formattedEndTime = ''
+    if (event.endsAt) {
+      const eventEndsAt = event.endsAt instanceof Date ? event.endsAt : new Date(event.endsAt)
+      formattedEndTime = formatInTimeZone(eventEndsAt, tz, 'HH:mm')
+    }
+
+    const headerEmoji = isInitial ? '📅' : '⏰'
+    const headerText = isInitial ? 'אירוע חדש' : 'תזכורת לאירוע'
+
+    let message = `${headerEmoji} *${headerText}*\n\n`
+    message += `*${event.title}*\n\n`
+
+    // Date & Time
+    message += `📅 *תאריך:*\n`
+    message += `${hebrewDate}\n`
+    message += `${formattedDate}\n\n`
+
+    message += `🕐 *שעה:*\n`
+    if (formattedEndTime) {
+      message += `${formattedTime} - ${formattedEndTime}\n\n`
+    } else {
+      message += `${formattedTime}\n\n`
+    }
+
+    // Time until
+    message += `⏳ *${timeUntil}*\n\n`
+
+    // Location
+    if (event.location) {
+      message += `📍 *מיקום:*\n`
+      message += `${event.location}\n\n`
+    }
+
+    // Description
+    if (event.description) {
+      message += `📝 *פרטים נוספים:*\n`
+      message += `${event.description}\n\n`
+    }
+
+    // Custom message (if provided)
+    if (customMessage && customMessage.trim()) {
+      message += `💬 *הודעה:*\n`
+      message += `${customMessage}\n\n`
+    }
+
+    message += `━━━━━━━━━━━━━━━━\n`
+    message += `FamilyNotify - מערכת התראות משפחתית`
+
+    return message
   }
 
   private getTimeUntilEvent(startsAt: Date): string {

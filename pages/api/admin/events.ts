@@ -14,8 +14,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   if (req.method === 'POST') {
     try {
-      const { title, description, startsAt, endsAt, location, familyGroupId, reminderOffsets } =
-        req.body
+      const {
+        title,
+        description,
+        startsAt,
+        endsAt,
+        location,
+        familyGroupId,
+        reminderOffsets,
+        imageUrl,
+        fileUrl,
+      } = req.body
 
       // Get authenticated user
       const supabase = createServerClient(req, res)
@@ -57,6 +66,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           startsAt: startsAtUTC,
           endsAt: endsAtUTC,
           location,
+          imageUrl,
+          fileUrl,
           familyGroupId,
           createdBy: userId,
         },

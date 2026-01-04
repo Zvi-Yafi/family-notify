@@ -16,7 +16,11 @@ import {
   User as UserIcon,
   Settings,
   Info,
+  Image as ImageIcon,
+  Paperclip,
+  Trash2,
 } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/hooks/use-toast'
 import { apiClient, UnauthorizedError } from '@/lib/api-client'
 import { useFamilyContext } from '@/lib/context/family-context'
@@ -99,7 +103,11 @@ export default function AdminPage() {
     location: '',
     reminderMessage: '',
     reminderScheduledAt: '',
+    imageUrl: '',
+    fileUrl: '',
   })
+
+  const [uploading, setUploading] = useState(false)
 
   const [settingsForm, setSettingsForm] = useState({
     name: '',
@@ -283,6 +291,52 @@ export default function AdminPage() {
     }
   }
 
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !familyGroupId) return
+
+    setUploading(true)
+    const supabase = createClient()
+
+    try {
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${Math.random()}.${fileExt}`
+      const filePath = `events/${familyGroupId}/${Date.now()}_${fileName}`
+
+      const { error: uploadError, data } = await supabase.storage
+        .from('event-attachments')
+        .upload(filePath, file)
+
+      if (uploadError) {
+        throw uploadError
+      }
+
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from('event-attachments').getPublicUrl(filePath)
+
+      if (file.type.startsWith('image/')) {
+        setEventForm((prev) => ({ ...prev, imageUrl: publicUrl }))
+      } else {
+        setEventForm((prev) => ({ ...prev, fileUrl: publicUrl }))
+      }
+
+      toast({
+        title: 'קובץ הועלה',
+        description: 'הקובץ נשמר בהצלחה',
+      })
+    } catch (error: any) {
+      console.error('Error uploading file:', error)
+      toast({
+        title: 'שגיאה בהעלאה',
+        description: error.message || 'לא הצלחנו להעלות את הקובץ',
+        variant: 'destructive',
+      })
+    } finally {
+      setUploading(false)
+    }
+  }
+
   const handleEventSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -309,6 +363,8 @@ export default function AdminPage() {
         endsAt: eventForm.endsAt || undefined,
         location: eventForm.location || undefined,
         familyGroupId,
+        imageUrl: eventForm.imageUrl || undefined,
+        fileUrl: eventForm.fileUrl || undefined,
       })
 
       // Create reminder (either scheduled or immediate default)
@@ -781,6 +837,70 @@ export default function AdminPage() {
                         />
                       </div>
 
+                      <div className="space-y-3">
+                        <Label className="text-sm sm:text-base">
+                          הוסף תמונה או קובץ (אופציונלי)
+                        </Label>
+                        <div className="flex flex-col sm:flex-row gap-4">
+                          <div className="relative flex-1">
+                            <Input
+                              type="file"
+                              accept="image/*,.pdf"
+                              onChange={handleFileUpload}
+                              disabled={uploading}
+                              className="hidden"
+                              id="file-upload"
+                            />
+                            <Label
+                              htmlFor="file-upload"
+                              className={`flex items-center justify-center gap-2 p-4 border-2 border-dashed rounded-lg cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-gray-800 ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            >
+                              {uploading ? (
+                                <Loader2 className="h-5 w-5 animate-spin" />
+                              ) : (
+                                <Paperclip className="h-5 w-5" />
+                              )}
+                              <span>{uploading ? 'מעלה...' : 'בחר תמונה או PDF'}</span>
+                            </Label>
+                          </div>
+
+                          {eventForm.imageUrl && (
+                            <div className="relative w-full sm:w-32 h-32 rounded-lg overflow-hidden border">
+                              <img
+                                src={eventForm.imageUrl}
+                                alt="Preview"
+                                className="w-full h-full object-cover"
+                              />
+                              <Button
+                                type="button"
+                                variant="destructive"
+                                size="icon"
+                                className="absolute top-1 right-1 h-6 w-6"
+                                onClick={() => setEventForm((prev) => ({ ...prev, imageUrl: '' }))}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          )}
+
+                          {eventForm.fileUrl && (
+                            <div className="flex items-center gap-2 p-3 border rounded-lg bg-gray-50 dark:bg-gray-800">
+                              <Paperclip className="h-5 w-5 text-blue-600" />
+                              <span className="text-sm truncate max-w-[150px]">PDF הועלה</span>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 text-red-500"
+                                onClick={() => setEventForm((prev) => ({ ...prev, fileUrl: '' }))}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-1">
                           <StrictDateTimePicker
@@ -881,6 +1001,8 @@ export default function AdminPage() {
                               location: '',
                               reminderMessage: '',
                               reminderScheduledAt: '',
+                              imageUrl: '',
+                              fileUrl: '',
                             })
                           }
                           className="w-full sm:w-auto touch-target"
