@@ -46,21 +46,29 @@ export function FamilyProvider({ children }: { children: ReactNode }) {
         const userGroups = data.groups || []
         setGroups(userGroups)
 
-        // Auto-select group if user has exactly one group
-        if (userGroups.length === 1) {
+        // Validate currently selected group against fresh list
+        if (familyGroupId) {
+          const isValid = userGroups.some((g: Group) => g.id === familyGroupId)
+          if (!isValid) {
+            console.log('🧹 Clearing invalid familyGroupId from session/storage')
+            setFamilyGroupIdState(null)
+            if (typeof window !== 'undefined') {
+              localStorage.removeItem('familyGroupId')
+            }
+          }
+        }
+
+        // Auto-select group if user has exactly one group and none selected
+        if (userGroups.length === 1 && !familyGroupId) {
           const singleGroup = userGroups[0]
           setFamilyGroupIdState(singleGroup.id)
           if (typeof window !== 'undefined') {
             localStorage.setItem('familyGroupId', singleGroup.id)
           }
-        } else if (userGroups.length > 1) {
-          // Check if previously selected group is still valid
-          const storedGroupId = localStorage.getItem('familyGroupId')
-          if (storedGroupId && userGroups.some((g: Group) => g.id === storedGroupId)) {
-            setFamilyGroupIdState(storedGroupId)
-          } else {
-            // Clear invalid selection
-            setFamilyGroupIdState(null)
+        } else if (userGroups.length === 0) {
+          // No groups at all - definitely clear
+          setFamilyGroupIdState(null)
+          if (typeof window !== 'undefined') {
             localStorage.removeItem('familyGroupId')
           }
         }

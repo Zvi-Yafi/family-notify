@@ -30,21 +30,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       const userId = user.id
 
+      // VERIFY MEMBERSHIP
+      const membership = await prisma.membership.findUnique({
+        where: {
+          userId_familyGroupId: {
+            userId,
+            familyGroupId,
+          },
+        },
+      })
+
+      if (!membership || !['ADMIN', 'EDITOR'].includes(membership.role)) {
+        return res
+          .status(403)
+          .json({ error: 'Forbidden - You do not have permission to create events in this group' })
+      }
+
       // Create event
-      // Convert times from Israel timezone to UTC
-      // Enforce 10-minute rounding
       const startsAtUTC = convertIsraelToUTC(roundDateToTenMinutes(startsAt))
       const endsAtUTC = endsAt ? convertIsraelToUTC(roundDateToTenMinutes(endsAt)) : null
-
-      console.log(`⏰ Event timezone conversion:`)
-      console.log(
-        `   Starts: ${startsAt} → ${startsAtUTC.toISOString()} (${formatToIsraelTime(startsAtUTC)} Israel)`
-      )
-      if (endsAt) {
-        console.log(
-          `   Ends: ${endsAt} → ${endsAtUTC?.toISOString()} (${formatToIsraelTime(endsAtUTC!)} Israel)`
-        )
-      }
 
       const event = await prisma.event.create({
         data: {
@@ -58,10 +62,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         },
       })
 
-      return res.status(200).json({
-        success: true,
-        event,
-      })
+      return res.status(200).json({ success: true, event })
     } catch (error: any) {
       console.error('Error creating event:', error)
       return res.status(500).json({ error: error.message || 'Failed to create event' })
@@ -81,6 +82,31 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       // Build where clause - include past events if requested
       const whereClause: any = {
         familyGroupId,
+      }
+
+      // Get authenticated user
+      const supabase = createServerClient(req, res)
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser()
+
+      if (authError || !user) {
+        return res.status(401).json({ error: 'Unauthorized' })
+      }
+
+      // VERIFY MEMBERSHIP
+      const membership = await prisma.membership.findUnique({
+        where: {
+          userId_familyGroupId: {
+            userId: user.id,
+            familyGroupId,
+          },
+        },
+      })
+
+      if (!membership) {
+        return res.status(403).json({ error: 'Forbidden - You are not a member of this group' })
       }
 
       // Only filter future events if includePast is not 'true'

@@ -162,10 +162,24 @@ export default function PreferencesPage() {
   const updateDestination = (index: number, value: string) => {
     const updated = [...preferences]
     updated[index].destination = value
+
+    // Auto-verify if email matches current login email
+    if (
+      updated[index].channel === 'EMAIL' &&
+      user &&
+      value.toLowerCase() === user.email.toLowerCase()
+    ) {
+      updated[index].verified = true
+    } else if (updated[index].channel === 'EMAIL') {
+      // If it changed away from login email, it's not "auto-verified" anymore
+      // (Unless the user clicks test and it works)
+      updated[index].verified = false
+    }
+
     setPreferences(updated)
   }
 
-  const verifyChannel = async (index: number) => {
+  const sendTestMessage = async (index: number) => {
     const pref = preferences[index]
 
     if (!pref.destination) {
@@ -177,22 +191,56 @@ export default function PreferencesPage() {
       return
     }
 
-    // Simulate verification
-    toast({
-      title: 'נשלח קוד אימות',
-      description: `קוד אימות נשלח ל-${pref.destination}`,
-    })
+    const endpoint =
+      pref.channel === 'EMAIL'
+        ? '/api/test-email'
+        : pref.channel === 'WHATSAPP'
+          ? '/api/test-whatsapp'
+          : null
 
-    // In real app, would send verification code and show input
-    setTimeout(() => {
+    if (!endpoint) {
+      // For SMS or Push, just simulate or show info for now
+      toast({
+        title: 'נשלח!',
+        description: `שלחנו הודעת ניסיון ל-${pref.destination}. אנא וודא שקיבלת אותה.`,
+      })
       const updated = [...preferences]
       updated[index].verified = true
       setPreferences(updated)
-      toast({
-        title: 'אומת בהצלחה!',
-        description: `הערוץ ${getChannelName(pref.channel)} אומת`,
+      return
+    }
+
+    try {
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to: pref.destination }),
       })
-    }, 2000)
+
+      const data = await response.json()
+
+      if (response.ok) {
+        const updated = [...preferences]
+        updated[index].verified = true
+        setPreferences(updated)
+        toast({
+          title: 'הודעת ניסיון נשלחה! ✅',
+          description: `הודעת ניסיון נשלחה ל-${pref.destination}. הערוץ סומן כמאומת.`,
+        })
+      } else {
+        toast({
+          title: 'נכשלה שליחת בדיקה',
+          description: data.error || 'אנא וודא שהפרטים נכונים והספק מוגדר.',
+          variant: 'destructive',
+        })
+      }
+    } catch (error) {
+      toast({
+        title: 'שגיאה',
+        description: 'נכשל ליצור קשר עם השרת',
+        variant: 'destructive',
+      })
+    }
   }
 
   const savePreferences = async () => {
@@ -301,24 +349,28 @@ export default function PreferencesPage() {
                         />
                         {!pref.verified ? (
                           <Button
-                            onClick={() => verifyChannel(index)}
-                            className="w-full sm:w-auto touch-target"
+                            onClick={() => sendTestMessage(index)}
+                            className="w-full sm:w-auto touch-target whitespace-nowrap"
+                            variant="secondary"
                           >
-                            אמת
+                            שלח הודעת ניסיון
                           </Button>
                         ) : (
                           <Button
+                            onClick={() => sendTestMessage(index)}
                             variant="outline"
-                            disabled
-                            className="w-full sm:w-auto touch-target"
+                            className="w-full sm:w-auto touch-target whitespace-nowrap bg-green-50 border-green-200 text-green-700"
                           >
-                            מאומת ✓
+                            מאומת ✓ (שלח שוב)
                           </Button>
                         )}
                       </div>
-                      {pref.verified && (
-                        <p className="text-xs sm:text-sm text-green-600">הערוץ אומת ופעיל</p>
-                      )}
+                      <p className="text-xs sm:text-sm text-gray-500 italic">
+                        {pref.channel === 'EMAIL' &&
+                        pref.destination.toLowerCase() === user.email.toLowerCase()
+                          ? 'המייל שלך אומת באופן אוטומטי'
+                          : 'מומלץ לשלוח הודעת ניסיון כדי לוודא תקינות'}
+                      </p>
                     </div>
                   </CardContent>
                 )}

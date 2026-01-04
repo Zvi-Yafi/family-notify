@@ -10,6 +10,13 @@ import { Calendar, Clock, MapPin, ArrowRight, Bell, Send, Loader2 } from 'lucide
 import { useFamilyContext } from '@/lib/context/family-context'
 import { formatInTimeZone } from 'date-fns-tz'
 import { he } from 'date-fns/locale'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { generateGoogleCalendarUrl, downloadIcsFile } from '@/lib/utils/calendar-utils'
 
 interface Event {
   id: string
@@ -185,6 +192,50 @@ export default function EventDetailPage() {
             <ArrowRight className="h-4 w-4 ml-2" />
             חזרה לאירועים
           </Button>
+
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+            <h1 className="text-2xl sm:text-3xl font-bold">פרטי אירוע</h1>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="w-full sm:w-auto touch-target">
+                  <Calendar className="h-4 w-4 ml-2" />
+                  הוסף ליומן
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  onClick={() => {
+                    const calEvent = {
+                      title: event.title,
+                      description: event.description,
+                      location: event.location,
+                      startsAt: new Date(event.startsAt),
+                      endsAt: event.endsAt ? new Date(event.endsAt) : null,
+                    }
+                    window.open(generateGoogleCalendarUrl(calEvent), '_blank')
+                  }}
+                  className="cursor-pointer"
+                >
+                  Google Calendar
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => {
+                    const calEvent = {
+                      title: event.title,
+                      description: event.description,
+                      location: event.location,
+                      startsAt: new Date(event.startsAt),
+                      endsAt: event.endsAt ? new Date(event.endsAt) : null,
+                    }
+                    downloadIcsFile(calEvent)
+                  }}
+                  className="cursor-pointer"
+                >
+                  אחר (.ics)
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
 
           {/* Event Details */}
           <Card className="mb-6">

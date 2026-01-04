@@ -6,6 +6,7 @@ import { whatsAppProvider } from '@/lib/providers/whatsapp.provider'
 import { CommunicationChannel, DeliveryStatus } from '@prisma/client'
 import { formatInTimeZone } from 'date-fns-tz'
 import { he } from 'date-fns/locale'
+import { getHebrewDateString, getFullHebrewDate } from '@/lib/utils/hebrew-date-utils'
 
 export interface DispatchAnnouncementOptions {
   announcementId: string
@@ -505,7 +506,8 @@ export class DispatchService {
     const tz = 'Asia/Jerusalem'
     const eventStartsAt = event.startsAt instanceof Date ? event.startsAt : new Date(event.startsAt)
 
-    const formattedDate = formatInTimeZone(eventStartsAt, tz, 'eeee, d MMMM yyyy', { locale: he })
+    const formattedDate = formatInTimeZone(eventStartsAt, tz, 'd MMMM yyyy', { locale: he })
+    const hebrewDate = getFullHebrewDate(eventStartsAt)
     const formattedTime = formatInTimeZone(eventStartsAt, tz, 'HH:mm')
 
     // If there is an end time, format it too
@@ -594,8 +596,9 @@ export class DispatchService {
                         </td>
                         <td valign="middle" style="padding-right: 16px;">
                           <div style="font-size: 13px; color: #64748b; font-weight: 600; margin-bottom: 4px;">תאריך ושעה</div>
-                          <div style="font-size: 16px; color: #1e293b; font-weight: 600;">${formattedDate}</div>
-                          <div style="font-size: 15px; color: #475569; margin-top: 2px;">
+                          <div style="font-size: 16px; color: #1e293b; font-weight: 600;">${hebrewDate}</div>
+                          <div style="font-size: 14px; color: #64748b; font-weight: 500; margin-top: 2px;">תאריך לועזי: ${formattedDate}</div>
+                          <div style="font-size: 15px; color: #475569; margin-top: 4px;">
                             ${formattedEndTime ? `בין השעות ${formattedTime} עד ${formattedEndTime}` : `בשעה ${formattedTime}`}
                           </div>
                         </td>

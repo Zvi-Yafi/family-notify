@@ -100,20 +100,6 @@ export default function FeedPage() {
             </div>
           )}
 
-          {!loading && !familyGroupId && (
-            <Card>
-              <CardContent className="py-12 text-center">
-                <Bell className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                <p className="text-gray-600 dark:text-gray-400 mb-4">
-                  עדיין לא הצטרפת לקבוצה משפחתית
-                </p>
-                <Button asChild>
-                  <Link href="/onboarding">הרשם עכשיו</Link>
-                </Button>
-              </CardContent>
-            </Card>
-          )}
-
           {!loading && familyGroupId && announcements.length > 0 && (
             <div className="space-y-4">
               {announcements.map((announcement) => (

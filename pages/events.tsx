@@ -9,6 +9,14 @@ import { useFamilyContext } from '@/lib/context/family-context'
 import { Header } from '@/components/header'
 import { GroupSelector } from '@/components/group-selector'
 import { useToast } from '@/hooks/use-toast'
+import { getHebrewDateString } from '@/lib/utils/hebrew-date-utils'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { generateGoogleCalendarUrl, downloadIcsFile } from '@/lib/utils/calendar-utils'
 
 interface Event {
   id: string
@@ -185,19 +193,6 @@ export default function EventsPage() {
             </div>
           )}
 
-          {error && familyGroupId && !loading && (
-            <Card>
-              <CardContent className="py-12 text-center">
-                <Calendar className="h-12 w-12 mx-auto text-red-400 mb-4" />
-                <p className="text-red-600 mb-4">{error}</p>
-                <Button onClick={loadEvents} variant="outline">
-                  <RefreshCw className="h-4 w-4 ml-2" />
-                  נסה שוב
-                </Button>
-              </CardContent>
-            </Card>
-          )}
-
           {!loading && !error && familyGroupId && events.length > 0 && (
             <div className="space-y-4">
               {events.map((event) => {
@@ -238,6 +233,12 @@ export default function EventsPage() {
                             {formatDateTime(event.startsAt)}
                           </span>
                         </div>
+                        <div className="flex items-start gap-2 text-blue-600 font-semibold flex-wrap">
+                          <Clock className="h-4 w-4 opacity-0 flex-shrink-0" />
+                          <span className="text-xs sm:text-sm">
+                            תאריך עברי: {getHebrewDateString(event.startsAt)}
+                          </span>
+                        </div>
                         {event.endsAt && (
                           <div className="flex items-start gap-2 text-gray-600 dark:text-gray-400 flex-wrap">
                             <Clock className="h-4 w-4 opacity-0 flex-shrink-0" />
@@ -265,13 +266,34 @@ export default function EventsPage() {
                           <Bell className="h-4 w-4 ml-2" />
                           נהל תזכורות
                         </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="w-full sm:w-auto touch-target"
-                        >
-                          הוסף ליומן
-                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="w-full sm:w-auto touch-target"
+                            >
+                              <Calendar className="h-4 w-4 ml-2" />
+                              הוסף ליומן
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() =>
+                                window.open(generateGoogleCalendarUrl(event), '_blank')
+                              }
+                              className="cursor-pointer"
+                            >
+                              Google Calendar
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => downloadIcsFile(event)}
+                              className="cursor-pointer"
+                            >
+                              אחר (.ics)
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     </CardContent>
                   </Card>

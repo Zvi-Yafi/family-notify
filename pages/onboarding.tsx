@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label'
 import { useToast } from '@/hooks/use-toast'
 import { useFamilyContext } from '@/lib/context/family-context'
 import { createClient } from '@/lib/supabase/client'
+import { Info } from 'lucide-react'
 
 export default function OnboardingPage() {
   const [step, setStep] = useState(1)
@@ -275,6 +276,29 @@ export default function OnboardingPage() {
                         <span className="font-mono font-bold">{formData.groupSlug}</span>
                       </p>
                     )}
+                  </div>
+                )}
+
+                {/* Explanation Box */}
+                {formData.createNew && (
+                  <div className="bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-800 rounded-lg p-4 space-y-3">
+                    <div className="flex items-start gap-2 text-blue-800 dark:text-blue-300">
+                      <Info className="h-5 w-5 mt-0.5 flex-shrink-0" />
+                      <div className="text-sm">
+                        <p className="font-bold mb-1">מה ההבדל בין שם לקוד?</p>
+                        <div className="space-y-2">
+                          <p>
+                            <strong>שם הקבוצה:</strong> השם היפה שכולם יראו (למשל: &quot;משפחת כהן
+                            המורחבת&quot;). אפשר להשתמש בעברית, רווחים ואימוג&apos;י.
+                          </p>
+                          <p>
+                            <strong>קוד הקבוצה (Slug):</strong> ה&quot;כתובת&quot; של הקבוצה. משמש
+                            להצטרפות (למשל: <code>cohen-family</code>). רק אותיות באנגלית, מספרים
+                            ומקפים.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 )}
 

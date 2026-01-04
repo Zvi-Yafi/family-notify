@@ -116,6 +116,14 @@ class ApiClient {
       }>
     }>(`/api/admin/members?familyGroupId=${familyGroupId}`)
   }
+
+  // Groups
+  async updateGroup(groupId: string, data: { name?: string; slug?: string }) {
+    return this.request<{ success: boolean; group: any }>(`/api/groups/${groupId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    })
+  }
 }
 
 export const apiClient = new ApiClient()

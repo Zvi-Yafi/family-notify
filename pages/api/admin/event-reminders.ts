@@ -39,13 +39,30 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(404).json({ error: 'Event not found' })
       }
 
+      // VERIFY MEMBERSHIP
+      const membership = await prisma.membership.findUnique({
+        where: {
+          userId_familyGroupId: {
+            userId,
+            familyGroupId: event.familyGroupId,
+          },
+        },
+      })
+
+      if (!membership || !['ADMIN', 'EDITOR'].includes(membership.role)) {
+        return res
+          .status(403)
+          .json({
+            error: 'Forbidden - You do not have permission to create reminders for this event',
+          })
+      }
+
       // Convert times from Israel timezone to UTC
-      // Enforce 10-minute rounding
+      // ... (rest of POST remains same)
       const scheduledAtUTC = scheduledAt
         ? convertIsraelToUTC(roundDateToTenMinutes(scheduledAt))
         : null
 
-      // Create reminder
       const reminder = await prisma.eventReminder.create({
         data: {
           eventId,
@@ -56,26 +73,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         },
       })
 
-      // If no scheduledAt, dispatch immediately
       if (!scheduledAt) {
-        console.log(`📤 Sending event reminder immediately (ID: ${reminder.id})`)
         await dispatchService.dispatchEventReminder({
           eventReminderId: reminder.id,
           familyGroupId: event.familyGroupId,
           isInitial: true,
         })
 
-        // Mark as sent
         await prisma.eventReminder.update({
           where: { id: reminder.id },
           data: { sentAt: new Date() },
         })
       }
 
-      return res.status(200).json({
-        success: true,
-        reminder,
-      })
+      return res.status(200).json({ success: true, reminder })
     } catch (error: any) {
       console.error('Error creating event reminder:', error)
       return res.status(500).json({ error: error.message || 'Failed to create reminder' })
@@ -88,6 +99,43 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       if (!eventId || typeof eventId !== 'string') {
         return res.status(400).json({ error: 'eventId required' })
+      }
+
+      // Get authenticated user
+      const supabase = createServerClient(req, res)
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser()
+
+      if (authError || !user) {
+        return res.status(401).json({ error: 'Unauthorized' })
+      }
+
+      // First check if the event exists and get its group
+      const event = await prisma.event.findUnique({
+        where: { id: eventId },
+        select: { familyGroupId: true },
+      })
+
+      if (!event) {
+        return res.status(404).json({ error: 'Event not found' })
+      }
+
+      // VERIFY MEMBERSHIP
+      const membership = await prisma.membership.findUnique({
+        where: {
+          userId_familyGroupId: {
+            userId: user.id,
+            familyGroupId: event.familyGroupId,
+          },
+        },
+      })
+
+      if (!membership) {
+        return res
+          .status(403)
+          .json({ error: 'Forbidden - You are not a member of the group this event belongs to' })
       }
 
       const reminders = await prisma.eventReminder.findMany({

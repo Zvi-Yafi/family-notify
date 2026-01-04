@@ -14,6 +14,8 @@ import {
   Crown,
   Edit,
   User as UserIcon,
+  Settings,
+  Info,
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { apiClient, UnauthorizedError } from '@/lib/api-client'
@@ -22,6 +24,7 @@ import { Header } from '@/components/header'
 import { GroupSelector } from '@/components/group-selector'
 import { StrictDateTimePicker } from '@/components/strict-date-time-picker'
 import { roundToTenMinutes } from '@/lib/utils/time-utils'
+import { getHebrewDateString } from '@/lib/utils/hebrew-date-utils'
 
 interface Stats {
   memberCount: number
@@ -47,15 +50,17 @@ interface Member {
 
 export default function AdminPage() {
   const router = useRouter()
-  const [activeTab, setActiveTab] = useState<'announcements' | 'events' | 'stats'>('announcements')
+  const [activeTab, setActiveTab] = useState<'announcements' | 'events' | 'stats' | 'settings'>(
+    'announcements'
+  )
 
   // Set active tab from query param
   useEffect(() => {
     if (
       router.query.tab &&
-      ['announcements', 'events', 'stats'].includes(router.query.tab as string)
+      ['announcements', 'events', 'stats', 'settings'].includes(router.query.tab as string)
     ) {
-      setActiveTab(router.query.tab as 'announcements' | 'events' | 'stats')
+      setActiveTab(router.query.tab as 'announcements' | 'events' | 'stats' | 'settings')
     }
   }, [router.query.tab])
 
@@ -95,6 +100,21 @@ export default function AdminPage() {
     reminderMessage: '',
     reminderScheduledAt: '',
   })
+
+  const [settingsForm, setSettingsForm] = useState({
+    name: '',
+    slug: '',
+  })
+
+  // Populate settings form when group changes
+  useEffect(() => {
+    if (selectedGroup) {
+      setSettingsForm({
+        name: selectedGroup.name || '',
+        slug: selectedGroup.slug || '',
+      })
+    }
+  }, [selectedGroup])
 
   // Load stats function
   const loadStats = useCallback(async () => {
@@ -153,6 +173,36 @@ export default function AdminPage() {
       loadMembers()
     }
   }, [showMembersDialog, loadMembers])
+
+  const handleSettingsSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!familyGroupId) return
+
+    setLoading(true)
+    try {
+      const response = await apiClient.updateGroup(familyGroupId, {
+        name: settingsForm.name,
+        slug: settingsForm.slug,
+      })
+
+      if (response.success) {
+        toast({
+          title: 'הגדרות עודכנו',
+          description: 'פרטי הקבוצה עודכנו בהצלחה',
+        })
+        // Refresh page to update context and URL if slug changed
+        window.location.reload()
+      }
+    } catch (error: any) {
+      toast({
+        title: 'שגיאה',
+        description: error.message || 'נכשל לעדכן את פרטי הקבוצה',
+        variant: 'destructive',
+      })
+    } finally {
+      setLoading(true)
+    }
+  }
 
   const getRoleIcon = (role: string) => {
     switch (role) {
@@ -543,6 +593,16 @@ export default function AdminPage() {
                   <Bell className="h-4 w-4 ml-2" />
                   סטטוסים
                 </Button>
+                {selectedGroup?.role === 'ADMIN' && (
+                  <Button
+                    variant={activeTab === 'settings' ? 'default' : 'outline'}
+                    onClick={() => setActiveTab('settings')}
+                    className="w-full sm:w-auto touch-target justify-center"
+                  >
+                    <Settings className="h-4 w-4 ml-2" />
+                    הגדרות קבוצה
+                  </Button>
+                )}
               </div>
 
               {/* Announcement Form */}
@@ -635,6 +695,12 @@ export default function AdminPage() {
                           }
                           helperText="הזמן יוגבל לקפיצות של 10 דקות (למשל: 10, 20, 30...)"
                         />
+                        {announcementForm.scheduledAt && (
+                          <div className="mt-1 text-sm font-semibold text-blue-600">
+                            תאריך עברי:{' '}
+                            {getHebrewDateString(new Date(announcementForm.scheduledAt))}
+                          </div>
+                        )}
                       </div>
 
                       <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
@@ -716,21 +782,35 @@ export default function AdminPage() {
                       </div>
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <StrictDateTimePicker
-                          id="startsAt"
-                          label="תחילת האירוע"
-                          value={eventForm.startsAt}
-                          onChange={(val) => setEventForm({ ...eventForm, startsAt: val })}
-                          required
-                          helperText="הזמן יעוגל אוטומטית לקפיצות של 10 דקות"
-                        />
-                        <StrictDateTimePicker
-                          id="endsAt"
-                          label="סיום האירוע (אופציונלי)"
-                          value={eventForm.endsAt}
-                          onChange={(val) => setEventForm({ ...eventForm, endsAt: val })}
-                          helperText="הזמן יעוגל אוטומטית לקפיצות של 10 דקות"
-                        />
+                        <div className="space-y-1">
+                          <StrictDateTimePicker
+                            id="startsAt"
+                            label="תחילת האירוע"
+                            value={eventForm.startsAt}
+                            onChange={(val) => setEventForm({ ...eventForm, startsAt: val })}
+                            required
+                            helperText="הזמן יעוגל אוטומטית לקפיצות של 10 דקות"
+                          />
+                          {eventForm.startsAt && (
+                            <div className="text-sm font-semibold text-blue-600">
+                              תאריך עברי: {getHebrewDateString(new Date(eventForm.startsAt))}
+                            </div>
+                          )}
+                        </div>
+                        <div className="space-y-1">
+                          <StrictDateTimePicker
+                            id="endsAt"
+                            label="סיום האירוע (אופציונלי)"
+                            value={eventForm.endsAt}
+                            onChange={(val) => setEventForm({ ...eventForm, endsAt: val })}
+                            helperText="הזמן יעוגל אוטומטית לקפיצות של 10 דקות"
+                          />
+                          {eventForm.endsAt && (
+                            <div className="text-sm font-semibold text-blue-600">
+                              תאריך עברי: {getHebrewDateString(new Date(eventForm.endsAt))}
+                            </div>
+                          )}
+                        </div>
                       </div>
 
                       <div>
@@ -858,6 +938,70 @@ export default function AdminPage() {
                         </div>
                       </div>
                     )}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Settings Tab */}
+              {activeTab === 'settings' && selectedGroup?.role === 'ADMIN' && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>הגדרות קבוצה</CardTitle>
+                    <CardDescription>
+                      ערוך את פרטי הקבוצה. שים לב ששינוי קוד הקבוצה ישבור קישורי הצטרפות קיימים.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <form onSubmit={handleSettingsSubmit} className="space-y-4">
+                      <div>
+                        <Label htmlFor="groupName">שם הקבוצה</Label>
+                        <Input
+                          id="groupName"
+                          value={settingsForm.name}
+                          onChange={(e) =>
+                            setSettingsForm({ ...settingsForm, name: e.target.value })
+                          }
+                          required
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="groupSlug">קוד קבוצה (Slug)</Label>
+                        <Input
+                          id="groupSlug"
+                          value={settingsForm.slug}
+                          onChange={(e) =>
+                            setSettingsForm({ ...settingsForm, slug: e.target.value })
+                          }
+                          required
+                          className="mt-1"
+                        />
+                        <div className="bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-800 rounded-lg p-4 mt-4 space-y-3">
+                          <div className="flex items-start gap-2 text-blue-800 dark:text-blue-300">
+                            <Info className="h-5 w-5 mt-0.5 flex-shrink-0" />
+                            <div className="text-sm">
+                              <p className="font-bold mb-1">מה ההבדל בין שם לקוד?</p>
+                              <div className="space-y-2">
+                                <p>
+                                  <strong>שם הקבוצה:</strong> השם לתצוגה (למשל: &quot;משפחת כהן
+                                  המורחבת&quot;). מותר עברית ורווחים. שינוי השם אינו שובר קישורים.
+                                </p>
+                                <p>
+                                  <strong>קוד הקבוצה (Slug):</strong> המזהה בקישור (למשל:{' '}
+                                  <code>cohen-family</code>). רק אנגלית, מספרים ומקפים.
+                                </p>
+                                <p className="text-yellow-600 dark:text-yellow-500 font-bold">
+                                  ⚠️ שים לב: שינוי הקוד ישבור קישורי הצטרפות קיימים שנשלחו בעבר!
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <Button type="submit" disabled={loading} className="w-full">
+                        {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'שמור שינויים'}
+                      </Button>
+                    </form>
                   </CardContent>
                 </Card>
               )}

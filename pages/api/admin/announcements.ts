@@ -30,20 +30,30 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       const userId = user.id
 
+      // VERIFY MEMBERSHIP
+      const membership = await prisma.membership.findUnique({
+        where: {
+          userId_familyGroupId: {
+            userId,
+            familyGroupId,
+          },
+        },
+      })
+
+      if (!membership || !['ADMIN', 'EDITOR'].includes(membership.role)) {
+        return res
+          .status(403)
+          .json({ error: 'Forbidden - You do not have permission to post in this group' })
+      }
+
       // Create announcement
-      // Convert scheduled time from Israel timezone to UTC
+      // ... (rest of the POST logic remains the same)
       let scheduledDate = null
       if (scheduledAt) {
-        // Enforce 10-minute rounding
         const roundedTime = roundDateToTenMinutes(scheduledAt)
         scheduledDate = convertIsraelToUTC(roundedTime)
-
-        console.log(`⏰ Timezone conversion & Rounding:`)
-        console.log(`   User input: ${scheduledAt}`)
-        console.log(`   Rounded: ${roundedTime.toISOString()}`)
-        console.log(`   Adjusted to UTC: ${scheduledDate.toISOString()}`)
-        console.log(`   Will show as: ${formatToIsraelTime(scheduledDate)} Israel`)
       }
+
       const announcement = await prisma.announcement.create({
         data: {
           title,
@@ -52,34 +62,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           familyGroupId,
           createdBy: userId,
           scheduledAt: scheduledDate,
-          publishedAt: scheduledAt ? null : new Date(), // Publish immediately if not scheduled
+          publishedAt: scheduledAt ? null : new Date(),
         },
       })
 
-      // Log announcement creation
-      if (scheduledDate) {
-        console.log(`📅 הודעה מתוזמנת נוצרה:`)
-        console.log(`   כותרת: "${announcement.title}"`)
-        console.log(`   מתוזמנת ל: ${formatToIsraelTime(scheduledDate)} (שעון ישראל)`)
-        console.log(`   UTC: ${scheduledDate.toISOString()}`)
-        console.log(`   תישלח ב-Cron job הבא (כל 10 דקות)`)
-      } else {
-        console.log(`📨 הודעה מיידית נוצרה: "${announcement.title}"`)
-      }
-
-      // If not scheduled, dispatch immediately
       if (!scheduledAt) {
         await dispatchService.dispatchAnnouncement({
           announcementId: announcement.id,
           familyGroupId,
         })
-        console.log(`✅ ההודעה נשלחה מיד`)
       }
 
-      return res.status(200).json({
-        success: true,
-        announcement,
-      })
+      return res.status(200).json({ success: true, announcement })
     } catch (error: any) {
       console.error('Error creating announcement:', error)
       return res.status(500).json({ error: error.message || 'Failed to create announcement' })
@@ -92,6 +86,31 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       if (!familyGroupId || typeof familyGroupId !== 'string') {
         return res.status(400).json({ error: 'familyGroupId required' })
+      }
+
+      // Get authenticated user
+      const supabase = createServerClient(req, res)
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser()
+
+      if (authError || !user) {
+        return res.status(401).json({ error: 'Unauthorized' })
+      }
+
+      // VERIFY MEMBERSHIP
+      const membership = await prisma.membership.findUnique({
+        where: {
+          userId_familyGroupId: {
+            userId: user.id,
+            familyGroupId,
+          },
+        },
+      })
+
+      if (!membership) {
+        return res.status(403).json({ error: 'Forbidden - You are not a member of this group' })
       }
 
       const announcements = await prisma.announcement.findMany({
