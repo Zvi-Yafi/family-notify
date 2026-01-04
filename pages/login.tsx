@@ -10,6 +10,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/hooks/use-toast'
 import { Mail, Chrome, Lock, User } from 'lucide-react'
 import { useFamilyContext } from '@/lib/context/family-context'
+import { Footer } from '@/components/footer'
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false)
@@ -253,183 +254,190 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center p-4 sm:p-6">
-          <div className="flex justify-center mb-3 sm:mb-4">
-            <div className="h-12 w-12 sm:h-16 sm:w-16 bg-blue-600 rounded-full flex items-center justify-center">
-              <Mail className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white dark:from-gray-900 dark:to-gray-800 flex flex-col">
+      <div className="flex-1 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          {/* ... existing CardContent ... */}
+          <CardHeader className="text-center p-4 sm:p-6">
+            <div className="flex justify-center mb-3 sm:mb-4">
+              <div className="h-12 w-12 sm:h-16 sm:w-16 bg-blue-600 rounded-full flex items-center justify-center">
+                <Mail className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
+              </div>
             </div>
-          </div>
-          <CardTitle className="text-2xl sm:text-3xl">ברוכים הבאים</CardTitle>
-          <CardDescription className="text-sm sm:text-base">
-            התחברו או הירשמו ל-FamilyNotify
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4 p-4 sm:p-6">
-          <Tabs defaultValue="signin" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 h-auto">
-              <TabsTrigger value="signin" className="text-sm sm:text-base py-2 sm:py-1.5">
-                התחברות
-              </TabsTrigger>
-              <TabsTrigger value="signup" className="text-sm sm:text-base py-2 sm:py-1.5">
-                הרשמה
-              </TabsTrigger>
-            </TabsList>
+            <CardTitle className="text-2xl sm:text-3xl">ברוכים הבאים</CardTitle>
+            <CardDescription className="text-sm sm:text-base">
+              התחברו או הירשמו ל-FamilyNotify
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4 p-4 sm:p-6">
+            <Tabs defaultValue="signin" className="w-full">
+              <TabsList className="grid w-full grid-cols-2 h-auto">
+                <TabsTrigger value="signin" className="text-sm sm:text-base py-2 sm:py-1.5">
+                  התחברות
+                </TabsTrigger>
+                <TabsTrigger value="signup" className="text-sm sm:text-base py-2 sm:py-1.5">
+                  הרשמה
+                </TabsTrigger>
+              </TabsList>
 
-            <TabsContent value="signin" className="space-y-4">
-              <form onSubmit={handleEmailSignIn} className="space-y-4 mt-4">
-                <div className="space-y-2">
-                  <Label htmlFor="signin-email" className="text-sm sm:text-base">
-                    אימייל
-                  </Label>
-                  <Input
-                    id="signin-email"
-                    type="email"
-                    placeholder="name@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    disabled={loading}
-                    required
-                  />
+              <TabsContent value="signin" className="space-y-4">
+                <form onSubmit={handleEmailSignIn} className="space-y-4 mt-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="signin-email" className="text-sm sm:text-base">
+                      אימייל
+                    </Label>
+                    <Input
+                      id="signin-email"
+                      type="email"
+                      placeholder="name@example.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      disabled={loading}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="signin-password" className="text-sm sm:text-base">
+                      סיסמה
+                    </Label>
+                    <Input
+                      id="signin-password"
+                      type="password"
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      disabled={loading}
+                      required
+                    />
+                  </div>
+                  <Button type="submit" className="w-full" size="lg" disabled={loading}>
+                    <Lock className="ml-2 h-5 w-5" />
+                    {loading ? 'מתחבר...' : 'התחבר'}
+                  </Button>
+                </form>
+
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-background px-2 text-muted-foreground">או</span>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signin-password" className="text-sm sm:text-base">
-                    סיסמה
-                  </Label>
-                  <Input
-                    id="signin-password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    disabled={loading}
-                    required
-                  />
-                </div>
-                <Button type="submit" className="w-full" size="lg" disabled={loading}>
-                  <Lock className="ml-2 h-5 w-5" />
-                  {loading ? 'מתחבר...' : 'התחבר'}
+
+                <Button
+                  onClick={handleGoogleLogin}
+                  disabled={loading}
+                  size="lg"
+                  className="w-full"
+                  variant="outline"
+                >
+                  <Chrome className="ml-2 h-5 w-5" />
+                  {loading ? 'מתחבר...' : 'התחבר עם Google'}
                 </Button>
-              </form>
+              </TabsContent>
 
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-background px-2 text-muted-foreground">או</span>
-                </div>
-              </div>
+              <TabsContent value="signup" className="space-y-4 mt-4">
+                <form onSubmit={handleEmailSignUp} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-name" className="text-sm sm:text-base">
+                      שם מלא
+                    </Label>
+                    <Input
+                      id="signup-name"
+                      type="text"
+                      placeholder="ישראל ישראלי"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      disabled={loading}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-email" className="text-sm sm:text-base">
+                      אימייל
+                    </Label>
+                    <Input
+                      id="signup-email"
+                      type="email"
+                      placeholder="name@example.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      disabled={loading}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-password" className="text-sm sm:text-base">
+                      סיסמה
+                    </Label>
+                    <Input
+                      id="signup-password"
+                      type="password"
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      disabled={loading}
+                      required
+                      minLength={6}
+                    />
+                    <p className="text-xs text-muted-foreground">לפחות 6 תווים</p>
+                  </div>
+                  <Button type="submit" className="w-full" size="lg" disabled={loading}>
+                    <User className="ml-2 h-5 w-5" />
+                    {loading ? 'נרשם...' : 'הירשם'}
+                  </Button>
+                </form>
 
-              <Button
-                onClick={handleGoogleLogin}
-                disabled={loading}
-                size="lg"
-                className="w-full"
-                variant="outline"
-              >
-                <Chrome className="ml-2 h-5 w-5" />
-                {loading ? 'מתחבר...' : 'התחבר עם Google'}
-              </Button>
-            </TabsContent>
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-background px-2 text-muted-foreground">או</span>
+                  </div>
+                </div>
 
-            <TabsContent value="signup" className="space-y-4 mt-4">
-              <form onSubmit={handleEmailSignUp} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="signup-name" className="text-sm sm:text-base">
-                    שם מלא
-                  </Label>
-                  <Input
-                    id="signup-name"
-                    type="text"
-                    placeholder="ישראל ישראלי"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    disabled={loading}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signup-email" className="text-sm sm:text-base">
-                    אימייל
-                  </Label>
-                  <Input
-                    id="signup-email"
-                    type="email"
-                    placeholder="name@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    disabled={loading}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signup-password" className="text-sm sm:text-base">
-                    סיסמה
-                  </Label>
-                  <Input
-                    id="signup-password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    disabled={loading}
-                    required
-                    minLength={6}
-                  />
-                  <p className="text-xs text-muted-foreground">לפחות 6 תווים</p>
-                </div>
-                <Button type="submit" className="w-full" size="lg" disabled={loading}>
-                  <User className="ml-2 h-5 w-5" />
-                  {loading ? 'נרשם...' : 'הירשם'}
+                <Button
+                  onClick={handleGoogleLogin}
+                  disabled={loading}
+                  size="lg"
+                  className="w-full"
+                  variant="outline"
+                >
+                  <Chrome className="ml-2 h-5 w-5" />
+                  {loading ? 'מתחבר...' : 'הירשם עם Google'}
                 </Button>
-              </form>
+              </TabsContent>
+            </Tabs>
 
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-background px-2 text-muted-foreground">או</span>
-                </div>
-              </div>
+            <Button
+              onClick={() => router.push('/onboarding')}
+              variant="ghost"
+              size="sm"
+              className="w-full"
+              disabled={loading}
+            >
+              המשך כאורח
+            </Button>
 
-              <Button
-                onClick={handleGoogleLogin}
-                disabled={loading}
-                size="lg"
-                className="w-full"
-                variant="outline"
+            <p className="text-center text-sm text-muted-foreground pt-4 border-t">
+              בהתחברות, אתם מסכימים ל
+              <Link href="/legal/terms" className="underline hover:text-primary mx-1">
+                תנאי השימוש
+              </Link>
+              ול
+              <Link
+                href="https://famnotify.com/legal/privacy"
+                className="underline hover:text-primary mx-1"
               >
-                <Chrome className="ml-2 h-5 w-5" />
-                {loading ? 'מתחבר...' : 'הירשם עם Google'}
-              </Button>
-            </TabsContent>
-          </Tabs>
-
-          <Button
-            onClick={() => router.push('/onboarding')}
-            variant="ghost"
-            size="sm"
-            className="w-full"
-            disabled={loading}
-          >
-            המשך כאורח
-          </Button>
-
-          <p className="text-center text-sm text-muted-foreground">
-            בהתחברות, אתם מסכימים ל
-            <Link href="/legal/terms" className="underline hover:text-primary mx-1">
-              תנאי השימוש
-            </Link>
-            ול
-            <Link href="/legal/privacy" className="underline hover:text-primary mx-1">
-              מדיניות הפרטיות
-            </Link>
-          </p>
-        </CardContent>
-      </Card>
+                מדיניות הפרטיות (Privacy Policy)
+              </Link>
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+      <Footer />
     </div>
   )
 }
