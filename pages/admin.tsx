@@ -1,6 +1,13 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/router'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  CardFooter,
+} from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -19,6 +26,7 @@ import {
   Image as ImageIcon,
   Paperclip,
   Trash2,
+  AlertTriangle,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/hooks/use-toast'
@@ -113,6 +121,9 @@ export default function AdminPage() {
     name: '',
     slug: '',
   })
+
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [deleteConfirmation, setDeleteConfirmation] = useState('')
 
   // Populate settings form when group changes
   useEffect(() => {
@@ -209,6 +220,40 @@ export default function AdminPage() {
       })
     } finally {
       setLoading(true)
+    }
+  }
+
+  const handleDeleteGroup = async () => {
+    if (!selectedGroup || deleteConfirmation !== selectedGroup.name) {
+      toast({
+        title: 'שגיאה',
+        description: 'יש להקליד את שם הקבוצה בדיוק כדי לאשר מחיקה',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    setLoading(true)
+    try {
+      const result = await apiClient.deleteGroup(selectedGroup.id)
+      toast({
+        title: 'הקבוצה נמחקה בהצלחה',
+        description: `הקבוצה "${result.deletedGroup.name}" נמחקה יחד עם ${result.deletedGroup.memberCount} חברים, ${result.deletedGroup.eventCount} אירועים ו-${result.deletedGroup.announcementCount} הודעות.`,
+      })
+      // Redirect to home
+      setTimeout(() => {
+        window.location.href = '/'
+      }, 2000)
+    } catch (error: any) {
+      toast({
+        title: 'שגיאה',
+        description: error.message || 'נכשל למחוק את הקבוצה',
+        variant: 'destructive',
+      })
+    } finally {
+      setLoading(false)
+      setShowDeleteDialog(false)
+      setDeleteConfirmation('')
     }
   }
 
@@ -1123,8 +1168,100 @@ export default function AdminPage() {
                         {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'שמור שינויים'}
                       </Button>
                     </form>
+
+                    {/* Danger Zone */}
+                    <div className="mt-8 pt-8 border-t border-gray-200 dark:border-gray-700">
+                      <div className="bg-red-50 dark:bg-red-900/10 border-2 border-red-200 dark:border-red-800 rounded-lg p-6">
+                        <h3 className="text-lg font-bold text-red-900 dark:text-red-100 mb-2 flex items-center gap-2">
+                          <AlertTriangle className="h-5 w-5" />
+                          אזור סכנה
+                        </h3>
+                        <p className="text-sm text-red-700 dark:text-red-300 mb-4">
+                          פעולות בלתי הפיכות. אנא היה זהיר!
+                        </p>
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          onClick={() => setShowDeleteDialog(true)}
+                          className="w-full"
+                        >
+                          <Trash2 className="h-4 w-4 ml-2" />
+                          מחק קבוצה לצמיתות
+                        </Button>
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
+              )}
+
+              {/* Delete Confirmation Dialog */}
+              {showDeleteDialog && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                  <Card className="w-full max-w-md">
+                    <CardHeader>
+                      <CardTitle className="text-red-600 dark:text-red-400 flex items-center gap-2">
+                        <AlertTriangle className="h-6 w-6" />
+                        אישור מחיקת קבוצה
+                      </CardTitle>
+                      <CardDescription>
+                        פעולה זו תמחק לצמיתות את הקבוצה ואת כל הנתונים הקשורים אליה
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+                        <p className="text-sm text-red-800 dark:text-red-200 font-semibold mb-2">
+                          מה יימחק:
+                        </p>
+                        <ul className="text-sm text-red-700 dark:text-red-300 space-y-1 list-disc list-inside">
+                          <li>כל חברי הקבוצה ({stats.memberCount} חברים)</li>
+                          <li>כל האירועים והתזכורות</li>
+                          <li>כל ההודעות ({stats.announcementsThisMonth} הודעות החודש)</li>
+                          <li>כל הנושאים והנתונים</li>
+                        </ul>
+                      </div>
+
+                      <div>
+                        <Label htmlFor="deleteConfirm" className="text-sm font-semibold">
+                          הקלד את שם הקבוצה &quot;{selectedGroup?.name}&quot; לאישור:
+                        </Label>
+                        <Input
+                          id="deleteConfirm"
+                          value={deleteConfirmation}
+                          onChange={(e) => setDeleteConfirmation(e.target.value)}
+                          placeholder={selectedGroup?.name}
+                          className="mt-2"
+                        />
+                      </div>
+                    </CardContent>
+                    <CardFooter className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setShowDeleteDialog(false)
+                          setDeleteConfirmation('')
+                        }}
+                        className="flex-1"
+                      >
+                        ביטול
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        onClick={handleDeleteGroup}
+                        disabled={deleteConfirmation !== selectedGroup?.name || loading}
+                        className="flex-1"
+                      >
+                        {loading ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <>
+                            <Trash2 className="h-4 w-4 ml-2" />
+                            מחק לצמיתות
+                          </>
+                        )}
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                </div>
               )}
             </>
           )}

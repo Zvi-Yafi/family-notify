@@ -275,28 +275,58 @@ export default function OnboardingPage() {
                     <p className="text-sm text-gray-500 mt-1">בקשו את קוד הקבוצה ממנהל המשפחה</p>
                   </div>
                 ) : (
-                  <div>
-                    <Label htmlFor="groupName">שם הקבוצה</Label>
-                    <Input
-                      id="groupName"
-                      placeholder="משפחת כהן"
-                      value={formData.groupName}
-                      onChange={(e) => {
-                        const name = e.target.value
-                        const slug = name
-                          .toLowerCase()
-                          .replace(/\s+/g, '-')
-                          .replace(/[^\w\-]+/g, '')
-                        setFormData({ ...formData, groupName: name, groupSlug: slug })
-                      }}
-                      required
-                    />
-                    {formData.groupSlug && (
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="groupName">שם הקבוצה</Label>
+                      <Input
+                        id="groupName"
+                        placeholder="משפחת כהן"
+                        value={formData.groupName}
+                        onChange={(e) => {
+                          const name = e.target.value
+                          // Auto-generate slug only if user hasn't manually edited it
+                          if (
+                            !formData.groupSlug ||
+                            formData.groupSlug ===
+                              formData.groupName
+                                .toLowerCase()
+                                .replace(/\s+/g, '-')
+                                .replace(/[^\w\-]+/g, '')
+                          ) {
+                            const slug = name
+                              .toLowerCase()
+                              .replace(/\s+/g, '-')
+                              .replace(/[^\w\-]+/g, '')
+                            setFormData({ ...formData, groupName: name, groupSlug: slug })
+                          } else {
+                            setFormData({ ...formData, groupName: name })
+                          }
+                        }}
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="groupSlugEdit">קוד הקבוצה (באנגלית)</Label>
+                      <Input
+                        id="groupSlugEdit"
+                        placeholder="family-cohen"
+                        value={formData.groupSlug}
+                        onChange={(e) => {
+                          const slug = e.target.value
+                            .toLowerCase()
+                            .replace(/\s+/g, '-')
+                            .replace(/[^\w\-]+/g, '')
+                          setFormData({ ...formData, groupSlug: slug })
+                        }}
+                        required
+                        dir="ltr"
+                        className="text-left font-mono"
+                      />
                       <p className="text-sm text-gray-500 mt-1">
-                        קוד הקבוצה:{' '}
-                        <span className="font-mono font-bold">{formData.groupSlug}</span>
+                        קוד ייחודי להצטרפות לקבוצה (רק אותיות באנגלית, מספרים ומקפים)
                       </p>
-                    )}
+                    </div>
                   </div>
                 )}
 

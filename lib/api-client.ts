@@ -127,6 +127,15 @@ class ApiClient {
     })
   }
 
+  async deleteGroup(groupId: string) {
+    return this.request<{ success: boolean; message: string; deletedGroup: any }>(
+      `/api/groups/${groupId}/delete`,
+      {
+        method: 'DELETE',
+      }
+    )
+  }
+
   // Profile
   async getProfile() {
     return this.request<{ success: boolean; user: any }>('/api/user/me')
