@@ -107,7 +107,7 @@ export default function PrivacyPage() {
             <p>
               לשאלות על מדיניות הפרטיות, צרו איתנו קשר:
               <br />
-              <a href="mailto:privacy@familynotify.com">privacy@familynotify.com</a>
+              <a href="mailto:familynotifys@gmail.com">familynotifys@gmail.com</a>
             </p>
 
             <div className="mt-8 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">

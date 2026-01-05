@@ -104,7 +104,7 @@ export default function TermsPage() {
             <p>
               לשאלות על תנאי השימוש:
               <br />
-              <a href="mailto:support@familynotify.com">support@familynotify.com</a>
+              <a href="mailto:familynotifys@gmail.com">familynotifys@gmail.com</a>
             </p>
 
             <div className="mt-8 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
