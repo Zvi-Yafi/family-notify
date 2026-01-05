@@ -144,6 +144,12 @@ export function Header() {
                             </DropdownMenuLabel>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem asChild className="gap-2">
+                              <Link href="/profile">
+                                <User className="ms-2 h-4 w-4" />
+                                הפרופיל שלי
+                              </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem asChild className="gap-2">
                               <Link href="/groups">
                                 <Users className="ms-2 h-4 w-4" />
                                 הקבוצות שלי

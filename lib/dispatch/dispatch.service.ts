@@ -630,6 +630,14 @@ export class DispatchService {
                         <td valign="middle" style="padding-right: 16px;">
                           <div style="font-size: 13px; color: #64748b; font-weight: 600; margin-bottom: 4px;">מיקום</div>
                           <div style="font-size: 16px; color: #1e293b; font-weight: 600;">${event.location}</div>
+                          <div style="margin-top: 8px; display: flex; gap: 12px; flex-wrap: wrap;">
+                            <a href="https://waze.com/ul?q=${encodeURIComponent(event.location)}&navigate=yes" style="display: inline-flex; align-items: center; background: #33ccff; color: #ffffff; text-decoration: none; padding: 6px 12px; border-radius: 8px; font-size: 13px; font-weight: 600;">
+                               🚗 Waze
+                            </a>
+                            <a href="https://moovitapp.com/?to=${encodeURIComponent(event.location)}&metropolis=israel" style="display: inline-flex; align-items: center; background: #ff6600; color: #ffffff; text-decoration: none; padding: 6px 12px; border-radius: 8px; font-size: 13px; font-weight: 600;">
+                               🚌 Moovit
+                            </a>
+                          </div>
                         </td>
                       </tr>
                     </table>
@@ -770,6 +778,11 @@ export class DispatchService {
     if (event.location) {
       message += `📍 *מיקום:*\n`
       message += `${event.location}\n\n`
+      message += `🧭 *ניווט לאירוע:*\n`
+      message += `🚗 Waze:\n`
+      message += `https://waze.com/ul?q=${encodeURIComponent(event.location)}&navigate=yes\n\n`
+      message += `🚌 Moovit:\n`
+      message += `https://moovitapp.com/?to=${encodeURIComponent(event.location)}&metropolis=israel\n\n`
     }
 
     // Description
@@ -778,11 +791,7 @@ export class DispatchService {
       message += `${event.description}\n\n`
     }
 
-    // Custom message (if provided)
-    if (customMessage && customMessage.trim()) {
-      message += `💬 *הודעה:*\n`
-      message += `${customMessage}\n\n`
-    }
+    // Custom message removed - was redundant with event title
 
     message += `━━━━━━━━━━━━━━━━\n`
     message += `FamilyNotify - מערכת התראות משפחתית`

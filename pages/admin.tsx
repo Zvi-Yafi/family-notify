@@ -528,10 +528,9 @@ export default function AdminPage() {
                 </Card>
               </div>
 
-              {/* Members Dialog */}
               {showMembersDialog && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-0 sm:p-4">
-                  <Card className="w-full max-w-2xl max-h-[100vh] sm:max-h-[80vh] overflow-hidden flex flex-col rounded-none sm:rounded-lg">
+                <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
+                  <Card className="w-full max-w-2xl h-[85vh] sm:h-auto sm:max-h-[80vh] overflow-hidden flex flex-col rounded-t-3xl sm:rounded-lg">
                     <CardHeader className="flex flex-row items-center justify-between pb-4 p-4 sm:p-6">
                       <div className="flex-1 min-w-0">
                         <CardTitle className="text-lg sm:text-xl truncate">חברי הקבוצה</CardTitle>

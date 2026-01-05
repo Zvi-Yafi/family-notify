@@ -126,6 +126,18 @@ class ApiClient {
       body: JSON.stringify(data),
     })
   }
+
+  // Profile
+  async getProfile() {
+    return this.request<{ success: boolean; user: any }>('/api/user/me')
+  }
+
+  async updateProfile(data: { name?: string; phone?: string; email?: string }) {
+    return this.request<{ success: boolean; user: any }>('/api/user/profile', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
 }
 
 export const apiClient = new ApiClient()

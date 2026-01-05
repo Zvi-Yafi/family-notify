@@ -50,7 +50,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       // Update or create each preference
       const results = await Promise.all(
         preferences.map(async (pref: any) => {
-          return prisma.preference.upsert({
+          const result = await prisma.preference.upsert({
             where: {
               userId_channel: {
                 userId: user.id,
@@ -70,6 +70,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               verifiedAt: pref.verified ? new Date() : null,
             },
           })
+
+          // Sync back to User table if this is WhatsApp or SMS and has a destination
+          if ((pref.channel === 'WHATSAPP' || pref.channel === 'SMS') && pref.destination) {
+            await prisma.user.update({
+              where: { id: user.id },
+              data: { phone: pref.destination },
+            })
+          }
+
+          return result
         })
       )
 

@@ -91,6 +91,7 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
   const navigationItems = [
     { href: '/feed', label: 'הודעות', icon: MessageSquare },
     { href: '/events', label: 'אירועים', icon: Calendar },
+    { href: '/profile', label: 'הפרופיל שלי', icon: UserIcon },
     { href: '/groups', label: 'הקבוצות שלי', icon: Users },
     { href: '/admin', label: 'ניהול', icon: Crown },
     { href: '/preferences', label: 'העדפות', icon: Settings },
