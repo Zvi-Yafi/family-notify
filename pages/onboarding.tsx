@@ -41,7 +41,28 @@ export default function OnboardingPage() {
 
         if (user) {
           setIsAuthenticated(true)
-          setFormData((prev) => ({ ...prev, email: user.email || '' }))
+
+          // Fetch all user data from database (email, phone, name)
+          try {
+            const response = await fetch('/api/user/me')
+            if (response.ok) {
+              const data = await response.json()
+              if (data.user) {
+                setFormData((prev) => ({
+                  ...prev,
+                  email: data.user.email || user.email || '',
+                  phone: data.user.phone || '',
+                }))
+              }
+            } else {
+              // Fallback to Supabase email if API fails
+              setFormData((prev) => ({ ...prev, email: user.email || '' }))
+            }
+          } catch (err) {
+            console.error('Failed to fetch user data:', err)
+            // Fallback to Supabase email if API fails
+            setFormData((prev) => ({ ...prev, email: user.email || '' }))
+          }
         }
       } catch (error: any) {
         // Handle AuthSessionMissingError gracefully
