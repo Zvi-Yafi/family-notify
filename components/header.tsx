@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import { Bell, LogOut, User, Users, Menu, Settings } from 'lucide-react'
 import Link from 'next/link'
+import { useRouter } from 'next/router'
+import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/lib/hooks/use-auth'
 import {
@@ -18,8 +20,16 @@ import { MobileMenu } from '@/components/mobile-menu'
 import { Logo } from '@/components/logo'
 
 export function Header() {
+  const router = useRouter()
+  const { pathname } = router
   const { user, loading, signOut } = useAuth()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+
+  const navItems = [
+    { label: 'הודעות', href: '/feed' },
+    { label: 'אירועים', href: '/events' },
+    { label: 'הקבוצות שלי', href: '/groups' },
+  ]
 
   // Get user avatar from Google or default
   const getUserAvatar = () => {
@@ -75,16 +85,34 @@ export function Header() {
 
               {/* Desktop Navigation links - hidden on mobile */}
               {!loading && user && (
-                <nav className="hidden md:flex items-center gap-2">
-                  <Button variant="ghost" asChild>
-                    <Link href="/feed">הודעות</Link>
-                  </Button>
-                  <Button variant="ghost" asChild>
-                    <Link href="/events">אירועים</Link>
-                  </Button>
-                  <Button variant="ghost" asChild>
-                    <Link href="/groups">הקבוצות שלי</Link>
-                  </Button>
+                <nav className="hidden md:flex items-center gap-1">
+                  {navItems.map((item) => {
+                    const isActive =
+                      pathname === item.href ||
+                      (item.href !== '/' && pathname.startsWith(item.href))
+                    return (
+                      <div key={item.href} className="relative px-1">
+                        <Button
+                          variant="ghost"
+                          asChild
+                          className={`hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors ${
+                            isActive
+                              ? 'text-blue-600 dark:text-blue-400 font-semibold'
+                              : 'text-gray-600 dark:text-gray-400'
+                          }`}
+                        >
+                          <Link href={item.href}>{item.label}</Link>
+                        </Button>
+                        {isActive && (
+                          <motion.div
+                            layoutId="nav-underline"
+                            className="absolute -bottom-[17px] left-0 right-0 h-0.5 bg-gray-900 dark:bg-white rounded-t-full"
+                            transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
+                          />
+                        )}
+                      </div>
+                    )
+                  })}
                 </nav>
               )}
             </div>
