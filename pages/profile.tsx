@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Header } from '@/components/header'
+import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -11,7 +12,7 @@ import {
 } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { User, Phone, Mail, Save, ArrowRight } from 'lucide-react'
+import { User, Phone, Mail, Save, ArrowRight, Trash2, AlertTriangle, X } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { apiClient } from '@/lib/api-client'
 import { useRouter } from 'next/router'
@@ -29,6 +30,8 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false)
   const { toast } = useToast()
   const router = useRouter()
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deletingAccount, setDeletingAccount] = useState(false)
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -76,6 +79,47 @@ export default function ProfilePage() {
       })
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleDeleteAccount = async () => {
+    try {
+      setDeletingAccount(true)
+      const response = await fetch('/api/user/delete', {
+        method: 'DELETE',
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'נכשל במחיקת החשבון')
+      }
+
+      toast({
+        title: 'להתראות!',
+        description: 'חשבונך נמחק לצמיתות מהמערכת.',
+      })
+
+      // 1. Sign out from Supabase to clear local session/cookies
+      const supabase = createClient()
+      await supabase.auth.signOut()
+
+      // 2. Clear context/localStorage potentially (though signOut should do most)
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('familyGroupId')
+        localStorage.removeItem('userId')
+      }
+
+      // 3. Redirect to home/login
+      router.push('/login?message=deleted')
+    } catch (error: any) {
+      console.error('Error deleting account:', error)
+      toast({
+        title: 'שגיאה',
+        description: error.message || 'לא הצלחנו למחוק את החשבון.',
+        variant: 'destructive',
+      })
+      setDeletingAccount(false)
     }
   }
 
@@ -220,6 +264,62 @@ export default function ProfilePage() {
                 </CardFooter>
               </form>
             </Card>
+
+            {/* Danger Zone */}
+            <div className="mt-12 pt-8 border-t border-red-100 dark:border-red-900/30">
+              <div className="flex items-center gap-2 mb-4 text-red-600">
+                <AlertTriangle className="h-5 w-5" />
+                <h3 className="text-lg font-bold italic">אזור מסוכן - Danger Zone</h3>
+              </div>
+
+              <Card className="border border-red-100 dark:border-red-900/20 bg-red-50/50 dark:bg-red-900/5">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base text-red-800 dark:text-red-400">
+                    מחיקת חשבון
+                  </CardTitle>
+                  <CardDescription className="text-red-600/70 dark:text-red-400/60">
+                    פעולה זו היא לצמיתות ולא ניתן לבטל אותה. כל המידע שלך, הקבוצות, וההודעות שפרסמת
+                    יימחקו מהמערכת.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {showDeleteConfirm ? (
+                    <div className="bg-white dark:bg-gray-950 p-4 rounded-xl border border-red-200 dark:border-red-900 shadow-sm animate-in fade-in slide-in-from-top-2 duration-300">
+                      <p className="text-sm font-bold text-red-800 dark:text-red-300 mb-4">
+                        אתה בטוח לגמרי? כל התוכן שלך יימחק.
+                      </p>
+                      <div className="flex flex-wrap gap-3">
+                        <Button
+                          variant="destructive"
+                          className="h-10 px-6 font-bold bg-red-600 hover:bg-red-700"
+                          onClick={handleDeleteAccount}
+                          disabled={deletingAccount}
+                        >
+                          {deletingAccount ? 'מוחק...' : 'כן, מחק את החשבון שלי'}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          className="h-10 px-6"
+                          onClick={() => setShowDeleteConfirm(false)}
+                          disabled={deletingAccount}
+                        >
+                          ביטול
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      className="text-red-600 border-red-200 hover:bg-red-600 hover:text-white transition-all rounded-xl gap-2"
+                      onClick={() => setShowDeleteConfirm(true)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      מחק חשבון לצמיתות
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
           </motion.div>
         </div>
       </main>

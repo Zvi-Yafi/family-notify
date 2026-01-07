@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/router'
+import Link from 'next/link'
+import NextImage from 'next/image'
 import {
   Card,
   CardContent,
@@ -27,6 +29,8 @@ import {
   Paperclip,
   Trash2,
   AlertTriangle,
+  Mail,
+  Send,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/hooks/use-toast'
@@ -62,17 +66,21 @@ interface Member {
 
 export default function AdminPage() {
   const router = useRouter()
-  const [activeTab, setActiveTab] = useState<'announcements' | 'events' | 'stats' | 'settings'>(
-    'announcements'
-  )
+  const [activeTab, setActiveTab] = useState<
+    'announcements' | 'events' | 'stats' | 'settings' | 'invitations'
+  >('announcements')
 
   // Set active tab from query param
   useEffect(() => {
     if (
       router.query.tab &&
-      ['announcements', 'events', 'stats', 'settings'].includes(router.query.tab as string)
+      ['announcements', 'events', 'stats', 'settings', 'invitations'].includes(
+        router.query.tab as string
+      )
     ) {
-      setActiveTab(router.query.tab as 'announcements' | 'events' | 'stats' | 'settings')
+      setActiveTab(
+        router.query.tab as 'announcements' | 'events' | 'stats' | 'settings' | 'invitations'
+      )
     }
   }, [router.query.tab])
 
@@ -124,6 +132,11 @@ export default function AdminPage() {
 
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [deleteConfirmation, setDeleteConfirmation] = useState('')
+
+  // Invitations state
+  const [invitationEmails, setInvitationEmails] = useState('')
+  const [invitations, setInvitations] = useState<any[]>([])
+  const [loadingInvitations, setLoadingInvitations] = useState(false)
 
   // Populate settings form when group changes
   useEffect(() => {
@@ -192,6 +205,77 @@ export default function AdminPage() {
       loadMembers()
     }
   }, [showMembersDialog, loadMembers])
+
+  const loadInvitations = useCallback(async () => {
+    if (!familyGroupId) return
+
+    try {
+      setLoadingInvitations(true)
+      const data = await apiClient.getInvitations(familyGroupId)
+      setInvitations(data.invitations)
+    } catch (error) {
+      console.error('Failed to load invitations:', error)
+      toast({
+        title: 'שגיאה',
+        description: 'לא הצלחנו לטעון את רשימת ההזמנות',
+        variant: 'destructive',
+      })
+    } finally {
+      setLoadingInvitations(false)
+    }
+  }, [familyGroupId, toast])
+
+  useEffect(() => {
+    if (activeTab === 'invitations') {
+      loadInvitations()
+    }
+  }, [activeTab, loadInvitations])
+
+  const handleInviteSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!familyGroupId || !invitationEmails.trim()) return
+
+    setLoading(true)
+    try {
+      // Parse emails (comma or newline separated)
+      const emails = invitationEmails
+        .split(/[\n,]/)
+        .map((e) => e.trim())
+        .filter((e) => e.length > 0)
+
+      if (emails.length === 0) return
+
+      const response = await apiClient.sendInvitations(familyGroupId, emails)
+
+      const successes = response.results.filter((r: any) => r.status === 'success')
+      const failures = response.results.filter((r: any) => r.status === 'error')
+
+      if (successes.length > 0) {
+        toast({
+          title: 'הזמנות נשלחו',
+          description: `${successes.length} הזמנות נשלחו בהצלחה`,
+        })
+        setInvitationEmails('')
+        loadInvitations()
+      }
+
+      if (failures.length > 0) {
+        toast({
+          title: 'חלק מההזמנות נכשלו',
+          description: `${failures.length} שגיאות: ${failures.map((f: any) => f.message).join(', ')}`,
+          variant: 'destructive',
+        })
+      }
+    } catch (error: any) {
+      toast({
+        title: 'שגיאה',
+        description: error.message || 'שליחת הזמנות נכשלה',
+        variant: 'destructive',
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleSettingsSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -693,6 +777,16 @@ export default function AdminPage() {
                   <Bell className="h-4 w-4 ml-2" />
                   סטטוסים
                 </Button>
+                {['ADMIN', 'EDITOR'].includes(selectedGroup?.role || '') && (
+                  <Button
+                    variant={activeTab === 'invitations' ? 'default' : 'outline'}
+                    onClick={() => setActiveTab('invitations')}
+                    className="w-full sm:w-auto touch-target justify-center"
+                  >
+                    <Mail className="h-4 w-4 ml-2" />
+                    הזמנות
+                  </Button>
+                )}
                 {selectedGroup?.role === 'ADMIN' && (
                   <Button
                     variant={activeTab === 'settings' ? 'default' : 'outline'}
@@ -910,10 +1004,12 @@ export default function AdminPage() {
 
                           {eventForm.imageUrl && (
                             <div className="relative w-full sm:w-32 h-32 rounded-lg overflow-hidden border">
-                              <img
+                              <NextImage
                                 src={eventForm.imageUrl}
                                 alt="Preview"
-                                className="w-full h-full object-cover"
+                                fill
+                                className="object-cover"
+                                unoptimized
                               />
                               <Button
                                 type="button"
@@ -1104,6 +1200,86 @@ export default function AdminPage() {
                         </div>
                       </div>
                     )}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Invitations Tab */}
+              {activeTab === 'invitations' && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>הזמנת חברים</CardTitle>
+                    <CardDescription>שלח הזמנות לחברים ובני משפחה להצטרף לקבוצה</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <form onSubmit={handleInviteSubmit} className="space-y-4 mb-8">
+                      <div>
+                        <Label htmlFor="emails">כתובות מייל (מופרדות בפסיקים או שורות)</Label>
+                        <textarea
+                          id="emails"
+                          className="flex min-h-[100px] w-full rounded-md border border-input bg-background px-3 py-3 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                          placeholder="invited@example.com, another@example.com"
+                          value={invitationEmails}
+                          onChange={(e) => setInvitationEmails(e.target.value)}
+                        />
+                      </div>
+                      <Button type="submit" disabled={loading || !invitationEmails.trim()}>
+                        {loading ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <>
+                            <Send className="h-4 w-4 ml-2" /> שלח הזמנות
+                          </>
+                        )}
+                      </Button>
+                    </form>
+
+                    <div className="border-t pt-6">
+                      <h3 className="font-semibold mb-4 text-sm text-gray-700 dark:text-gray-300">
+                        הזמנות שנשלחו
+                      </h3>
+                      {loadingInvitations ? (
+                        <div className="flex justify-center p-4">
+                          <Loader2 className="h-6 w-6 animate-spin" />
+                        </div>
+                      ) : invitations.length === 0 ? (
+                        <p className="text-gray-500 text-sm">לא נשלחו הזמנות עדיין</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {invitations.map((inv: any) => (
+                            <div
+                              key={inv.id}
+                              className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg text-sm gap-2"
+                            >
+                              <div>
+                                <p className="font-medium">{inv.email}</p>
+                                <p className="text-xs text-gray-500">
+                                  נשלח ע&quot;י {inv.inviter?.name || 'Unknown'} ב-
+                                  {new Date(inv.createdAt).toLocaleDateString('he-IL')}
+                                </p>
+                              </div>
+                              <div>
+                                {inv.status === 'PENDING' && (
+                                  <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs">
+                                    ממתין
+                                  </span>
+                                )}
+                                {inv.status === 'ACCEPTED' && (
+                                  <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">
+                                    אושר ({inv.acceptedBy?.name})
+                                  </span>
+                                )}
+                                {inv.status === 'EXPIRED' && (
+                                  <span className="px-2 py-1 bg-red-100 text-red-800 rounded-full text-xs">
+                                    פג תוקף
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </CardContent>
                 </Card>
               )}

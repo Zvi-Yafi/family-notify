@@ -104,6 +104,34 @@ export class EmailProvider {
       text: `קוד האימות שלך: ${code}\nהקוד תקף ל-10 דקות.`,
     })
   }
+
+  async sendInvitation(
+    email: string,
+    groupName: string,
+    inviterName: string,
+    inviteLink: string
+  ): Promise<{ success: boolean; error?: string }> {
+    return this.send({
+      to: email,
+      subject: `הזמנה להצטרף לקבוצה ${groupName} - FamilyNotify`,
+      html: `
+        <div dir="rtl" style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2>הוזמנת להצטרף לקבוצה ${groupName}</h2>
+          <p>שלום,</p>
+          <p><strong>${inviterName}</strong> הזמין/ה אותך להצטרף לקבוצה המשפחתית <strong>${groupName}</strong> ב-FamilyNotify.</p>
+          <p>במערכת זו תוכלו לקבל עדכונים על אירועים, שמחות והודעות חשובות.</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${inviteLink}" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">הצטרף לקבוצה</a>
+          </div>
+          <p>או העתק את הקישור הבא לדפדפן:</p>
+          <p style="word-break: break-all; color: #666;">${inviteLink}</p>
+          <br>
+          <p>בברכה,<br>צוות FamilyNotify</p>
+        </div>
+      `,
+      text: `הוזמנת להצטרף לקבוצה ${groupName} על ידי ${inviterName}.\n\nלהצטרפות, לחץ על הקישור הבא:\n${inviteLink}`,
+    })
+  }
 }
 
 export const emailProvider = new EmailProvider()

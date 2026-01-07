@@ -147,6 +147,31 @@ class ApiClient {
       body: JSON.stringify(data),
     })
   }
+
+  // Invitations
+  async getInvitations(familyGroupId: string) {
+    return this.request<{ invitations: any[] }>(`/api/groups/${familyGroupId}/invitations`)
+  }
+
+  async sendInvitations(familyGroupId: string, emails: string[]) {
+    return this.request<{ results: any[] }>(`/api/groups/${familyGroupId}/invitations`, {
+      method: 'POST',
+      body: JSON.stringify({ emails }),
+    })
+  }
+
+  async getPendingInvitations() {
+    return this.request<{ invitations: any[] }>('/api/invitations/pending')
+  }
+
+  async acceptInvitation(token: string) {
+    return this.request<{ success: boolean; groupslug: string }>(
+      `/api/invitations/${token}/accept`,
+      {
+        method: 'POST',
+      }
+    )
+  }
 }
 
 export const apiClient = new ApiClient()

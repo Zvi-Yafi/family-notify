@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Calendar, MapPin, Clock, RefreshCw, Bell, Paperclip } from 'lucide-react'
 import Link from 'next/link'
+import NextImage from 'next/image'
 import { useRouter } from 'next/router'
 import { apiClient } from '@/lib/api-client'
 import { useFamilyContext } from '@/lib/context/family-context'
@@ -229,11 +230,13 @@ export default function EventsPage() {
                       </div>
 
                       {event.imageUrl && (
-                        <div className="mt-3 mb-4 rounded-lg overflow-hidden border">
-                          <img
+                        <div className="mt-3 mb-4 rounded-lg overflow-hidden border relative h-60">
+                          <NextImage
                             src={event.imageUrl}
                             alt={event.title}
-                            className="w-full h-auto max-h-60 object-contain bg-gray-50"
+                            fill
+                            className="object-contain bg-gray-50"
+                            unoptimized
                           />
                         </div>
                       )}

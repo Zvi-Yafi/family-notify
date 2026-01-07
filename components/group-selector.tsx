@@ -1,21 +1,25 @@
 'use client'
 
+import { useState } from 'react'
 import { useFamilyContext } from '@/lib/context/family-context'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Users, Check } from 'lucide-react'
 import Link from 'next/link'
+import { PendingInvitations } from './pending-invitations'
 
 interface GroupSelectorProps {
   onGroupSelected?: (groupId: string) => void
   title?: string
   description?: string
+  showInvitations?: boolean
 }
 
 export function GroupSelector({
   onGroupSelected,
   title = 'בחר קבוצה',
   description = 'בחר את הקבוצה שאליה תרצה לשלוח',
+  showInvitations = false,
 }: GroupSelectorProps) {
   const { groups, familyGroupId, setFamilyGroup, loadingGroups, selectedGroup } = useFamilyContext()
 
@@ -26,7 +30,7 @@ export function GroupSelector({
 
   if (loadingGroups) {
     return (
-      <Card>
+      <Card className="mb-4 sm:mb-6">
         <CardContent className="py-8 text-center">
           <p className="text-gray-500">טוען קבוצות...</p>
         </CardContent>
@@ -64,51 +68,59 @@ export function GroupSelector({
     )
   }
 
-  // Multiple groups - show selector (always expandable)
+  // Multiple groups or manual request - show selector
   return (
-    <Card className="mb-4 sm:mb-6">
-      <CardHeader className="p-4 sm:p-6">
-        <CardTitle className="text-base sm:text-lg">{title}</CardTitle>
-        <CardDescription className="text-xs sm:text-sm">{description}</CardDescription>
-      </CardHeader>
-      <CardContent className="p-4 sm:p-6 pt-0">
-        <div className="grid grid-flow-col auto-cols-fr gap-2 sm:gap-3 overflow-x-auto pb-1">
-          {groups.map((group) => (
-            <button
-              key={group.id}
-              onClick={() => handleSelectGroup(group.id)}
-              className={`w-full min-w-[150px] p-3 sm:p-4 rounded-lg border-2 text-right transition-all touch-target ${
-                familyGroupId === group.id
-                  ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                  : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50 dark:border-gray-700 dark:hover:border-gray-600'
-              }`}
-            >
-              <div className="flex flex-col gap-2 h-full">
-                <div className="flex items-center justify-between gap-2 w-full">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <Users
-                      className={`h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0 ${
-                        familyGroupId === group.id ? 'text-blue-600' : 'text-gray-400'
-                      }`}
-                    />
-                    {familyGroupId === group.id && (
-                      <Check className="h-4 w-4 text-blue-600 flex-shrink-0 sm:hidden" />
-                    )}
-                  </div>
-                  {familyGroupId === group.id && (
-                    <Check className="h-5 w-5 text-blue-600 flex-shrink-0 hidden sm:block" />
-                  )}
-                </div>
+    <div className="space-y-4 mb-4 sm:mb-6">
+      {/* Pending Invitations Section */}
+      {showInvitations && <PendingInvitations />}
 
-                <div className="flex-1 min-w-0 w-full">
-                  <p className="font-medium text-sm sm:text-base truncate">{group.name}</p>
-                  <p className="text-xs sm:text-sm text-gray-500 truncate">קוד: {group.slug}</p>
-                </div>
-              </div>
-            </button>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
+      {/* Group Selector Card */}
+      {groups.length > 0 && (
+        <Card>
+          <CardHeader className="p-4 sm:p-6">
+            <CardTitle className="text-base sm:text-lg">{title}</CardTitle>
+            <CardDescription className="text-xs sm:text-sm">{description}</CardDescription>
+          </CardHeader>
+          <CardContent className="p-4 sm:p-6 pt-0">
+            <div className="grid grid-flow-col auto-cols-fr gap-2 sm:gap-3 overflow-x-auto pb-1">
+              {groups.map((group) => (
+                <button
+                  key={group.id}
+                  onClick={() => handleSelectGroup(group.id)}
+                  className={`w-full min-w-[150px] p-3 sm:p-4 rounded-lg border-2 text-right transition-all touch-target ${
+                    familyGroupId === group.id
+                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50 dark:border-gray-700 dark:hover:border-gray-600'
+                  }`}
+                >
+                  <div className="flex flex-col gap-2 h-full">
+                    <div className="flex items-center justify-between gap-2 w-full">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Users
+                          className={`h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0 ${
+                            familyGroupId === group.id ? 'text-blue-600' : 'text-gray-400'
+                          }`}
+                        />
+                        {familyGroupId === group.id && (
+                          <Check className="h-4 w-4 text-blue-600 flex-shrink-0 sm:hidden" />
+                        )}
+                      </div>
+                      {familyGroupId === group.id && (
+                        <Check className="h-5 w-5 text-blue-600 flex-shrink-0 hidden sm:block" />
+                      )}
+                    </div>
+
+                    <div className="flex-1 min-w-0 w-full">
+                      <p className="font-medium text-sm sm:text-base truncate">{group.name}</p>
+                      <p className="text-xs sm:text-sm text-gray-500 truncate">קוד: {group.slug}</p>
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
   )
 }

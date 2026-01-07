@@ -7,6 +7,7 @@ interface Group {
   name: string
   slug: string
   role: 'ADMIN' | 'EDITOR' | 'MEMBER'
+  joinedAt?: string
 }
 
 interface FamilyContextType {
@@ -15,8 +16,10 @@ interface FamilyContextType {
   groups: Group[]
   selectedGroup: Group | null
   loadingGroups: boolean
-  setFamilyGroup: (groupId: string) => void
-  setUser: (userId: string) => void
+  pendingInvitations: any[]
+  setFamilyGroup: (groupId: string | null) => void
+  setUser: (userId: string | null) => void
+  clearAll: () => void
   refreshGroups: () => Promise<void>
 }
 
@@ -26,6 +29,7 @@ export function FamilyProvider({ children }: { children: ReactNode }) {
   const [familyGroupId, setFamilyGroupIdState] = useState<string | null>(null)
   const [userId, setUserIdState] = useState<string | null>(null)
   const [groups, setGroups] = useState<Group[]>([])
+  const [pendingInvitations, setPendingInvitations] = useState<any[]>([])
   const [loadingGroups, setLoadingGroups] = useState(true)
 
   // Fetch user's groups
@@ -34,9 +38,12 @@ export function FamilyProvider({ children }: { children: ReactNode }) {
       setLoadingGroups(true)
       const response = await fetch('/api/groups')
 
-      // If not authenticated, just set empty groups
+      // If not authenticated, just set empty groups and clear user
       if (response.status === 401) {
         setGroups([])
+        setPendingInvitations([])
+        setUserIdState(null)
+        setFamilyGroupIdState(null)
         setLoadingGroups(false)
         return
       }
@@ -73,6 +80,17 @@ export function FamilyProvider({ children }: { children: ReactNode }) {
           }
         }
       }
+
+      // Fetch pending invitations too
+      try {
+        const invResponse = await fetch('/api/invitations/pending')
+        if (invResponse.ok) {
+          const data = await invResponse.json()
+          setPendingInvitations(data.invitations || [])
+        }
+      } catch (invError) {
+        console.error('Failed to fetch pending invitations:', invError)
+      }
     } catch (error) {
       // Network error or other issue - just log and set empty
       console.error('Failed to fetch groups:', error)
@@ -80,7 +98,7 @@ export function FamilyProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoadingGroups(false)
     }
-  }, [])
+  }, [familyGroupId])
 
   // Load from localStorage on mount, then fetch groups
   useEffect(() => {
@@ -96,19 +114,32 @@ export function FamilyProvider({ children }: { children: ReactNode }) {
     refreshGroups()
   }, [refreshGroups])
 
-  const setFamilyGroup = (groupId: string) => {
+  const setFamilyGroup = (groupId: string | null) => {
     setFamilyGroupIdState(groupId)
     if (typeof window !== 'undefined') {
-      localStorage.setItem('familyGroupId', groupId)
+      if (groupId) localStorage.setItem('familyGroupId', groupId)
+      else localStorage.removeItem('familyGroupId')
     }
   }
 
-  const setUser = (uid: string) => {
+  const setUser = (uid: string | null) => {
     setUserIdState(uid)
     if (typeof window !== 'undefined') {
-      localStorage.setItem('userId', uid)
+      if (uid) localStorage.setItem('userId', uid)
+      else localStorage.removeItem('userId')
     }
   }
+
+  const clearAll = useCallback(() => {
+    setUserIdState(null)
+    setFamilyGroupIdState(null)
+    setGroups([])
+    setPendingInvitations([])
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('userId')
+      localStorage.removeItem('familyGroupId')
+    }
+  }, [])
 
   const selectedGroup = groups.find((g) => g.id === familyGroupId) || null
 
@@ -120,8 +151,10 @@ export function FamilyProvider({ children }: { children: ReactNode }) {
         groups,
         selectedGroup,
         loadingGroups,
+        pendingInvitations,
         setFamilyGroup,
         setUser,
+        clearAll,
         refreshGroups,
       }}
     >

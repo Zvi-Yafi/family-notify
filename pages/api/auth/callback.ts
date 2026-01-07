@@ -6,7 +6,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
-  const { code } = req.query
+  const { code, redirectTo } = req.query
   const protocol =
     req.headers['x-forwarded-proto'] || (req.headers.host?.includes('localhost') ? 'http' : 'https')
   const origin = `${protocol}://${req.headers.host}`
@@ -79,6 +79,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
   }
 
-  console.log('🔄 Redirecting to /feed')
-  return res.redirect('/feed')
+  const destination = (redirectTo as string) || '/feed'
+  console.log('🔄 Redirecting to:', destination)
+  return res.redirect(destination)
 }

@@ -37,16 +37,20 @@ export default function LoginPage() {
   const handleGoogleLogin = async () => {
     try {
       setLoading(true)
+      const redirectToParam = router.query.redirectTo as string
       // IMPORTANT: redirectTo must be /api/auth/callback, NOT /feed!
-      // The callback route will handle the OAuth code and then redirect to /feed
-      const redirectUrl = `${window.location.origin}/api/auth/callback`
+      // The callback route will handle the OAuth code and then redirect to the original destination
+      let callbackUrl = `${window.location.origin}/api/auth/callback`
+      if (redirectToParam) {
+        callbackUrl += `?redirectTo=${encodeURIComponent(redirectToParam)}`
+      }
 
-      console.log('🔐 Google OAuth redirect URL:', redirectUrl)
+      console.log('🔐 Google OAuth redirect URL:', callbackUrl)
 
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: redirectUrl,
+          redirectTo: callbackUrl,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
@@ -136,11 +140,12 @@ export default function LoginPage() {
 
       toast({
         title: 'התחברת בהצלחה! 🎉',
-        description: 'מעביר אותך לדף הראשי...',
+        description: 'מעביר אותך...',
       })
 
-      // Redirect to feed
-      router.push('/feed')
+      // Redirect to feed or custom destination
+      const dest = (router.query.redirectTo as string) || '/feed'
+      router.push(dest)
     } catch (error: any) {
       console.error('Sign in error:', error)
       toast({
@@ -237,9 +242,10 @@ export default function LoginPage() {
 
         toast({
           title: 'הרשמה הושלמה! 🎉',
-          description: 'מעביר אותך לדף הראשי...',
+          description: 'מעביר אותך...',
         })
-        router.push('/feed')
+        const dest = (router.query.redirectTo as string) || '/feed'
+        router.push(dest)
       }
     } catch (error: any) {
       console.error('Sign up error:', error)

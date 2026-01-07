@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { Calendar as CalendarIcon, Clock } from 'lucide-react'
+import { Calendar as CalendarIcon, Clock, X } from 'lucide-react'
 import { format } from 'date-fns'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -149,6 +149,23 @@ export function StrictDateTimePicker({
               ))}
             </SelectContent>
           </Select>
+
+          {/* Clear Button */}
+          {!required && datePart && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-10 w-10 text-gray-500 hover:text-red-500"
+              onClick={() => {
+                setDatePart('')
+                onChange('')
+              }}
+              title="נקה תאריך"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          )}
         </div>
       </div>
       {helperText && <p className="text-xs text-gray-500">{helperText}</p>}
