@@ -14,6 +14,7 @@ import {
   User as UserIcon,
   Crown,
   Edit,
+  ShieldCheck,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/lib/hooks/use-auth'
@@ -96,6 +97,15 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
     { href: '/admin', label: 'ניהול', icon: Crown },
     { href: '/preferences', label: 'העדפות', icon: Settings },
   ]
+
+  const SUPER_ADMIN_EMAIL = 'z0533113784@gmail.com'
+  if (user?.email === SUPER_ADMIN_EMAIL) {
+    navigationItems.splice(navigationItems.length - 1, 0, {
+      href: '/super-admin',
+      label: 'ניהול מערכת 👑',
+      icon: ShieldCheck,
+    })
+  }
 
   return (
     <>

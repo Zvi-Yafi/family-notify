@@ -25,11 +25,18 @@ export function Header() {
   const { user, loading, signOut } = useAuth()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
+  const SUPER_ADMIN_EMAIL = 'z0533113784@gmail.com'
+
   const navItems = [
     { label: 'הודעות', href: '/feed' },
     { label: 'אירועים', href: '/events' },
     { label: 'הקבוצות שלי', href: '/groups' },
   ]
+
+  // Add Super Admin tab only for the specific email
+  if (user?.email === SUPER_ADMIN_EMAIL) {
+    navItems.push({ label: 'ניהול מערכת 👑', href: '/super-admin' })
+  }
 
   // Get user avatar from Google or default
   const getUserAvatar = () => {

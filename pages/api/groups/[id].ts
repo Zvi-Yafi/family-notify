@@ -9,6 +9,53 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(400).json({ error: 'Group ID is required' })
   }
 
+  if (req.method === 'GET') {
+    try {
+      // Get authenticated user
+      const supabase = createServerClient(req, res)
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser()
+
+      if (authError || !user) {
+        return res.status(401).json({ error: 'Unauthorized' })
+      }
+
+      const SUPER_ADMIN_EMAIL = 'z0533113784@gmail.com'
+      const isSuperAdmin = user.email === SUPER_ADMIN_EMAIL
+
+      // Verify membership
+      if (!isSuperAdmin) {
+        const membership = await prisma.membership.findUnique({
+          where: {
+            userId_familyGroupId: {
+              userId: user.id,
+              familyGroupId: id,
+            },
+          },
+        })
+
+        if (!membership) {
+          return res.status(403).json({ error: 'Forbidden: Member access required' })
+        }
+      }
+
+      const group = await prisma.familyGroup.findUnique({
+        where: { id },
+      })
+
+      if (!group) {
+        return res.status(404).json({ error: 'Group not found' })
+      }
+
+      return res.status(200).json({ group })
+    } catch (error: any) {
+      console.error('Error fetching group:', error)
+      return res.status(500).json({ error: error.message || 'Failed to fetch group' })
+    }
+  }
+
   if (req.method !== 'PUT') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
@@ -25,18 +72,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(401).json({ error: 'Unauthorized' })
     }
 
-    // Verify membership and ADMIN role
-    const membership = await prisma.membership.findUnique({
-      where: {
-        userId_familyGroupId: {
-          userId: user.id,
-          familyGroupId: id,
-        },
-      },
-    })
+    const SUPER_ADMIN_EMAIL = 'z0533113784@gmail.com'
+    const isSuperAdmin = user.email === SUPER_ADMIN_EMAIL
 
-    if (!membership || membership.role !== 'ADMIN') {
-      return res.status(403).json({ error: 'Forbidden: Admin access required' })
+    // Verify membership and ADMIN role
+    if (!isSuperAdmin) {
+      const membership = await prisma.membership.findUnique({
+        where: {
+          userId_familyGroupId: {
+            userId: user.id,
+            familyGroupId: id,
+          },
+        },
+      })
+
+      if (!membership || membership.role !== 'ADMIN') {
+        return res.status(403).json({ error: 'Forbidden: Admin access required' })
+      }
     }
 
     const { name, slug } = req.body

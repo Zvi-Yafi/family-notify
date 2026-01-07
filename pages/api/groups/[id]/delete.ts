@@ -24,22 +24,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: 'Group ID required' })
     }
 
+    const SUPER_ADMIN_EMAIL = 'z0533113784@gmail.com'
+    const isSuperAdmin = user.email === SUPER_ADMIN_EMAIL
+
     // Check if user is admin of this group
-    const membership = await prisma.membership.findUnique({
-      where: {
-        userId_familyGroupId: {
-          userId: user.id,
-          familyGroupId: groupId,
+    if (!isSuperAdmin) {
+      const membership = await prisma.membership.findUnique({
+        where: {
+          userId_familyGroupId: {
+            userId: user.id,
+            familyGroupId: groupId,
+          },
         },
-      },
-    })
+      })
 
-    if (!membership) {
-      return res.status(404).json({ error: 'Group not found or you are not a member' })
-    }
+      if (!membership) {
+        return res.status(404).json({ error: 'Group not found or you are not a member' })
+      }
 
-    if (membership.role !== 'ADMIN') {
-      return res.status(403).json({ error: 'Only group admins can delete the group' })
+      if (membership.role !== 'ADMIN') {
+        return res.status(403).json({ error: 'Only group admins can delete the group' })
+      }
     }
 
     // Get group info before deletion
