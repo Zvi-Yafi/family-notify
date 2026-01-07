@@ -40,11 +40,11 @@ export function FamilyProvider({ children }: { children: ReactNode }) {
 
       // If not authenticated, just set empty groups and clear user
       if (response.status === 401) {
-        setGroups([])
-        setPendingInvitations([])
-        setUserIdState(null)
-        setFamilyGroupIdState(null)
-        setLoadingGroups(false)
+        // Only update if not already cleared to avoid re-render loops
+        setGroups((prev) => (prev.length > 0 ? [] : prev))
+        setPendingInvitations((prev) => (prev.length > 0 ? [] : prev))
+        setUserIdState((prev) => (prev !== null ? null : prev))
+        setFamilyGroupIdState((prev) => (prev !== null ? null : prev))
         return
       }
 
@@ -54,53 +54,29 @@ export function FamilyProvider({ children }: { children: ReactNode }) {
         setGroups(userGroups)
 
         // Validate currently selected group against fresh list
-        if (familyGroupId) {
-          const isValid = userGroups.some((g: Group) => g.id === familyGroupId)
-          if (!isValid) {
-            console.log('🧹 Clearing invalid familyGroupId from session/storage')
-            setFamilyGroupIdState(null)
-            if (typeof window !== 'undefined') {
-              localStorage.removeItem('familyGroupId')
-            }
-          }
-        }
+        // Note: we'll use a functional update or just check the state later if needed
+        // but for now let's just use the current groups to pick a default if needed
 
-        // Auto-select group if user has exactly one group and none selected
-        if (userGroups.length === 1 && !familyGroupId) {
-          const singleGroup = userGroups[0]
-          setFamilyGroupIdState(singleGroup.id)
-          if (typeof window !== 'undefined') {
-            localStorage.setItem('familyGroupId', singleGroup.id)
+        // Fetch pending invitations too
+        try {
+          const invResponse = await fetch('/api/invitations/pending')
+          if (invResponse.ok) {
+            const data = await invResponse.json()
+            setPendingInvitations(data.invitations || [])
           }
-        } else if (userGroups.length === 0) {
-          // No groups at all - definitely clear
-          setFamilyGroupIdState(null)
-          if (typeof window !== 'undefined') {
-            localStorage.removeItem('familyGroupId')
-          }
+        } catch (invError) {
+          console.error('Failed to fetch pending invitations:', invError)
         }
-      }
-
-      // Fetch pending invitations too
-      try {
-        const invResponse = await fetch('/api/invitations/pending')
-        if (invResponse.ok) {
-          const data = await invResponse.json()
-          setPendingInvitations(data.invitations || [])
-        }
-      } catch (invError) {
-        console.error('Failed to fetch pending invitations:', invError)
       }
     } catch (error) {
-      // Network error or other issue - just log and set empty
       console.error('Failed to fetch groups:', error)
       setGroups([])
     } finally {
       setLoadingGroups(false)
     }
-  }, [familyGroupId])
+  }, []) // Removed dependency on familyGroupId to make it stable
 
-  // Load from localStorage on mount, then fetch groups
+  // Load from localStorage on mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const storedGroupId = localStorage.getItem('familyGroupId')
@@ -109,10 +85,40 @@ export function FamilyProvider({ children }: { children: ReactNode }) {
       if (storedGroupId) setFamilyGroupIdState(storedGroupId)
       if (storedUserId) setUserIdState(storedUserId)
     }
+  }, [])
 
-    // Fetch groups after initial load
+  // Initial fetch and auto-selection logic
+  useEffect(() => {
     refreshGroups()
   }, [refreshGroups])
+
+  // Sync familyGroupId with storage and handle validation
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      if (familyGroupId) {
+        localStorage.setItem('familyGroupId', familyGroupId)
+      } else {
+        localStorage.removeItem('familyGroupId')
+      }
+    }
+
+    // Auto-select logic if groups available but none selected
+    if (groups.length > 0 && !familyGroupId) {
+      // Only auto-select if exactly one group
+      if (groups.length === 1) {
+        setFamilyGroupIdState(groups[0].id)
+      }
+    } else if (groups.length > 0 && familyGroupId) {
+      // Validate
+      const isValid = groups.some((g) => g.id === familyGroupId)
+      if (!isValid) {
+        setFamilyGroupIdState(null)
+      }
+    } else if (groups.length === 0 && !loadingGroups && familyGroupId) {
+      // No groups remaining for user - definitely clear
+      setFamilyGroupIdState(null)
+    }
+  }, [familyGroupId, groups, loadingGroups])
 
   const setFamilyGroup = (groupId: string | null) => {
     setFamilyGroupIdState(groupId)
