@@ -25,24 +25,23 @@ export default function OnboardingPage() {
   const { setFamilyGroup, setUser, refreshGroups } = useFamilyContext()
   const supabase = createClient()
 
-  // Check if user is already authenticated
+  // Check if user is already authenticated and handle query params
   useEffect(() => {
     async function checkAuth() {
       try {
         const {
-          data: { user },
+          data: { user: supabaseUser },
           error,
         } = await supabase.auth.getUser()
 
-        // If it's AuthSessionMissingError, it's normal - just means no session
         if (error && !error.message?.includes('Auth session missing')) {
           console.error('Auth error:', error)
         }
 
-        if (user) {
+        if (supabaseUser) {
           setIsAuthenticated(true)
 
-          // Fetch all user data from database (email, phone, name)
+          // Fetch user details from our API
           try {
             const response = await fetch('/api/user/me')
             if (response.ok) {
@@ -50,29 +49,40 @@ export default function OnboardingPage() {
               if (data.user) {
                 setFormData((prev) => ({
                   ...prev,
-                  email: data.user.email || user.email || '',
-                  phone: data.user.phone || '',
+                  email: data.user.email || supabaseUser.email || prev.email,
+                  phone: data.user.phone || prev.phone,
                 }))
+
+                // If we have a user and they are joining via a link, move to step 2
+                if (router.query.slug) {
+                  setStep(2)
+                }
               }
-            } else {
-              // Fallback to Supabase email if API fails
-              setFormData((prev) => ({ ...prev, email: user.email || '' }))
             }
           } catch (err) {
             console.error('Failed to fetch user data:', err)
-            // Fallback to Supabase email if API fails
-            setFormData((prev) => ({ ...prev, email: user.email || '' }))
           }
         }
       } catch (error: any) {
-        // Handle AuthSessionMissingError gracefully
         if (!error?.message?.includes('Auth session missing')) {
           console.error('Auth check error:', error)
         }
       }
     }
+
+    // Handle slug from query parameter
+    if (router.isReady && router.query.slug) {
+      const slug = router.query.slug as string
+      setFormData((prev) => ({
+        ...prev,
+        groupSlug: slug,
+        createNew: false,
+      }))
+      console.log('🔗 Pre-filling group slug from URL:', slug)
+    }
+
     checkAuth()
-  }, [supabase])
+  }, [supabase, router.isReady, router.query.slug])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -91,13 +101,13 @@ export default function OnboardingPage() {
       }
 
       if (!user && !isAuthenticated) {
-        // If not authenticated, redirect to login
+        // If not authenticated, redirect to login and preserve this path for return
         toast({
           title: 'נדרשת התחברות',
           description: 'אנא התחבר או הירשם כדי להמשיך',
           variant: 'destructive',
         })
-        router.push('/login')
+        router.push(`/login?redirectTo=${encodeURIComponent(router.asPath)}`)
         return
       }
 
@@ -212,6 +222,14 @@ export default function OnboardingPage() {
               }}
               className="space-y-4"
             >
+              {formData.groupSlug && !formData.createNew && (
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-3 rounded-lg mb-4 flex items-center gap-2 text-blue-800 dark:text-blue-200">
+                  <Info className="h-5 w-5 text-blue-600" />
+                  <p className="text-sm font-medium">
+                    אתה מצטרף לקבוצה: <strong>{formData.groupSlug}</strong>
+                  </p>
+                </div>
+              )}
               <div>
                 <Label htmlFor="email">כתובת אימייל</Label>
                 <Input

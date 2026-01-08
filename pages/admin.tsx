@@ -41,6 +41,8 @@ import { GroupSelector } from '@/components/group-selector'
 import { StrictDateTimePicker } from '@/components/strict-date-time-picker'
 import { roundToTenMinutes } from '@/lib/utils/time-utils'
 import { getHebrewDateString } from '@/lib/utils/hebrew-date-utils'
+import { MultiEmailInput } from '@/components/multi-email-input'
+import { MessageCircle, Copy, CheckCircle2 } from 'lucide-react'
 
 interface Stats {
   memberCount: number
@@ -134,9 +136,10 @@ export default function AdminPage() {
   const [deleteConfirmation, setDeleteConfirmation] = useState('')
 
   // Invitations state
-  const [invitationEmails, setInvitationEmails] = useState('')
+  const [emailsToInvite, setEmailsToInvite] = useState<string[]>([])
   const [invitations, setInvitations] = useState<any[]>([])
   const [loadingInvitations, setLoadingInvitations] = useState(false)
+  const [copied, setCopied] = useState(false)
 
   // Populate settings form when group changes
   useEffect(() => {
@@ -233,19 +236,11 @@ export default function AdminPage() {
 
   const handleInviteSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!familyGroupId || !invitationEmails.trim()) return
+    if (!familyGroupId || emailsToInvite.length === 0) return
 
     setLoading(true)
     try {
-      // Parse emails (comma or newline separated)
-      const emails = invitationEmails
-        .split(/[\n,]/)
-        .map((e) => e.trim())
-        .filter((e) => e.length > 0)
-
-      if (emails.length === 0) return
-
-      const response = await apiClient.sendInvitations(familyGroupId, emails)
+      const response = await apiClient.sendInvitations(familyGroupId, emailsToInvite)
 
       const successes = response.results.filter((r: any) => r.status === 'success')
       const failures = response.results.filter((r: any) => r.status === 'error')
@@ -255,7 +250,7 @@ export default function AdminPage() {
           title: 'הזמנות נשלחו',
           description: `${successes.length} הזמנות נשלחו בהצלחה`,
         })
-        setInvitationEmails('')
+        setEmailsToInvite([])
         loadInvitations()
       }
 
@@ -275,6 +270,30 @@ export default function AdminPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleCopyInviteLink = () => {
+    if (!selectedGroup) return
+    const baseUrl = window.location.origin
+    const inviteLink = `${baseUrl}/onboarding?slug=${selectedGroup.slug}`
+
+    navigator.clipboard.writeText(inviteLink)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+
+    toast({
+      title: 'הקישור הועתק',
+      description: 'קישור להצטרפות הועתק ללוח',
+    })
+  }
+
+  const handleWhatsAppInvite = () => {
+    if (!selectedGroup) return
+    const baseUrl = window.location.origin
+    const inviteLink = `${baseUrl}/onboarding?slug=${selectedGroup.slug}`
+    const text = `היי! אני מזמין אותך להצטרף לקבוצת "${selectedGroup.name}" ב-FamilyNotify. \n\nלחץ על הקישור כדי להצטרף: \n${inviteLink}`
+    const encodedText = encodeURIComponent(text)
+    window.open(`https://wa.me/?text=${encodedText}`, '_blank')
   }
 
   const handleSettingsSubmit = async (e: React.FormEvent) => {
@@ -1212,27 +1231,89 @@ export default function AdminPage() {
                     <CardDescription>שלח הזמנות לחברים ובני משפחה להצטרף לקבוצה</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <form onSubmit={handleInviteSubmit} className="space-y-4 mb-8">
-                      <div>
-                        <Label htmlFor="emails">כתובות מייל (מופרדות בפסיקים או שורות)</Label>
-                        <textarea
-                          id="emails"
-                          className="flex min-h-[100px] w-full rounded-md border border-input bg-background px-3 py-3 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                          placeholder="invited@example.com, another@example.com"
-                          value={invitationEmails}
-                          onChange={(e) => setInvitationEmails(e.target.value)}
-                        />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                      {/* Email Invitations Section */}
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Mail className="h-5 w-5 text-blue-600" />
+                          <h3 className="font-semibold text-gray-900 dark:text-gray-100 italic">
+                            הזמנה במייל
+                          </h3>
+                        </div>
+                        <form onSubmit={handleInviteSubmit} className="space-y-4">
+                          <div className="bg-gray-50 dark:bg-gray-900/40 p-4 rounded-xl border border-gray-100 dark:border-gray-800">
+                            <Label htmlFor="emails" className="mb-3 block text-sm font-medium">
+                              הוסף כתובות מייל להזמנה
+                            </Label>
+                            <MultiEmailInput
+                              emails={emailsToInvite}
+                              onChange={setEmailsToInvite}
+                              placeholder="example@mail.com"
+                            />
+                          </div>
+                          <Button
+                            type="submit"
+                            disabled={loading || emailsToInvite.length === 0}
+                            className="w-full bg-blue-600 hover:bg-blue-700 h-11"
+                          >
+                            {loading ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <>
+                                <Send className="h-4 w-4 ml-2" />
+                                שלח {emailsToInvite.length > 0 ? `${emailsToInvite.length} ` : ''}
+                                הזמנות במייל
+                              </>
+                            )}
+                          </Button>
+                        </form>
                       </div>
-                      <Button type="submit" disabled={loading || !invitationEmails.trim()}>
-                        {loading ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <>
-                            <Send className="h-4 w-4 ml-2" /> שלח הזמנות
-                          </>
-                        )}
-                      </Button>
-                    </form>
+
+                      {/* WhatsApp & Link Section */}
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <MessageCircle className="h-5 w-5 text-green-600" />
+                          <h3 className="font-semibold text-gray-900 dark:text-gray-100 italic">
+                            שיתוף בקישור
+                          </h3>
+                        </div>
+                        <div className="bg-green-50/50 dark:bg-green-900/10 p-5 rounded-xl border border-green-100 dark:border-green-900/30 space-y-4">
+                          <p className="text-sm text-green-800 dark:text-green-300">
+                            שתף קישור הזמנה ישיר בוואצאפ או העתק אותו לשליחה בכל מקום אחר.
+                          </p>
+
+                          <div className="grid grid-cols-1 gap-3">
+                            <Button
+                              type="button"
+                              onClick={handleWhatsAppInvite}
+                              className="bg-[#25D366] hover:bg-[#20bd5a] text-white border-none font-bold h-12 shadow-md hover:shadow-lg transition-all"
+                            >
+                              <MessageCircle className="h-5 w-5 ml-2" />
+                              שלח הזמנה בוואצאפ
+                            </Button>
+
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={handleCopyInviteLink}
+                              className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 h-12 font-medium"
+                            >
+                              {copied ? (
+                                <>
+                                  <CheckCircle2 className="h-5 w-5 ml-2 text-green-600" />
+                                  הועתק!
+                                </>
+                              ) : (
+                                <>
+                                  <Copy className="h-5 w-5 ml-2" />
+                                  העתק קישור להצטרפות
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
 
                     <div className="border-t pt-6">
                       <h3 className="font-semibold mb-4 text-sm text-gray-700 dark:text-gray-300">
