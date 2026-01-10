@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { createServerClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
+import { syncUser } from '@/lib/users'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   // GET - Get user preferences
@@ -15,6 +16,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       if (authError || !user) {
         return res.status(401).json({ error: 'Not authenticated' })
       }
+
+      // Ensure user exists and is synced in Prisma
+      await syncUser({
+        userId: user.id,
+        email: user.email!,
+        name: user.user_metadata?.full_name || user.user_metadata?.name,
+        phone: user.phone,
+      })
 
       // Get all preferences for user
       const preferences = await prisma.preference.findMany({
@@ -40,6 +49,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       if (authError || !user) {
         return res.status(401).json({ error: 'Not authenticated' })
       }
+
+      // Ensure user exists and is synced in Prisma
+      await syncUser({
+        userId: user.id,
+        email: user.email!,
+        name: user.user_metadata?.full_name || user.user_metadata?.name,
+        phone: user.phone,
+      })
 
       const { preferences } = req.body
 
