@@ -80,7 +80,7 @@ export default function EventDetailPage() {
       setError(err.message || 'שגיאה בטעינת פרטי האירוע')
       toast({
         title: 'שגיאה',
-        description: 'נכשל לטעון את פרטי האירוע',
+        description: 'לא הצלחנו לטעון את פרטי האירוע. אנא נסה שוב.',
         variant: 'destructive',
       })
     } finally {
@@ -132,7 +132,7 @@ export default function EventDetailPage() {
     } catch (error: any) {
       toast({
         title: 'שגיאה',
-        description: error.message || 'נכשל ליצור תזכורת',
+        description: 'לא הצלחנו ליצור את התזכורת. אנא וודא שהפרטים תקינים.',
         variant: 'destructive',
       })
     } finally {

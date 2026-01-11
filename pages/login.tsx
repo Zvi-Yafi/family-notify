@@ -26,9 +26,14 @@ export default function LoginPage() {
   useEffect(() => {
     const error = router.query.error
     if (error) {
+      let errorDescription = 'חלה שגיאה בהתחברות'
+      if (error === 'access_denied') {
+        errorDescription = 'הגישה נדחתה. ייתכן שהקישור פג תוקף או שכבר נעשה בו שימוש.'
+      }
+
       toast({
         title: 'שגיאת התחברות',
-        description: decodeURIComponent(error as string),
+        description: errorDescription,
         variant: 'destructive',
       })
     }
@@ -67,7 +72,7 @@ export default function LoginPage() {
       console.error('❌ Login error:', error)
       toast({
         title: 'שגיאת התחברות',
-        description: error.message || 'לא הצלחנו להתחבר עם Google',
+        description: 'לא הצלחנו להתחבר עם Google. אנא נסה שוב.',
         variant: 'destructive',
       })
       setLoading(false)
@@ -148,9 +153,16 @@ export default function LoginPage() {
       router.push(dest)
     } catch (error: any) {
       console.error('Sign in error:', error)
+      let errorMessage = 'חלה שגיאה בהתחברות'
+      if (error.message === 'Invalid login credentials') {
+        errorMessage = 'האימייל או הסיסמה לא נכונים'
+      } else if (error.message?.includes('Email not confirmed')) {
+        errorMessage = 'אנא אמת את כתובת האימייל שלך לפני ההתחברות'
+      }
+
       toast({
         title: 'שגיאת התחברות',
-        description: error.message || 'אימייל או סיסמה שגויים',
+        description: errorMessage,
         variant: 'destructive',
       })
     } finally {
@@ -249,9 +261,16 @@ export default function LoginPage() {
       }
     } catch (error: any) {
       console.error('Sign up error:', error)
+      let errorMessage = 'לא הצלחנו ליצור את החשבון'
+      if (error.message === 'User already registered') {
+        errorMessage = 'המשתמש כבר רשום במערכת'
+      } else if (error.message?.includes('Password should be at least 6 characters')) {
+        errorMessage = 'הסיסמה חייבת להכיל לפחות 6 תווים'
+      }
+
       toast({
         title: 'שגיאת הרשמה',
-        description: error.message || 'לא הצלחנו ליצור את החשבון',
+        description: errorMessage,
         variant: 'destructive',
       })
     } finally {

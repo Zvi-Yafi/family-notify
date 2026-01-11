@@ -74,7 +74,7 @@ export default function ProfilePage() {
       console.error('Error updating profile:', error)
       toast({
         title: 'שגיאה בעדכון',
-        description: error.message || 'לא הצלחנו לעדכן את הפרטים.',
+        description: 'לא הצלחנו לעדכן את הפרטים. אנא וודא שהם תקינים.',
         variant: 'destructive',
       })
     } finally {
@@ -116,7 +116,7 @@ export default function ProfilePage() {
       console.error('Error deleting account:', error)
       toast({
         title: 'שגיאה',
-        description: error.message || 'לא הצלחנו למחוק את החשבון.',
+        description: 'לא הצלחנו למחוק את החשבון. אנא נסה שוב מאוחר יותר.',
         variant: 'destructive',
       })
       setDeletingAccount(false)

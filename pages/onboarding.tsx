@@ -198,7 +198,7 @@ export default function OnboardingPage() {
       console.error('Onboarding error:', error)
       toast({
         title: 'שגיאה',
-        description: error.message || 'אירעה שגיאה בהרשמה. נסה שוב.',
+        description: 'חלה שגיאה בתהליך ההצטרפות. אנא נסה שוב.',
         variant: 'destructive',
       })
     } finally {

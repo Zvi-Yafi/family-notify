@@ -195,7 +195,7 @@ export default function AdminPage() {
       console.error('Failed to load members:', error)
       toast({
         title: 'שגיאה',
-        description: 'לא הצלחנו לטעון את רשימת החברים',
+        description: 'לא הצלחנו לטעון את רשימת החברים. אנא נסה שוב.',
         variant: 'destructive',
       })
     } finally {
@@ -220,7 +220,7 @@ export default function AdminPage() {
       console.error('Failed to load invitations:', error)
       toast({
         title: 'שגיאה',
-        description: 'לא הצלחנו לטעון את רשימת ההזמנות',
+        description: 'לא הצלחנו לטעון את רשימת ההזמנות. אנא רענן את הדף.',
         variant: 'destructive',
       })
     } finally {
@@ -264,7 +264,7 @@ export default function AdminPage() {
     } catch (error: any) {
       toast({
         title: 'שגיאה',
-        description: error.message || 'שליחת הזמנות נכשלה',
+        description: 'שליחת ההזמנות נכשלה. אנא וודא שכתובות המייל תקינות.',
         variant: 'destructive',
       })
     } finally {
@@ -318,7 +318,7 @@ export default function AdminPage() {
     } catch (error: any) {
       toast({
         title: 'שגיאה',
-        description: error.message || 'נכשל לעדכן את פרטי הקבוצה',
+        description: 'לא הצלחנו לעדכן את פרטי הקבוצה. אנא נסה שוב.',
         variant: 'destructive',
       })
     } finally {
@@ -350,7 +350,7 @@ export default function AdminPage() {
     } catch (error: any) {
       toast({
         title: 'שגיאה',
-        description: error.message || 'נכשל למחוק את הקבוצה',
+        description: 'לא הצלחנו למחוק את הקבוצה. אנא נסה שוב מאוחר יותר.',
         variant: 'destructive',
       })
     } finally {
@@ -431,7 +431,7 @@ export default function AdminPage() {
       }
       toast({
         title: 'שגיאה',
-        description: error.message || 'נכשל ליצור הודעה',
+        description: 'לא הצלחנו ליצור את ההודעה. אנא וודא שכל השדות מלאים.',
         variant: 'destructive',
       })
     } finally {
@@ -477,7 +477,7 @@ export default function AdminPage() {
       console.error('Error uploading file:', error)
       toast({
         title: 'שגיאה בהעלאה',
-        description: error.message || 'לא הצלחנו להעלות את הקובץ',
+        description: 'לא הצלחנו להעלות את הקובץ. אנא וודא שהקובץ תקין ונסה שוב.',
         variant: 'destructive',
       })
     } finally {
@@ -552,7 +552,7 @@ export default function AdminPage() {
       }
       toast({
         title: 'שגיאה',
-        description: error.message || 'נכשל ליצור אירוע',
+        description: 'לא הצלחנו ליצור את האירוע. אנא וודא שהפרטים תקינים.',
         variant: 'destructive',
       })
     } finally {

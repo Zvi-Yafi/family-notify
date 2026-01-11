@@ -59,7 +59,7 @@ export default function GroupsPage() {
       // but refreshGroups is void. We can check the local 'groups' length after a short delay or use the updated context.
       // Actually, since refreshGroups updates the context, we can check groups.length in a useEffect or here if possible.
     } catch (error: any) {
-      toast.error(error.message)
+      toast.error('חלה שגיאה בעזיבת הקבוצה')
     } finally {
       setIsLeaving(false)
     }

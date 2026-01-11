@@ -89,9 +89,14 @@ export default function ResetPasswordPage() {
       }, 3000)
     } catch (error: any) {
       console.error('Reset password error:', error)
+      let errorMessage = 'לא הצלחנו לעדכן את הסיסמה. אנא נסה שוב.'
+      if (error.message?.includes('New password should be different')) {
+        errorMessage = 'הסיסמה החדשה חייבת להיות שונה מהקודמת'
+      }
+
       toast({
         title: 'שגיאה',
-        description: error.message || 'לא הצלחנו לעדכן את הסיסמה',
+        description: errorMessage,
         variant: 'destructive',
       })
     } finally {

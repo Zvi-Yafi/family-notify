@@ -34,7 +34,7 @@ export default function InvitationPage() {
       const data = await res.json()
 
       if (!res.ok) {
-        throw new Error(data.error || 'נכשל בטעינת ההזמנה')
+        throw new Error('ההזמנה אינה תקינה או שפג תוקפה')
       }
 
       setInvitation(data.invitation)
@@ -86,7 +86,7 @@ export default function InvitationPage() {
     } catch (err: any) {
       toast({
         title: 'שגיאה',
-        description: err.message,
+        description: 'לא הצלחנו לקבל את ההזמנה. אנא נסה שוב.',
         variant: 'destructive',
       })
     } finally {

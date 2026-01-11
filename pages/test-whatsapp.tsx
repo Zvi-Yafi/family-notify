@@ -61,7 +61,7 @@ export default function TestWhatsAppPage() {
         })
         toast({
           title: 'שגיאה',
-          description: data.error || 'לא הצלחנו לשלוח את ה-WhatsApp',
+          description: 'לא הצלחנו לשלוח את ה-WhatsApp. אנא וודא שהמספר תקין.',
           variant: 'destructive',
         })
       }
@@ -72,7 +72,7 @@ export default function TestWhatsAppPage() {
       })
       toast({
         title: 'שגיאה',
-        description: 'לא הצלחנו לשלוח את ה-WhatsApp',
+        description: 'חלה שגיאה בתקשורת עם השרת. אנא נסה שוב.',
         variant: 'destructive',
       })
     } finally {

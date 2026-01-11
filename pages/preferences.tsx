@@ -253,14 +253,14 @@ export default function PreferencesPage() {
       } else {
         toast({
           title: 'נכשלה שליחת בדיקה',
-          description: data.error || 'אנא וודא שהפרטים נכונים והספק מוגדר.',
+          description: 'אנא וודא שהפרטים נכונים ונסה שוב.',
           variant: 'destructive',
         })
       }
     } catch (error) {
       toast({
         title: 'שגיאה',
-        description: 'נכשל ליצור קשר עם השרת',
+        description: 'נכשל ליצור קשר עם השרת. אנא בדוק את החיבור לאינטרנט.',
         variant: 'destructive',
       })
     }
@@ -279,7 +279,7 @@ export default function PreferencesPage() {
       if (!response.ok) {
         toast({
           title: 'שגיאה',
-          description: 'לא הצלחנו לשמור את ההעדפות',
+          description: 'לא הצלחנו לשמור את ההעדפות. אנא נסה שוב.',
           variant: 'destructive',
         })
         setSaving(false)
@@ -294,7 +294,7 @@ export default function PreferencesPage() {
       console.error('Error saving preferences:', error)
       toast({
         title: 'שגיאה',
-        description: 'לא הצלחנו לשמור את ההעדפות',
+        description: 'לא הצלחנו לשמור את ההעדפות. אנא נסה שוב.',
         variant: 'destructive',
       })
     } finally {

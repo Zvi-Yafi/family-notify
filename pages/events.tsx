@@ -86,7 +86,7 @@ export default function EventsPage() {
       setError(err.message || 'שגיאה בטעינת האירועים')
       toast({
         title: 'שגיאה',
-        description: 'לא הצלחנו לטעון את האירועים',
+        description: 'לא הצלחנו לטעון את האירועים. אנא נסה שוב.',
         variant: 'destructive',
       })
     } finally {

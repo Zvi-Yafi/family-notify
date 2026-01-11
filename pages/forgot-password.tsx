@@ -51,7 +51,7 @@ export default function ForgotPasswordPage() {
       console.error('Reset request error:', error)
       toast({
         title: 'שגיאה',
-        description: error.message || 'לא הצלחנו לשלוח בקשה לאיפוס סיסמה',
+        description: 'חלה שגיאה בשליחת בקשת האיפוס. אנא וודא שהאימייל תקין ונסה שוב.',
         variant: 'destructive',
       })
     } finally {
