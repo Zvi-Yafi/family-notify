@@ -79,7 +79,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
   }
 
-  const destination = (redirectTo as string) || '/feed'
+  // Determine destination
+  let destination = (redirectTo as string) || '/feed'
+
+  // If we just exchanged a code for recovery (password reset), Supabase might not explicitly tell us in the result
+  // but if the redirectTo from forgot-password.tsx was /reset-password, we should honor it.
+
   console.log('🔄 Redirecting to:', destination)
   return res.redirect(destination)
 }

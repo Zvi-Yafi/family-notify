@@ -315,6 +315,16 @@ export default function LoginPage() {
                       disabled={loading}
                       required
                     />
+                    <div className="flex justify-end mt-1">
+                      <Button
+                        variant="link"
+                        className="p-0 h-auto text-xs sm:text-sm text-muted-foreground hover:text-primary transition-colors"
+                        onClick={() => router.push('/forgot-password')}
+                        type="button"
+                      >
+                        שכחתי סיסמה?
+                      </Button>
+                    </div>
                   </div>
                   <Button type="submit" className="w-full" size="lg" disabled={loading}>
                     <Lock className="ml-2 h-5 w-5" />
