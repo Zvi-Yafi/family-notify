@@ -322,8 +322,8 @@ export class DispatchService {
       const reminderText =
         customMessage ||
         (isInitial
-          ? `אירוע חדש: ${event.title} מתחיל ${timeUntil}${event.location ? ` ב${event.location}` : ''}`
-          : `תזכורת: ${event.title} מתחיל ${timeUntil}${event.location ? ` ב${event.location}` : ''}`)
+          ? `אירוע חדש: ${event.title}${event.location ? ` ב${event.location}` : ''}`
+          : `תזכורת: ${event.title}${event.location ? ` ב${event.location}` : ''}`)
 
       let result: { success: boolean; messageId?: string; error?: string }
 
@@ -529,7 +529,6 @@ export class DispatchService {
     }
 
     const headerEmoji = isInitial ? '📅' : '⏰'
-    const badgeText = isInitial ? 'אירוע משפחתי חדש' : 'תזכורת לאירוע'
     const headerGradient = isInitial
       ? 'linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%)'
       : 'linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%)'
@@ -558,24 +557,12 @@ export class DispatchService {
                 <tr>
                   <td style="background: ${headerGradient}; padding: 40px 40px 35px; text-align: center; position: relative;">
                     <div style="font-size: 56px; margin-bottom: 8px;">${headerEmoji}</div>
-                    <div style="display: inline-block; background: rgba(255, 255, 255, 0.25); color: #ffffff; padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: 600; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px;">
-                      ${badgeText}
-                    </div>
                     <h1 style="color: #ffffff; font-size: 28px; font-weight: 700; margin: 12px 0 0 0; text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); line-height: 1.4; word-break: break-word;">
                       ${event.title}
                     </h1>
                   </td>
                 </tr>
                 
-                <!-- Time Until Badge -->
-                <tr>
-                  <td style="padding: 32px 40px; text-align: center;">
-                    <div style="display: inline-block; background: ${isInitial ? '#eff6ff' : '#fef3c7'}; padding: 20px 32px; border-radius: 12px; border: 2px solid ${badgeColor};">
-                      <div style="font-size: 14px; color: ${isInitial ? '#1e40af' : '#92400e'}; font-weight: 600; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">מתחיל</div>
-                      <div style="font-size: 32px; font-weight: 700; color: ${isInitial ? '#1d4ed8' : '#b45309'}; margin: 0;">${timeUntil}</div>
-                    </div>
-                  </td>
-                </tr>
                 
                 <!-- Event Details -->
                 <tr>
@@ -771,9 +758,6 @@ export class DispatchService {
       message += `${formattedTime}\n\n`
     }
 
-    // Time until
-    message += `⏳ *${timeUntil}*\n\n`
-
     // Location
     if (event.location) {
       message += `📍 *מיקום:*\n`
@@ -831,7 +815,7 @@ export class DispatchService {
 
       if (diffDays <= 6) {
         const dayName = formatInTimeZone(start, tz, 'eeee', { locale: he })
-        return `ביום ${dayName} בשעה ${timeString}`
+        return `מתי: ${dayName} בשעה ${timeString}`
       } else {
         // Full date
         const dateString = formatInTimeZone(start, tz, 'd/M')
