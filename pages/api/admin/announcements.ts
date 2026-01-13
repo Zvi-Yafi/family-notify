@@ -2,6 +2,8 @@ import type { NextApiRequest, NextApiResponse } from 'next'
 import { prisma } from '@/lib/prisma'
 import { dispatchService } from '@/lib/dispatch/dispatch.service'
 import { createServerClient } from '@/lib/supabase/server'
+import { convertIsraelToUTC, formatToIsraelTime } from '@/lib/utils/timezone'
+import { roundDateToTenMinutes } from '@/lib/utils/time-utils'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   // Handle CORS preflight
@@ -28,7 +30,36 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       const userId = user.id
 
+      const SUPER_ADMIN_EMAIL = 'z0533113784@gmail.com'
+      const isSuperAdmin = user.email === SUPER_ADMIN_EMAIL
+
+      // VERIFY MEMBERSHIP
+      let membership = null
+      if (!isSuperAdmin) {
+        membership = await prisma.membership.findUnique({
+          where: {
+            userId_familyGroupId: {
+              userId,
+              familyGroupId,
+            },
+          },
+        })
+
+        if (!membership || !['ADMIN', 'EDITOR'].includes(membership.role)) {
+          return res
+            .status(403)
+            .json({ error: 'Forbidden - You do not have permission to post in this group' })
+        }
+      }
+
       // Create announcement
+      // ... (rest of the POST logic remains the same)
+      let scheduledDate = null
+      if (scheduledAt) {
+        const roundedTime = roundDateToTenMinutes(scheduledAt)
+        scheduledDate = convertIsraelToUTC(roundedTime)
+      }
+
       const announcement = await prisma.announcement.create({
         data: {
           title,
@@ -36,12 +67,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           type: type || 'GENERAL',
           familyGroupId,
           createdBy: userId,
-          scheduledAt: scheduledAt ? new Date(scheduledAt) : null,
-          publishedAt: scheduledAt ? null : new Date(), // Publish immediately if not scheduled
+          scheduledAt: scheduledDate,
+          publishedAt: scheduledAt ? null : new Date(),
         },
       })
 
-      // If not scheduled, dispatch immediately
       if (!scheduledAt) {
         await dispatchService.dispatchAnnouncement({
           announcementId: announcement.id,
@@ -49,10 +79,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         })
       }
 
-      return res.status(200).json({
-        success: true,
-        announcement,
-      })
+      return res.status(200).json({ success: true, announcement })
     } catch (error: any) {
       console.error('Error creating announcement:', error)
       return res.status(500).json({ error: error.message || 'Failed to create announcement' })
@@ -65,6 +92,36 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       if (!familyGroupId || typeof familyGroupId !== 'string') {
         return res.status(400).json({ error: 'familyGroupId required' })
+      }
+
+      // Get authenticated user
+      const supabase = createServerClient(req, res)
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser()
+
+      if (authError || !user) {
+        return res.status(401).json({ error: 'Unauthorized' })
+      }
+
+      const SUPER_ADMIN_EMAIL = 'z0533113784@gmail.com'
+      const isSuperAdmin = user.email === SUPER_ADMIN_EMAIL
+
+      // VERIFY MEMBERSHIP
+      if (!isSuperAdmin) {
+        const membership = await prisma.membership.findUnique({
+          where: {
+            userId_familyGroupId: {
+              userId: user.id,
+              familyGroupId,
+            },
+          },
+        })
+
+        if (!membership) {
+          return res.status(403).json({ error: 'Forbidden - You are not a member of this group' })
+        }
       }
 
       const announcements = await prisma.announcement.findMany({

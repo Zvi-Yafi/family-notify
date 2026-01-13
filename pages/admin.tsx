@@ -1,6 +1,15 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/router'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import Link from 'next/link'
+import NextImage from 'next/image'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  CardFooter,
+} from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -14,16 +23,31 @@ import {
   Crown,
   Edit,
   User as UserIcon,
+  Settings,
+  Info,
+  Image as ImageIcon,
+  Paperclip,
+  Trash2,
+  AlertTriangle,
+  Mail,
+  Send,
 } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/hooks/use-toast'
 import { apiClient, UnauthorizedError } from '@/lib/api-client'
 import { useFamilyContext } from '@/lib/context/family-context'
 import { Header } from '@/components/header'
 import { GroupSelector } from '@/components/group-selector'
+import { StrictDateTimePicker } from '@/components/strict-date-time-picker'
+import { roundToTenMinutes } from '@/lib/utils/time-utils'
+import { getHebrewDateString } from '@/lib/utils/hebrew-date-utils'
+import { MultiEmailInput } from '@/components/multi-email-input'
+import { MessageCircle, Copy, CheckCircle2 } from 'lucide-react'
 
 interface Stats {
   memberCount: number
   announcementsThisMonth: number
+  scheduledAnnouncements: number
   upcomingEvents: number
   messagesSentToday: number
   deliveryStats: {
@@ -44,12 +68,30 @@ interface Member {
 
 export default function AdminPage() {
   const router = useRouter()
-  const [activeTab, setActiveTab] = useState<'announcements' | 'events' | 'stats'>('announcements')
+  const [activeTab, setActiveTab] = useState<
+    'announcements' | 'events' | 'stats' | 'settings' | 'invitations'
+  >('announcements')
+
+  // Set active tab from query param
+  useEffect(() => {
+    if (
+      router.query.tab &&
+      ['announcements', 'events', 'stats', 'settings', 'invitations'].includes(
+        router.query.tab as string
+      )
+    ) {
+      setActiveTab(
+        router.query.tab as 'announcements' | 'events' | 'stats' | 'settings' | 'invitations'
+      )
+    }
+  }, [router.query.tab])
+
   const [loading, setLoading] = useState(false)
   const [statsLoading, setStatsLoading] = useState(true)
   const [stats, setStats] = useState<Stats>({
     memberCount: 0,
     announcementsThisMonth: 0,
+    scheduledAnnouncements: 0,
     upcomingEvents: 0,
     messagesSentToday: 0,
     deliveryStats: {
@@ -77,8 +119,37 @@ export default function AdminPage() {
     startsAt: '',
     endsAt: '',
     location: '',
-    reminderOffsets: [1440, 60], // 24h and 1h before
+    reminderMessage: '',
+    reminderScheduledAt: '',
+    imageUrl: '',
+    fileUrl: '',
   })
+
+  const [uploading, setUploading] = useState(false)
+
+  const [settingsForm, setSettingsForm] = useState({
+    name: '',
+    slug: '',
+  })
+
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [deleteConfirmation, setDeleteConfirmation] = useState('')
+
+  // Invitations state
+  const [emailsToInvite, setEmailsToInvite] = useState<string[]>([])
+  const [invitations, setInvitations] = useState<any[]>([])
+  const [loadingInvitations, setLoadingInvitations] = useState(false)
+  const [copied, setCopied] = useState(false)
+
+  // Populate settings form when group changes
+  useEffect(() => {
+    if (selectedGroup) {
+      setSettingsForm({
+        name: selectedGroup.name || '',
+        slug: selectedGroup.slug || '',
+      })
+    }
+  }, [selectedGroup])
 
   // Load stats function
   const loadStats = useCallback(async () => {
@@ -124,7 +195,7 @@ export default function AdminPage() {
       console.error('Failed to load members:', error)
       toast({
         title: 'שגיאה',
-        description: 'לא הצלחנו לטעון את רשימת החברים',
+        description: 'לא הצלחנו לטעון את רשימת החברים. אנא נסה שוב.',
         variant: 'destructive',
       })
     } finally {
@@ -137,6 +208,157 @@ export default function AdminPage() {
       loadMembers()
     }
   }, [showMembersDialog, loadMembers])
+
+  const loadInvitations = useCallback(async () => {
+    if (!familyGroupId) return
+
+    try {
+      setLoadingInvitations(true)
+      const data = await apiClient.getInvitations(familyGroupId)
+      setInvitations(data.invitations)
+    } catch (error) {
+      console.error('Failed to load invitations:', error)
+      toast({
+        title: 'שגיאה',
+        description: 'לא הצלחנו לטעון את רשימת ההזמנות. אנא רענן את הדף.',
+        variant: 'destructive',
+      })
+    } finally {
+      setLoadingInvitations(false)
+    }
+  }, [familyGroupId, toast])
+
+  useEffect(() => {
+    if (activeTab === 'invitations') {
+      loadInvitations()
+    }
+  }, [activeTab, loadInvitations])
+
+  const handleInviteSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!familyGroupId || emailsToInvite.length === 0) return
+
+    setLoading(true)
+    try {
+      const response = await apiClient.sendInvitations(familyGroupId, emailsToInvite)
+
+      const successes = response.results.filter((r: any) => r.status === 'success')
+      const failures = response.results.filter((r: any) => r.status === 'error')
+
+      if (successes.length > 0) {
+        toast({
+          title: 'הזמנות נשלחו',
+          description: `${successes.length} הזמנות נשלחו בהצלחה`,
+        })
+        setEmailsToInvite([])
+        loadInvitations()
+      }
+
+      if (failures.length > 0) {
+        toast({
+          title: 'חלק מההזמנות נכשלו',
+          description: `${failures.length} שגיאות: ${failures.map((f: any) => f.message).join(', ')}`,
+          variant: 'destructive',
+        })
+      }
+    } catch (error: any) {
+      toast({
+        title: 'שגיאה',
+        description: 'שליחת ההזמנות נכשלה. אנא וודא שכתובות המייל תקינות.',
+        variant: 'destructive',
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleCopyInviteLink = () => {
+    if (!selectedGroup) return
+    const baseUrl = window.location.origin
+    const inviteLink = `${baseUrl}/onboarding?slug=${selectedGroup.slug}`
+
+    navigator.clipboard.writeText(inviteLink)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+
+    toast({
+      title: 'הקישור הועתק',
+      description: 'קישור להצטרפות הועתק ללוח',
+    })
+  }
+
+  const handleWhatsAppInvite = () => {
+    if (!selectedGroup) return
+    const baseUrl = window.location.origin
+    const inviteLink = `${baseUrl}/onboarding?slug=${selectedGroup.slug}`
+    const text = `היי! אני מזמין אותך להצטרף לקבוצת "${selectedGroup.name}" ב-FamilyNotify. \n\nלחץ על הקישור כדי להצטרף: \n${inviteLink}`
+    const encodedText = encodeURIComponent(text)
+    window.open(`https://wa.me/?text=${encodedText}`, '_blank')
+  }
+
+  const handleSettingsSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!familyGroupId) return
+
+    setLoading(true)
+    try {
+      const response = await apiClient.updateGroup(familyGroupId, {
+        name: settingsForm.name,
+        slug: settingsForm.slug,
+      })
+
+      if (response.success) {
+        toast({
+          title: 'הגדרות עודכנו',
+          description: 'פרטי הקבוצה עודכנו בהצלחה',
+        })
+        // Refresh page to update context and URL if slug changed
+        window.location.reload()
+      }
+    } catch (error: any) {
+      toast({
+        title: 'שגיאה',
+        description: 'לא הצלחנו לעדכן את פרטי הקבוצה. אנא נסה שוב.',
+        variant: 'destructive',
+      })
+    } finally {
+      setLoading(true)
+    }
+  }
+
+  const handleDeleteGroup = async () => {
+    if (!selectedGroup || deleteConfirmation !== selectedGroup.name) {
+      toast({
+        title: 'שגיאה',
+        description: 'יש להקליד את שם הקבוצה בדיוק כדי לאשר מחיקה',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    setLoading(true)
+    try {
+      const result = await apiClient.deleteGroup(selectedGroup.id)
+      toast({
+        title: 'הקבוצה נמחקה בהצלחה',
+        description: `הקבוצה "${result.deletedGroup.name}" נמחקה יחד עם ${result.deletedGroup.memberCount} חברים, ${result.deletedGroup.eventCount} אירועים ו-${result.deletedGroup.announcementCount} הודעות.`,
+      })
+      // Redirect to home
+      setTimeout(() => {
+        window.location.href = '/'
+      }, 2000)
+    } catch (error: any) {
+      toast({
+        title: 'שגיאה',
+        description: 'לא הצלחנו למחוק את הקבוצה. אנא נסה שוב מאוחר יותר.',
+        variant: 'destructive',
+      })
+    } finally {
+      setLoading(false)
+      setShowDeleteDialog(false)
+      setDeleteConfirmation('')
+    }
+  }
 
   const getRoleIcon = (role: string) => {
     switch (role) {
@@ -209,11 +431,57 @@ export default function AdminPage() {
       }
       toast({
         title: 'שגיאה',
-        description: error.message || 'נכשל ליצור הודעה',
+        description: 'לא הצלחנו ליצור את ההודעה. אנא וודא שכל השדות מלאים.',
         variant: 'destructive',
       })
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !familyGroupId) return
+
+    setUploading(true)
+    const supabase = createClient()
+
+    try {
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${Math.random()}.${fileExt}`
+      const filePath = `events/${familyGroupId}/${Date.now()}_${fileName}`
+
+      const { error: uploadError, data } = await supabase.storage
+        .from('event-attachments')
+        .upload(filePath, file)
+
+      if (uploadError) {
+        throw uploadError
+      }
+
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from('event-attachments').getPublicUrl(filePath)
+
+      if (file.type.startsWith('image/')) {
+        setEventForm((prev) => ({ ...prev, imageUrl: publicUrl }))
+      } else {
+        setEventForm((prev) => ({ ...prev, fileUrl: publicUrl }))
+      }
+
+      toast({
+        title: 'קובץ הועלה',
+        description: 'הקובץ נשמר בהצלחה',
+      })
+    } catch (error: any) {
+      console.error('Error uploading file:', error)
+      toast({
+        title: 'שגיאה בהעלאה',
+        description: 'לא הצלחנו להעלות את הקובץ. אנא וודא שהקובץ תקין ונסה שוב.',
+        variant: 'destructive',
+      })
+    } finally {
+      setUploading(false)
     }
   }
 
@@ -236,33 +504,47 @@ export default function AdminPage() {
     setLoading(true)
 
     try {
-      await apiClient.createEvent({
+      const eventResponse = await apiClient.createEvent({
         title: eventForm.title,
         description: eventForm.description || undefined,
         startsAt: eventForm.startsAt,
         endsAt: eventForm.endsAt || undefined,
         location: eventForm.location || undefined,
         familyGroupId,
-        reminderOffsets: eventForm.reminderOffsets,
+        imageUrl: eventForm.imageUrl || undefined,
+        fileUrl: eventForm.fileUrl || undefined,
       })
+
+      // Create reminder (either scheduled or immediate default)
+      const reminderToCreate = {
+        eventId: eventResponse.event.id,
+        message: eventForm.reminderMessage || `פורסם אירוע חדש: ${eventForm.title}`,
+        scheduledAt: eventForm.reminderScheduledAt || null,
+      }
+
+      try {
+        await fetch('/api/admin/event-reminders', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(reminderToCreate),
+        })
+      } catch (reminderError) {
+        console.error('Failed to create reminder:', reminderError)
+        // Don't fail the whole operation if reminder creation fails
+      }
 
       toast({
         title: 'אירוע נוצר בהצלחה!',
-        description: 'תזכורות יישלחו אוטומטית לפני האירוע',
+        description: reminderToCreate.scheduledAt
+          ? 'האירוע והתזכורת המתוזמנת נוצרו בהצלחה'
+          : 'האירוע נוצר ונשלחה הודעה לחברים',
       })
 
       // Reload stats to update the count
       await loadStats()
 
-      // Reset form
-      setEventForm({
-        title: '',
-        description: '',
-        startsAt: '',
-        endsAt: '',
-        location: '',
-        reminderOffsets: [1440, 60],
-      })
+      // Redirect to events page
+      router.push('/events')
     } catch (error: any) {
       // Don't show error for unauthorized - redirect is handled by apiClient
       if (error instanceof UnauthorizedError) {
@@ -270,7 +552,7 @@ export default function AdminPage() {
       }
       toast({
         title: 'שגיאה',
-        description: error.message || 'נכשל ליצור אירוע',
+        description: 'לא הצלחנו ליצור את האירוע. אנא וודא שהפרטים תקינים.',
         variant: 'destructive',
       })
     } finally {
@@ -394,10 +676,9 @@ export default function AdminPage() {
                 </Card>
               </div>
 
-              {/* Members Dialog */}
               {showMembersDialog && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-0 sm:p-4">
-                  <Card className="w-full max-w-2xl max-h-[100vh] sm:max-h-[80vh] overflow-hidden flex flex-col rounded-none sm:rounded-lg">
+                <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
+                  <Card className="w-full max-w-2xl h-[85vh] sm:h-auto sm:max-h-[80vh] overflow-hidden flex flex-col rounded-t-3xl sm:rounded-lg">
                     <CardHeader className="flex flex-row items-center justify-between pb-4 p-4 sm:p-6">
                       <div className="flex-1 min-w-0">
                         <CardTitle className="text-lg sm:text-xl truncate">חברי הקבוצה</CardTitle>
@@ -515,6 +796,26 @@ export default function AdminPage() {
                   <Bell className="h-4 w-4 ml-2" />
                   סטטוסים
                 </Button>
+                {['ADMIN', 'EDITOR'].includes(selectedGroup?.role || '') && (
+                  <Button
+                    variant={activeTab === 'invitations' ? 'default' : 'outline'}
+                    onClick={() => setActiveTab('invitations')}
+                    className="w-full sm:w-auto touch-target justify-center"
+                  >
+                    <Mail className="h-4 w-4 ml-2" />
+                    הזמנות
+                  </Button>
+                )}
+                {selectedGroup?.role === 'ADMIN' && (
+                  <Button
+                    variant={activeTab === 'settings' ? 'default' : 'outline'}
+                    onClick={() => setActiveTab('settings')}
+                    className="w-full sm:w-auto touch-target justify-center"
+                  >
+                    <Settings className="h-4 w-4 ml-2" />
+                    הגדרות קבוצה
+                  </Button>
+                )}
               </div>
 
               {/* Announcement Form */}
@@ -598,24 +899,21 @@ export default function AdminPage() {
                       </div>
 
                       <div>
-                        <Label htmlFor="scheduledAt" className="text-sm sm:text-base">
-                          תזמון שליחה (אופציונלי)
-                        </Label>
-                        <Input
+                        <StrictDateTimePicker
                           id="scheduledAt"
-                          type="datetime-local"
+                          label="תזמון שליחה (אופציונלי)"
                           value={announcementForm.scheduledAt}
-                          onChange={(e) =>
-                            setAnnouncementForm({
-                              ...announcementForm,
-                              scheduledAt: e.target.value,
-                            })
+                          onChange={(val) =>
+                            setAnnouncementForm({ ...announcementForm, scheduledAt: val })
                           }
-                          className="text-base touch-target"
+                          helperText="הזמן יוגבל לקפיצות של 10 דקות (למשל: 10, 20, 30...)"
                         />
-                        <p className="text-xs sm:text-sm text-gray-500 mt-1">
-                          השאר ריק לשליחה מיידית
-                        </p>
+                        {announcementForm.scheduledAt && (
+                          <div className="mt-1 text-sm font-semibold text-blue-600">
+                            תאריך עברי:{' '}
+                            {getHebrewDateString(new Date(announcementForm.scheduledAt))}
+                          </div>
+                        )}
                       </div>
 
                       <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
@@ -696,33 +994,101 @@ export default function AdminPage() {
                         />
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                          <Label htmlFor="startsAt" className="text-sm sm:text-base">
-                            תחילת האירוע
-                          </Label>
-                          <Input
-                            id="startsAt"
-                            type="datetime-local"
-                            value={eventForm.startsAt}
-                            onChange={(e) =>
-                              setEventForm({ ...eventForm, startsAt: e.target.value })
-                            }
-                            required
-                            className="text-base touch-target"
-                          />
+                      <div className="space-y-3">
+                        <Label className="text-sm sm:text-base">
+                          הוסף תמונה או קובץ (אופציונלי)
+                        </Label>
+                        <div className="flex flex-col sm:flex-row gap-4">
+                          <div className="relative flex-1">
+                            <Input
+                              type="file"
+                              accept="image/*,.pdf"
+                              onChange={handleFileUpload}
+                              disabled={uploading}
+                              className="hidden"
+                              id="file-upload"
+                            />
+                            <Label
+                              htmlFor="file-upload"
+                              className={`flex items-center justify-center gap-2 p-4 border-2 border-dashed rounded-lg cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-gray-800 ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            >
+                              {uploading ? (
+                                <Loader2 className="h-5 w-5 animate-spin" />
+                              ) : (
+                                <Paperclip className="h-5 w-5" />
+                              )}
+                              <span>{uploading ? 'מעלה...' : 'בחר תמונה או PDF'}</span>
+                            </Label>
+                          </div>
+
+                          {eventForm.imageUrl && (
+                            <div className="relative w-full sm:w-32 h-32 rounded-lg overflow-hidden border">
+                              <NextImage
+                                src={eventForm.imageUrl}
+                                alt="Preview"
+                                fill
+                                className="object-cover"
+                                unoptimized
+                              />
+                              <Button
+                                type="button"
+                                variant="destructive"
+                                size="icon"
+                                className="absolute top-1 right-1 h-6 w-6"
+                                onClick={() => setEventForm((prev) => ({ ...prev, imageUrl: '' }))}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          )}
+
+                          {eventForm.fileUrl && (
+                            <div className="flex items-center gap-2 p-3 border rounded-lg bg-gray-50 dark:bg-gray-800">
+                              <Paperclip className="h-5 w-5 text-blue-600" />
+                              <span className="text-sm truncate max-w-[150px]">PDF הועלה</span>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 text-red-500"
+                                onClick={() => setEventForm((prev) => ({ ...prev, fileUrl: '' }))}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          )}
                         </div>
-                        <div>
-                          <Label htmlFor="endsAt" className="text-sm sm:text-base">
-                            סיום האירוע (אופציונלי)
-                          </Label>
-                          <Input
-                            id="endsAt"
-                            type="datetime-local"
-                            value={eventForm.endsAt}
-                            onChange={(e) => setEventForm({ ...eventForm, endsAt: e.target.value })}
-                            className="text-base touch-target"
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                          <StrictDateTimePicker
+                            id="startsAt"
+                            label="תחילת האירוע"
+                            value={eventForm.startsAt}
+                            onChange={(val) => setEventForm({ ...eventForm, startsAt: val })}
+                            required
+                            helperText="הזמן יעוגל אוטומטית לקפיצות של 10 דקות"
                           />
+                          {eventForm.startsAt && (
+                            <div className="text-sm font-semibold text-blue-600">
+                              תאריך עברי: {getHebrewDateString(new Date(eventForm.startsAt))}
+                            </div>
+                          )}
+                        </div>
+                        <div className="space-y-1">
+                          <StrictDateTimePicker
+                            id="endsAt"
+                            label="סיום האירוע (אופציונלי)"
+                            value={eventForm.endsAt}
+                            onChange={(val) => setEventForm({ ...eventForm, endsAt: val })}
+                            helperText="הזמן יעוגל אוטומטית לקפיצות של 10 דקות"
+                          />
+                          {eventForm.endsAt && (
+                            <div className="text-sm font-semibold text-blue-600">
+                              תאריך עברי: {getHebrewDateString(new Date(eventForm.endsAt))}
+                            </div>
+                          )}
                         </div>
                       </div>
 
@@ -739,15 +1105,42 @@ export default function AdminPage() {
                         />
                       </div>
 
-                      <div>
-                        <Label className="text-sm sm:text-base">תזכורות אוטומטיות</Label>
-                        <div className="flex flex-wrap gap-2 mt-2">
-                          <span className="text-xs sm:text-sm bg-blue-100 dark:bg-blue-900 px-3 py-1 rounded">
-                            24 שעות לפני
-                          </span>
-                          <span className="text-xs sm:text-sm bg-blue-100 dark:bg-blue-900 px-3 py-1 rounded">
-                            שעה לפני
-                          </span>
+                      <div className="border-t pt-4 mt-4">
+                        <div className="flex items-center gap-2 mb-3">
+                          <Bell className="h-5 w-5 text-blue-600" />
+                          <Label className="text-sm sm:text-base font-semibold">
+                            תזכורת לאירוע (אופציונלי)
+                          </Label>
+                        </div>
+                        <p className="text-xs text-gray-500 mb-4">
+                          הוסף תזכורת שתישלח לפני האירוע. השאר ריק אם אינך רוצה תזכורת.
+                        </p>
+
+                        <div className="space-y-4">
+                          <div>
+                            <Label htmlFor="reminderMessage" className="text-sm sm:text-base">
+                              הודעת התזכורת
+                            </Label>
+                            <textarea
+                              id="reminderMessage"
+                              className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-3 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                              placeholder="למשל: תזכורת! יום הולדת לסבתא מתקרב..."
+                              value={eventForm.reminderMessage}
+                              onChange={(e) =>
+                                setEventForm({ ...eventForm, reminderMessage: e.target.value })
+                              }
+                            />
+                          </div>
+
+                          <StrictDateTimePicker
+                            id="reminderScheduledAt"
+                            label="תזמון תזכורת (אופציונלי)"
+                            value={eventForm.reminderScheduledAt}
+                            onChange={(val) =>
+                              setEventForm({ ...eventForm, reminderScheduledAt: val })
+                            }
+                            helperText="השאר ריק כדי לשלוח מיד. הזמן יוגבל לקפיצות של 10 דקות."
+                          />
                         </div>
                       </div>
 
@@ -765,7 +1158,10 @@ export default function AdminPage() {
                               startsAt: '',
                               endsAt: '',
                               location: '',
-                              reminderOffsets: [1440, 60],
+                              reminderMessage: '',
+                              reminderScheduledAt: '',
+                              imageUrl: '',
+                              fileUrl: '',
                             })
                           }
                           className="w-full sm:w-auto touch-target"
@@ -825,6 +1221,304 @@ export default function AdminPage() {
                     )}
                   </CardContent>
                 </Card>
+              )}
+
+              {/* Invitations Tab */}
+              {activeTab === 'invitations' && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>הזמנת חברים</CardTitle>
+                    <CardDescription>שלח הזמנות לחברים ובני משפחה להצטרף לקבוצה</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                      {/* Email Invitations Section */}
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Mail className="h-5 w-5 text-blue-600" />
+                          <h3 className="font-semibold text-gray-900 dark:text-gray-100 italic">
+                            הזמנה במייל
+                          </h3>
+                        </div>
+                        <form onSubmit={handleInviteSubmit} className="space-y-4">
+                          <div className="bg-gray-50 dark:bg-gray-900/40 p-4 rounded-xl border border-gray-100 dark:border-gray-800">
+                            <Label htmlFor="emails" className="mb-3 block text-sm font-medium">
+                              הוסף כתובות מייל להזמנה
+                            </Label>
+                            <MultiEmailInput
+                              emails={emailsToInvite}
+                              onChange={setEmailsToInvite}
+                              placeholder="example@mail.com"
+                            />
+                          </div>
+                          <Button
+                            type="submit"
+                            disabled={loading || emailsToInvite.length === 0}
+                            className="w-full bg-blue-600 hover:bg-blue-700 h-11"
+                          >
+                            {loading ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <>
+                                <Send className="h-4 w-4 ml-2" />
+                                שלח {emailsToInvite.length > 0 ? `${emailsToInvite.length} ` : ''}
+                                הזמנות במייל
+                              </>
+                            )}
+                          </Button>
+                        </form>
+                      </div>
+
+                      {/* WhatsApp & Link Section */}
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <MessageCircle className="h-5 w-5 text-green-600" />
+                          <h3 className="font-semibold text-gray-900 dark:text-gray-100 italic">
+                            שיתוף בקישור
+                          </h3>
+                        </div>
+                        <div className="bg-green-50/50 dark:bg-green-900/10 p-5 rounded-xl border border-green-100 dark:border-green-900/30 space-y-4">
+                          <p className="text-sm text-green-800 dark:text-green-300">
+                            שתף קישור הזמנה ישיר בוואצאפ או העתק אותו לשליחה בכל מקום אחר.
+                          </p>
+
+                          <div className="grid grid-cols-1 gap-3">
+                            <Button
+                              type="button"
+                              onClick={handleWhatsAppInvite}
+                              className="bg-[#25D366] hover:bg-[#20bd5a] text-white border-none font-bold h-12 shadow-md hover:shadow-lg transition-all"
+                            >
+                              <MessageCircle className="h-5 w-5 ml-2" />
+                              שלח הזמנה בוואצאפ
+                            </Button>
+
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={handleCopyInviteLink}
+                              className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 h-12 font-medium"
+                            >
+                              {copied ? (
+                                <>
+                                  <CheckCircle2 className="h-5 w-5 ml-2 text-green-600" />
+                                  הועתק!
+                                </>
+                              ) : (
+                                <>
+                                  <Copy className="h-5 w-5 ml-2" />
+                                  העתק קישור להצטרפות
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="border-t pt-6">
+                      <h3 className="font-semibold mb-4 text-sm text-gray-700 dark:text-gray-300">
+                        הזמנות שנשלחו
+                      </h3>
+                      {loadingInvitations ? (
+                        <div className="flex justify-center p-4">
+                          <Loader2 className="h-6 w-6 animate-spin" />
+                        </div>
+                      ) : invitations.length === 0 ? (
+                        <p className="text-gray-500 text-sm">לא נשלחו הזמנות עדיין</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {invitations.map((inv: any) => (
+                            <div
+                              key={inv.id}
+                              className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg text-sm gap-2"
+                            >
+                              <div>
+                                <p className="font-medium">{inv.email}</p>
+                                <p className="text-xs text-gray-500">
+                                  נשלח ע&quot;י {inv.inviter?.name || 'Unknown'} ב-
+                                  {new Date(inv.createdAt).toLocaleDateString('he-IL')}
+                                </p>
+                              </div>
+                              <div>
+                                {inv.status === 'PENDING' && (
+                                  <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs">
+                                    ממתין
+                                  </span>
+                                )}
+                                {inv.status === 'ACCEPTED' && (
+                                  <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">
+                                    אושר ({inv.acceptedBy?.name})
+                                  </span>
+                                )}
+                                {inv.status === 'EXPIRED' && (
+                                  <span className="px-2 py-1 bg-red-100 text-red-800 rounded-full text-xs">
+                                    פג תוקף
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Settings Tab */}
+              {activeTab === 'settings' && selectedGroup?.role === 'ADMIN' && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>הגדרות קבוצה</CardTitle>
+                    <CardDescription>
+                      ערוך את פרטי הקבוצה. שים לב ששינוי קוד הקבוצה ישבור קישורי הצטרפות קיימים.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <form onSubmit={handleSettingsSubmit} className="space-y-4">
+                      <div>
+                        <Label htmlFor="groupName">שם הקבוצה</Label>
+                        <Input
+                          id="groupName"
+                          value={settingsForm.name}
+                          onChange={(e) =>
+                            setSettingsForm({ ...settingsForm, name: e.target.value })
+                          }
+                          required
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="groupSlug">קוד קבוצה (Slug)</Label>
+                        <Input
+                          id="groupSlug"
+                          value={settingsForm.slug}
+                          onChange={(e) =>
+                            setSettingsForm({ ...settingsForm, slug: e.target.value })
+                          }
+                          required
+                          className="mt-1"
+                        />
+                        <div className="bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-800 rounded-lg p-4 mt-4 space-y-3">
+                          <div className="flex items-start gap-2 text-blue-800 dark:text-blue-300">
+                            <Info className="h-5 w-5 mt-0.5 flex-shrink-0" />
+                            <div className="text-sm">
+                              <p className="font-bold mb-1">מה ההבדל בין שם לקוד?</p>
+                              <div className="space-y-2">
+                                <p>
+                                  <strong>שם הקבוצה:</strong> השם לתצוגה (למשל: &quot;משפחת כהן
+                                  המורחבת&quot;). מותר עברית ורווחים. שינוי השם אינו שובר קישורים.
+                                </p>
+                                <p>
+                                  <strong>קוד הקבוצה (Slug):</strong> המזהה בקישור (למשל:{' '}
+                                  <code>cohen-family</code>). רק אנגלית, מספרים ומקפים.
+                                </p>
+                                <p className="text-yellow-600 dark:text-yellow-500 font-bold">
+                                  ⚠️ שים לב: שינוי הקוד ישבור קישורי הצטרפות קיימים שנשלחו בעבר!
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <Button type="submit" disabled={loading} className="w-full">
+                        {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'שמור שינויים'}
+                      </Button>
+                    </form>
+
+                    {/* Danger Zone */}
+                    <div className="mt-8 pt-8 border-t border-gray-200 dark:border-gray-700">
+                      <div className="bg-red-50 dark:bg-red-900/10 border-2 border-red-200 dark:border-red-800 rounded-lg p-6">
+                        <h3 className="text-lg font-bold text-red-900 dark:text-red-100 mb-2 flex items-center gap-2">
+                          <AlertTriangle className="h-5 w-5" />
+                          אזור סכנה
+                        </h3>
+                        <p className="text-sm text-red-700 dark:text-red-300 mb-4">
+                          פעולות בלתי הפיכות. אנא היה זהיר!
+                        </p>
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          onClick={() => setShowDeleteDialog(true)}
+                          className="w-full"
+                        >
+                          <Trash2 className="h-4 w-4 ml-2" />
+                          מחק קבוצה לצמיתות
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Delete Confirmation Dialog */}
+              {showDeleteDialog && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                  <Card className="w-full max-w-md">
+                    <CardHeader>
+                      <CardTitle className="text-red-600 dark:text-red-400 flex items-center gap-2">
+                        <AlertTriangle className="h-6 w-6" />
+                        אישור מחיקת קבוצה
+                      </CardTitle>
+                      <CardDescription>
+                        פעולה זו תמחק לצמיתות את הקבוצה ואת כל הנתונים הקשורים אליה
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+                        <p className="text-sm text-red-800 dark:text-red-200 font-semibold mb-2">
+                          מה יימחק:
+                        </p>
+                        <ul className="text-sm text-red-700 dark:text-red-300 space-y-1 list-disc list-inside">
+                          <li>כל חברי הקבוצה ({stats.memberCount} חברים)</li>
+                          <li>כל האירועים והתזכורות</li>
+                          <li>כל ההודעות ({stats.announcementsThisMonth} הודעות החודש)</li>
+                          <li>כל הנושאים והנתונים</li>
+                        </ul>
+                      </div>
+
+                      <div>
+                        <Label htmlFor="deleteConfirm" className="text-sm font-semibold">
+                          הקלד את שם הקבוצה &quot;{selectedGroup?.name}&quot; לאישור:
+                        </Label>
+                        <Input
+                          id="deleteConfirm"
+                          value={deleteConfirmation}
+                          onChange={(e) => setDeleteConfirmation(e.target.value)}
+                          placeholder={selectedGroup?.name}
+                          className="mt-2"
+                        />
+                      </div>
+                    </CardContent>
+                    <CardFooter className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setShowDeleteDialog(false)
+                          setDeleteConfirmation('')
+                        }}
+                        className="flex-1"
+                      >
+                        ביטול
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        onClick={handleDeleteGroup}
+                        disabled={deleteConfirmation !== selectedGroup?.name || loading}
+                        className="flex-1"
+                      >
+                        {loading ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <>
+                            <Trash2 className="h-4 w-4 ml-2" />
+                            מחק לצמיתות
+                          </>
+                        )}
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                </div>
               )}
             </>
           )}

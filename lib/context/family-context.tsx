@@ -7,6 +7,7 @@ interface Group {
   name: string
   slug: string
   role: 'ADMIN' | 'EDITOR' | 'MEMBER'
+  joinedAt?: string
 }
 
 interface FamilyContextType {
@@ -15,8 +16,10 @@ interface FamilyContextType {
   groups: Group[]
   selectedGroup: Group | null
   loadingGroups: boolean
-  setFamilyGroup: (groupId: string) => void
-  setUser: (userId: string) => void
+  pendingInvitations: any[]
+  setFamilyGroup: (groupId: string | null) => void
+  setUser: (userId: string | null) => void
+  clearAll: () => void
   refreshGroups: () => Promise<void>
 }
 
@@ -26,6 +29,7 @@ export function FamilyProvider({ children }: { children: ReactNode }) {
   const [familyGroupId, setFamilyGroupIdState] = useState<string | null>(null)
   const [userId, setUserIdState] = useState<string | null>(null)
   const [groups, setGroups] = useState<Group[]>([])
+  const [pendingInvitations, setPendingInvitations] = useState<any[]>([])
   const [loadingGroups, setLoadingGroups] = useState(true)
 
   // Fetch user's groups
@@ -34,10 +38,13 @@ export function FamilyProvider({ children }: { children: ReactNode }) {
       setLoadingGroups(true)
       const response = await fetch('/api/groups')
 
-      // If not authenticated, just set empty groups
+      // If not authenticated, just set empty groups and clear user
       if (response.status === 401) {
-        setGroups([])
-        setLoadingGroups(false)
+        // Only update if not already cleared to avoid re-render loops
+        setGroups((prev) => (prev.length > 0 ? [] : prev))
+        setPendingInvitations((prev) => (prev.length > 0 ? [] : prev))
+        setUserIdState((prev) => (prev !== null ? null : prev))
+        setFamilyGroupIdState((prev) => (prev !== null ? null : prev))
         return
       }
 
@@ -46,35 +53,30 @@ export function FamilyProvider({ children }: { children: ReactNode }) {
         const userGroups = data.groups || []
         setGroups(userGroups)
 
-        // Auto-select group if user has exactly one group
-        if (userGroups.length === 1) {
-          const singleGroup = userGroups[0]
-          setFamilyGroupIdState(singleGroup.id)
-          if (typeof window !== 'undefined') {
-            localStorage.setItem('familyGroupId', singleGroup.id)
+        // Validate currently selected group against fresh list
+        // Note: we'll use a functional update or just check the state later if needed
+        // but for now let's just use the current groups to pick a default if needed
+
+        // Fetch pending invitations too
+        try {
+          const invResponse = await fetch('/api/invitations/pending')
+          if (invResponse.ok) {
+            const data = await invResponse.json()
+            setPendingInvitations(data.invitations || [])
           }
-        } else if (userGroups.length > 1) {
-          // Check if previously selected group is still valid
-          const storedGroupId = localStorage.getItem('familyGroupId')
-          if (storedGroupId && userGroups.some((g: Group) => g.id === storedGroupId)) {
-            setFamilyGroupIdState(storedGroupId)
-          } else {
-            // Clear invalid selection
-            setFamilyGroupIdState(null)
-            localStorage.removeItem('familyGroupId')
-          }
+        } catch (invError) {
+          console.error('Failed to fetch pending invitations:', invError)
         }
       }
     } catch (error) {
-      // Network error or other issue - just log and set empty
       console.error('Failed to fetch groups:', error)
       setGroups([])
     } finally {
       setLoadingGroups(false)
     }
-  }, [])
+  }, []) // Removed dependency on familyGroupId to make it stable
 
-  // Load from localStorage on mount, then fetch groups
+  // Load from localStorage on mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const storedGroupId = localStorage.getItem('familyGroupId')
@@ -83,24 +85,67 @@ export function FamilyProvider({ children }: { children: ReactNode }) {
       if (storedGroupId) setFamilyGroupIdState(storedGroupId)
       if (storedUserId) setUserIdState(storedUserId)
     }
+  }, [])
 
-    // Fetch groups after initial load
+  // Initial fetch and auto-selection logic
+  useEffect(() => {
     refreshGroups()
   }, [refreshGroups])
 
-  const setFamilyGroup = (groupId: string) => {
+  // Sync familyGroupId with storage and handle validation
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      if (familyGroupId) {
+        localStorage.setItem('familyGroupId', familyGroupId)
+      } else {
+        localStorage.removeItem('familyGroupId')
+      }
+    }
+
+    // Auto-select logic if groups available but none selected
+    if (groups.length > 0 && !familyGroupId) {
+      // Only auto-select if exactly one group
+      if (groups.length === 1) {
+        setFamilyGroupIdState(groups[0].id)
+      }
+    } else if (groups.length > 0 && familyGroupId) {
+      // Validate
+      const isValid = groups.some((g) => g.id === familyGroupId)
+      if (!isValid) {
+        setFamilyGroupIdState(null)
+      }
+    } else if (groups.length === 0 && !loadingGroups && familyGroupId) {
+      // No groups remaining for user - definitely clear
+      setFamilyGroupIdState(null)
+    }
+  }, [familyGroupId, groups, loadingGroups])
+
+  const setFamilyGroup = (groupId: string | null) => {
     setFamilyGroupIdState(groupId)
     if (typeof window !== 'undefined') {
-      localStorage.setItem('familyGroupId', groupId)
+      if (groupId) localStorage.setItem('familyGroupId', groupId)
+      else localStorage.removeItem('familyGroupId')
     }
   }
 
-  const setUser = (uid: string) => {
+  const setUser = (uid: string | null) => {
     setUserIdState(uid)
     if (typeof window !== 'undefined') {
-      localStorage.setItem('userId', uid)
+      if (uid) localStorage.setItem('userId', uid)
+      else localStorage.removeItem('userId')
     }
   }
+
+  const clearAll = useCallback(() => {
+    setUserIdState(null)
+    setFamilyGroupIdState(null)
+    setGroups([])
+    setPendingInvitations([])
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('userId')
+      localStorage.removeItem('familyGroupId')
+    }
+  }, [])
 
   const selectedGroup = groups.find((g) => g.id === familyGroupId) || null
 
@@ -112,8 +157,10 @@ export function FamilyProvider({ children }: { children: ReactNode }) {
         groups,
         selectedGroup,
         loadingGroups,
+        pendingInvitations,
         setFamilyGroup,
         setUser,
+        clearAll,
         refreshGroups,
       }}
     >

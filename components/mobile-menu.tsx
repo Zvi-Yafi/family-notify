@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import {
@@ -14,6 +14,7 @@ import {
   User as UserIcon,
   Crown,
   Edit,
+  ShieldCheck,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/lib/hooks/use-auth'
@@ -36,10 +37,10 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
     }
   }, [isOpen])
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     setIsAnimating(false)
     setTimeout(onClose, 300) // Wait for animation to finish
-  }
+  }, [onClose])
 
   // Close menu on route change
   useEffect(() => {
@@ -51,7 +52,7 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
     return () => {
       router.events?.off('routeChangeStart', handleRouteChange)
     }
-  }, [router])
+  }, [router.events, handleClose])
 
   // Prevent body scroll when menu is open
   useEffect(() => {
@@ -91,10 +92,20 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
   const navigationItems = [
     { href: '/feed', label: 'הודעות', icon: MessageSquare },
     { href: '/events', label: 'אירועים', icon: Calendar },
+    { href: '/profile', label: 'הפרופיל שלי', icon: UserIcon },
     { href: '/groups', label: 'הקבוצות שלי', icon: Users },
     { href: '/admin', label: 'ניהול', icon: Crown },
     { href: '/preferences', label: 'העדפות', icon: Settings },
   ]
+
+  const SUPER_ADMIN_EMAIL = 'z0533113784@gmail.com'
+  if (user?.email === SUPER_ADMIN_EMAIL) {
+    navigationItems.splice(navigationItems.length - 1, 0, {
+      href: '/super-admin',
+      label: 'ניהול מערכת 👑',
+      icon: ShieldCheck,
+    })
+  }
 
   return (
     <>

@@ -4,7 +4,9 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Header } from '@/components/header'
 import { toast } from 'sonner'
-import { Copy, Users, Crown, Edit, User } from 'lucide-react'
+import { Copy, Users, Crown, Edit, User, RefreshCw, LogOut, X, Check } from 'lucide-react'
+import { PendingInvitations } from '@/components/pending-invitations'
+import { useFamilyContext } from '@/lib/context/family-context'
 
 interface Group {
   id: string
@@ -16,34 +18,13 @@ interface Group {
 
 export default function GroupsPage() {
   const router = useRouter()
-  const [groups, setGroups] = useState<Group[]>([])
-  const [loading, setLoading] = useState(true)
-
-  const fetchGroups = useCallback(async () => {
-    try {
-      const response = await fetch('/api/groups')
-      if (!response.ok) {
-        if (response.status === 401) {
-          router.push('/login')
-          return
-        }
-        toast.error('שגיאה בטעינת הקבוצות')
-        setLoading(false)
-        return
-      }
-      const data = await response.json()
-      setGroups(data.groups || [])
-    } catch (error) {
-      console.error('Error fetching groups:', error)
-      toast.error('שגיאה בטעינת הקבוצות')
-    } finally {
-      setLoading(false)
-    }
-  }, [router])
+  const { groups, refreshGroups, loadingGroups: loading, clearAll } = useFamilyContext()
+  const [leavingGroupId, setLeavingGroupId] = useState<string | null>(null)
+  const [isLeaving, setIsLeaving] = useState(false)
 
   useEffect(() => {
-    fetchGroups()
-  }, [fetchGroups])
+    refreshGroups()
+  }, [refreshGroups])
 
   const copyGroupCode = async (slug: string, name: string) => {
     try {
@@ -53,6 +34,34 @@ export default function GroupsPage() {
       })
     } catch (error) {
       toast.error('שגיאה בהעתקת הקוד')
+    }
+  }
+
+  const handleLeaveGroup = async (groupId: string, groupName: string) => {
+    try {
+      setIsLeaving(true)
+      const response = await fetch(`/api/groups/${groupId}/leave`, {
+        method: 'POST',
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'נכשל בעזיבת הקבוצה')
+      }
+
+      toast.success(`עזבת את הקבוצה "${groupName}" בהצלחה`)
+      await refreshGroups()
+      setLeavingGroupId(null)
+
+      // If user has no more groups, redirect to onboarding
+      // Note: groups state might not be updated yet, so we check the result of refreshGroups if it returned data,
+      // but refreshGroups is void. We can check the local 'groups' length after a short delay or use the updated context.
+      // Actually, since refreshGroups updates the context, we can check groups.length in a useEffect or here if possible.
+    } catch (error: any) {
+      toast.error('חלה שגיאה בעזיבת הקבוצה')
+    } finally {
+      setIsLeaving(false)
     }
   }
 
@@ -102,6 +111,23 @@ export default function GroupsPage() {
           </p>
         </div>
 
+        <div className="flex flex-col gap-4">
+          <PendingInvitations />
+          {groups.length > 0 && (
+            <div className="flex justify-end">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => refreshGroups()}
+                className="text-gray-500 gap-2"
+              >
+                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                רענן רשימה
+              </Button>
+            </div>
+          )}
+        </div>
+
         {groups.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center">
@@ -125,7 +151,7 @@ export default function GroupsPage() {
                         <span className="text-gray-400">•</span>
                         <span className="break-words">
                           הצטרפת ב-
-                          {new Date(group.joinedAt).toLocaleDateString('he-IL', {
+                          {new Date(group.joinedAt || Date.now()).toLocaleDateString('he-IL', {
                             year: 'numeric',
                             month: 'long',
                             day: 'numeric',
@@ -153,6 +179,42 @@ export default function GroupsPage() {
                         <Copy className="h-4 w-4" />
                         העתק קוד
                       </Button>
+
+                      {leavingGroupId === group.id ? (
+                        <div className="flex items-center gap-2 bg-red-50 dark:bg-red-900/10 p-1 rounded-md border border-red-100 dark:border-red-900/20">
+                          <span className="text-[10px] sm:text-xs text-red-600 font-medium px-2">
+                            בטוח?
+                          </span>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            className="h-7 px-2 text-[10px] sm:text-xs"
+                            onClick={() => handleLeaveGroup(group.id, group.name)}
+                            disabled={isLeaving}
+                          >
+                            {isLeaving ? 'עוזב...' : 'כן, עזוב'}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 px-2"
+                            onClick={() => setLeavingGroupId(null)}
+                            disabled={isLeaving}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="gap-2 w-full sm:w-auto text-red-600 hover:text-red-700 hover:bg-red-50"
+                          onClick={() => setLeavingGroupId(group.id)}
+                        >
+                          <LogOut className="h-4 w-4" />
+                          עזוב קבוצה
+                        </Button>
+                      )}
                     </div>
                     <p className="text-xs text-gray-500 mt-3">
                       שתף את הקוד הזה עם חברי משפחה או חברים כדי שיוכלו להצטרף לקבוצה

@@ -33,13 +33,43 @@ yarn build
 - `TWILIO_ACCOUNT_SID`
 - `TWILIO_AUTH_TOKEN`
 - `TWILIO_PHONE_NUMBER`
-- `WHATSAPP_PHONE_NUMBER_ID`
-- `WHATSAPP_ACCESS_TOKEN`
-- `WHATSAPP_BUSINESS_ACCOUNT_ID`
+- `GREEN_API_ID_INSTANCE`
+- `GREEN_API_TOKEN_INSTANCE`
 
 #### VAPID Keys:
 - אופציה 1: הריצו את האפליקציה פעם אחת ל-generate
 - אופציה 2: generate ידנית עם \`web-push generate-vapid-keys\`
+
+### 3. הגדרת Green API (WhatsApp)
+
+כדי להפעיל שליחת WhatsApp דרך Green API:
+
+1. **הרשמה ב-Green API:**
+   - גש ל-[Green API](https://green-api.com) והירשם
+   - אשר את החשבון דרך הדוא"ל
+
+2. **יצירת Instance:**
+   - צור instance חדש בקונסול של Green API
+   - בחר תוכנית מתאימה (יש תוכנית בחינם לבדיקות)
+
+3. **אישור Instance:**
+   - אשר את ה-instance על ידי סריקת QR code ב-WhatsApp
+   - ודא שה-WhatsApp מחובר לאינטרנט
+
+4. **קבלת פרמטרי גישה:**
+   - מקונסול Green API, קבל:
+     - `idInstance` - מזהה המופע
+     - `apiTokenInstance` - אסימון הגישה
+
+5. **הגדרת משתני סביבה:**
+   - הוסף ל-`.env.local`:
+     \`\`\`
+     GREEN_API_ID_INSTANCE="your-id-instance"
+     GREEN_API_TOKEN_INSTANCE="your-api-token-instance"
+     \`\`\`
+   - ב-production, הוסף את המשתנים ב-Vercel Environment Variables
+
+**הערה:** הטלפון המחובר ל-instance צריך להיות טעון ומחובר לאינטרנט לשליחת וקבלת הודעות.
 
 ---
 

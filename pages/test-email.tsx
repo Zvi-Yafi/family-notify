@@ -61,7 +61,7 @@ export default function TestEmailPage() {
         })
         toast({
           title: 'שגיאה',
-          description: data.error || 'לא הצלחנו לשלוח את האימייל',
+          description: 'לא הצלחנו לשלוח את האימייל. אנא וודא שההגדרות תקינות.',
           variant: 'destructive',
         })
       }
@@ -72,7 +72,7 @@ export default function TestEmailPage() {
       })
       toast({
         title: 'שגיאה',
-        description: 'לא הצלחנו לשלוח את האימייל',
+        description: 'חלה שגיאה בתקשורת עם השרת. אנא נסה שוב.',
         variant: 'destructive',
       })
     } finally {

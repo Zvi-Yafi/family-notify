@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { prisma } from '@/lib/prisma'
+import { syncUser } from '@/lib/users'
 
 /**
  * Create user in Prisma database (for signup before email confirmation)
@@ -16,44 +17,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: 'userId and email are required' })
     }
 
-    // Check if user already exists
-    const existingUser = await prisma.user.findUnique({
-      where: { id: userId },
+    // Create/Sync user using shared utility
+    const newUser = await syncUser({
+      userId: userId,
+      email: email,
+      name: name,
+      phone: phone,
     })
 
-    if (existingUser) {
-      return res.status(200).json({
-        success: true,
-        user: existingUser,
-        action: 'exists',
-      })
-    }
-
-    // Create new user
-    const newUser = await prisma.user.create({
-      data: {
-        id: userId,
-        email: email,
-        name: name || null,
-        phone: phone || null,
-      },
+    return res.status(200).json({
+      success: true,
+      user: newUser,
+      action: 'synced',
     })
-
-    // Create default EMAIL preference
-    try {
-      await prisma.preference.create({
-        data: {
-          userId: newUser.id,
-          channel: 'EMAIL',
-          enabled: true,
-          destination: newUser.email,
-          verifiedAt: new Date(), // Auto-verify email since they signed up with it
-        },
-      })
-    } catch (prefError) {
-      console.error('Failed to create default email preference:', prefError)
-      // Don't fail user creation if preference creation fails
-    }
 
     return res.status(200).json({
       success: true,

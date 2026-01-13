@@ -25,6 +25,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(401).json({ error: 'Unauthorized' })
     }
 
+    const SUPER_ADMIN_EMAIL = 'z0533113784@gmail.com'
+    const isSuperAdmin = user.email === SUPER_ADMIN_EMAIL
+
+    // VERIFY MEMBERSHIP
+    if (!isSuperAdmin) {
+      const membership = await prisma.membership.findUnique({
+        where: {
+          userId_familyGroupId: {
+            userId: user.id,
+            familyGroupId,
+          },
+        },
+      })
+
+      if (!membership) {
+        return res.status(403).json({ error: 'Forbidden - You are not a member of this group' })
+      }
+    }
+
     // Get current date ranges
     const now = new Date()
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0)
@@ -58,6 +77,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.log('📊 Stats - Total announcements:', totalAnnouncements)
     console.log('📊 Stats - Announcements this month:', announcementsThisMonth)
     console.log('📊 Stats - Date range:', startOfMonth.toISOString(), 'to', now.toISOString())
+
+    // Count scheduled announcements (not yet published)
+    const scheduledAnnouncements = await prisma.announcement.count({
+      where: {
+        familyGroupId,
+        scheduledAt: {
+          gte: now, // In the future
+        },
+        publishedAt: null, // Not yet published
+      },
+    })
+
+    console.log(
+      '📊 Stats - Scheduled announcements:',
+      scheduledAnnouncements,
+      'now:',
+      now.toISOString()
+    )
 
     // 3. Count upcoming events (optimized - count in database)
     const upcomingEvents = await prisma.event.count({
@@ -154,6 +191,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(200).json({
       memberCount,
       announcementsThisMonth,
+      scheduledAnnouncements,
       upcomingEvents,
       messagesSentToday,
       deliveryStats: {

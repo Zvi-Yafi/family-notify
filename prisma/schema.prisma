@@ -24,8 +24,11 @@ model User {
   preferences       Preference[]
   createdAnnouncements Announcement[]
   createdEvents     Event[]
+  createdEventReminders EventReminder[]
   deliveryAttempts  DeliveryAttempt[]
   consents          Consent[]
+  sentInvitations     GroupInvitation[] @relation("InvitationsSent")
+  acceptedInvitations GroupInvitation[] @relation("InvitationsAccepted")
 
   @@map("users")
 }
@@ -42,7 +45,9 @@ model FamilyGroup {
   memberships   Membership[]
   announcements Announcement[]
   events        Event[]
+  eventReminders EventReminder[]
   topics        Topic[]
+  invitations   GroupInvitation[]
 
   @@map("family_groups")
 }
@@ -110,7 +115,7 @@ model Announcement {
 
   // Relations
   familyGroup FamilyGroup          @relation(fields: [familyGroupId], references: [id], onDelete: Cascade)
-  creator     User                 @relation(fields: [createdBy], references: [id])
+  creator     User                 @relation(fields: [createdBy], references: [id], onDelete: Cascade)
   topics      AnnouncementTopic[]
 
   @@index([familyGroupId, publishedAt])
@@ -131,17 +136,41 @@ model Event {
   startsAt                DateTime
   endsAt                  DateTime?
   location                String?
+  imageUrl                String?
+  fileUrl                 String?
   createdBy               String
-  scheduledReminderOffsets Int[]   @default([]) // minutes before event, e.g. [1440, 60] = 24h and 1h before
   createdAt               DateTime @default(now())
   updatedAt               DateTime @updatedAt
 
   // Relations
   familyGroup FamilyGroup @relation(fields: [familyGroupId], references: [id], onDelete: Cascade)
-  creator     User        @relation(fields: [createdBy], references: [id])
+  creator     User        @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+  reminders   EventReminder[]
 
   @@index([familyGroupId, startsAt])
   @@map("events")
+}
+
+// EventReminder - reminders for events (can be scheduled like announcements)
+model EventReminder {
+  id            String   @id @default(uuid())
+  eventId       String
+  familyGroupId String
+  message       String   @db.Text
+  createdBy     String
+  scheduledAt   DateTime? // When to send the reminder (null = send immediately)
+  sentAt        DateTime? // When the reminder was actually sent
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  event       Event       @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  familyGroup FamilyGroup @relation(fields: [familyGroupId], references: [id], onDelete: Cascade)
+  creator     User        @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+
+  @@index([eventId, scheduledAt])
+  @@index([familyGroupId, sentAt])
+  @@map("event_reminders")
 }
 
 // DeliveryAttempt - tracks message delivery status
@@ -170,6 +199,7 @@ model DeliveryAttempt {
 enum ItemType {
   ANNOUNCEMENT
   EVENT
+  EVENT_REMINDER
 }
 
 enum DeliveryStatus {
@@ -210,6 +240,7 @@ model AnnouncementTopic {
   @@map("announcement_topics")
 }
 
+
 // Consent - privacy and terms acceptance tracking
 model Consent {
   id         String   @id @default(uuid())
@@ -223,5 +254,33 @@ model Consent {
 
   @@index([userId, version])
   @@map("consents")
+}
+
+model GroupInvitation {
+  id               String           @id @default(uuid())
+  familyGroupId    String
+  email            String
+  token            String           @unique
+  invitedBy        String
+  acceptedByUserId String?
+  status           InvitationStatus @default(PENDING)
+  acceptedAt       DateTime?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  familyGroup FamilyGroup @relation(fields: [familyGroupId], references: [id], onDelete: Cascade)
+  inviter     User        @relation("InvitationsSent", fields: [invitedBy], references: [id], onDelete: Cascade)
+  acceptedBy  User?       @relation("InvitationsAccepted", fields: [acceptedByUserId], references: [id], onDelete: SetNull)
+
+  @@unique([familyGroupId, email, status])
+  @@index([token])
+  @@index([email, status])
+  @@map("group_invitations")
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
 }
 

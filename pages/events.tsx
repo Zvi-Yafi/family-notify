@@ -1,13 +1,23 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Calendar, MapPin, Clock, RefreshCw } from 'lucide-react'
+import { Calendar, MapPin, Clock, RefreshCw, Bell, Paperclip } from 'lucide-react'
 import Link from 'next/link'
+import NextImage from 'next/image'
+import { useRouter } from 'next/router'
 import { apiClient } from '@/lib/api-client'
 import { useFamilyContext } from '@/lib/context/family-context'
 import { Header } from '@/components/header'
 import { GroupSelector } from '@/components/group-selector'
 import { useToast } from '@/hooks/use-toast'
+import { getHebrewDateString } from '@/lib/utils/hebrew-date-utils'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { generateGoogleCalendarUrl, downloadIcsFile } from '@/lib/utils/calendar-utils'
 
 interface Event {
   id: string
@@ -17,6 +27,8 @@ interface Event {
   endsAt: Date | null
   location: string | null
   creator: { email: string }
+  imageUrl?: string | null
+  fileUrl?: string | null
 }
 
 function formatDateTime(date: Date): string {
@@ -43,6 +55,7 @@ function formatTimeRange(start: Date, end: Date): string {
 }
 
 export default function EventsPage() {
+  const router = useRouter()
   const [events, setEvents] = useState<Event[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -50,7 +63,7 @@ export default function EventsPage() {
   const { familyGroupId, groups, loadingGroups, selectedGroup } = useFamilyContext()
   const { toast } = useToast()
 
-  const loadEvents = async () => {
+  const loadEvents = useCallback(async () => {
     if (!familyGroupId) {
       setLoading(false)
       return
@@ -73,17 +86,40 @@ export default function EventsPage() {
       setError(err.message || 'שגיאה בטעינת האירועים')
       toast({
         title: 'שגיאה',
-        description: 'לא הצלחנו לטעון את האירועים',
+        description: 'לא הצלחנו לטעון את האירועים. אנא נסה שוב.',
         variant: 'destructive',
       })
     } finally {
       setLoading(false)
     }
-  }
+  }, [familyGroupId, showPastEvents, toast])
 
   useEffect(() => {
     loadEvents()
-  }, [familyGroupId, showPastEvents])
+  }, [loadEvents])
+
+  // Refresh events when page becomes visible (user navigates back)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && familyGroupId) {
+        loadEvents()
+      }
+    }
+
+    const handleFocus = () => {
+      if (familyGroupId) {
+        loadEvents()
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('focus', handleFocus)
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('focus', handleFocus)
+    }
+  }, [familyGroupId, loadEvents])
 
   // Show loading while fetching groups
   if (loadingGroups) {
@@ -124,8 +160,18 @@ export default function EventsPage() {
                   >
                     {showPastEvents ? 'הצג עתידיים' : 'הצג הכל'}
                   </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={loadEvents}
+                    disabled={loading}
+                    className="w-full sm:w-auto touch-target"
+                  >
+                    <RefreshCw className={`h-4 w-4 ml-2 ${loading ? 'animate-spin' : ''}`} />
+                    רענן
+                  </Button>
                   <Button asChild className="w-full sm:w-auto touch-target">
-                    <Link href="/admin">
+                    <Link href="/admin?tab=events">
                       <Calendar className="h-4 w-4 ml-2" />
                       הוסף אירוע
                     </Link>
@@ -148,19 +194,6 @@ export default function EventsPage() {
               <RefreshCw className="h-8 w-8 mx-auto text-gray-400 mb-4 animate-spin" />
               <p className="text-gray-600 dark:text-gray-400">טוען אירועים...</p>
             </div>
-          )}
-
-          {error && familyGroupId && !loading && (
-            <Card>
-              <CardContent className="py-12 text-center">
-                <Calendar className="h-12 w-12 mx-auto text-red-400 mb-4" />
-                <p className="text-red-600 mb-4">{error}</p>
-                <Button onClick={loadEvents} variant="outline">
-                  <RefreshCw className="h-4 w-4 ml-2" />
-                  נסה שוב
-                </Button>
-              </CardContent>
-            </Card>
           )}
 
           {!loading && !error && familyGroupId && events.length > 0 && (
@@ -196,11 +229,43 @@ export default function EventsPage() {
                         </div>
                       </div>
 
+                      {event.imageUrl && (
+                        <div className="mt-3 mb-4 rounded-lg overflow-hidden border relative h-60">
+                          <NextImage
+                            src={event.imageUrl}
+                            alt={event.title}
+                            fill
+                            className="object-contain bg-gray-50"
+                            unoptimized
+                          />
+                        </div>
+                      )}
+
+                      {event.fileUrl && (
+                        <div className="mt-3 mb-4">
+                          <a
+                            href={event.fileUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 p-3 border rounded-lg bg-red-50 hover:bg-red-100 transition-colors text-red-700 font-semibold"
+                          >
+                            <Paperclip className="h-5 w-5" />
+                            <span className="text-sm">צפה בהזמנה (PDF)</span>
+                          </a>
+                        </div>
+                      )}
+
                       <div className="space-y-2 mt-4">
                         <div className="flex items-start gap-2 text-gray-600 dark:text-gray-400 flex-wrap">
                           <Clock className="h-4 w-4 flex-shrink-0 mt-0.5" />
                           <span className="text-xs sm:text-sm">
                             {formatDateTime(event.startsAt)}
+                          </span>
+                        </div>
+                        <div className="flex items-start gap-2 text-blue-600 font-semibold flex-wrap">
+                          <Clock className="h-4 w-4 opacity-0 flex-shrink-0" />
+                          <span className="text-xs sm:text-sm">
+                            תאריך עברי: {getHebrewDateString(event.startsAt)}
                           </span>
                         </div>
                         {event.endsAt && (
@@ -222,19 +287,42 @@ export default function EventsPage() {
                     <CardContent className="p-4 sm:p-6 pt-0">
                       <div className="flex flex-col sm:flex-row gap-2">
                         <Button
-                          variant="outline"
+                          variant="default"
                           size="sm"
                           className="w-full sm:w-auto touch-target"
+                          onClick={() => router.push(`/events/${event.id}`)}
                         >
-                          הוסף ליומן
+                          <Bell className="h-4 w-4 ml-2" />
+                          נהל תזכורות
                         </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="w-full sm:w-auto touch-target"
-                        >
-                          שתף
-                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="w-full sm:w-auto touch-target"
+                            >
+                              <Calendar className="h-4 w-4 ml-2" />
+                              הוסף ליומן
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() =>
+                                window.open(generateGoogleCalendarUrl(event), '_blank')
+                              }
+                              className="cursor-pointer"
+                            >
+                              Google Calendar
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => downloadIcsFile(event)}
+                              className="cursor-pointer"
+                            >
+                              אחר (.ics)
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     </CardContent>
                   </Card>
@@ -251,7 +339,7 @@ export default function EventsPage() {
                   אין אירועים מתוזמנים
                 </p>
                 <Button asChild className="touch-target">
-                  <Link href="/admin">צור אירוע ראשון</Link>
+                  <Link href="/admin?tab=events">צור אירוע ראשון</Link>
                 </Button>
               </CardContent>
             </Card>

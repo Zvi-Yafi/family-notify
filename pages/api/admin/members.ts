@@ -32,6 +32,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(401).json({ error: 'Unauthorized' })
     }
 
+    const SUPER_ADMIN_EMAIL = 'z0533113784@gmail.com'
+    const isSuperAdmin = user.email === SUPER_ADMIN_EMAIL
+
+    // VERIFY MEMBERSHIP
+    if (!isSuperAdmin) {
+      const membership = await prisma.membership.findUnique({
+        where: {
+          userId_familyGroupId: {
+            userId: user.id,
+            familyGroupId,
+          },
+        },
+      })
+
+      if (!membership) {
+        return res.status(403).json({ error: 'Forbidden - You are not a member of this group' })
+      }
+    }
+
     // Get all members of the group
     const memberships = await prisma.membership.findMany({
       where: {

@@ -81,7 +81,7 @@ export default function FeedPage() {
             </div>
             {familyGroupId && (
               <Button asChild className="w-full sm:w-auto touch-target">
-                <Link href="/admin">הוסף הודעה</Link>
+                <Link href="/admin?tab=announcements">הוסף הודעה</Link>
               </Button>
             )}
           </div>
@@ -98,20 +98,6 @@ export default function FeedPage() {
             <div className="text-center py-12">
               <p className="text-gray-600 dark:text-gray-400">טוען הודעות...</p>
             </div>
-          )}
-
-          {!loading && !familyGroupId && (
-            <Card>
-              <CardContent className="py-12 text-center">
-                <Bell className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                <p className="text-gray-600 dark:text-gray-400 mb-4">
-                  עדיין לא הצטרפת לקבוצה משפחתית
-                </p>
-                <Button asChild>
-                  <Link href="/onboarding">הרשם עכשיו</Link>
-                </Button>
-              </CardContent>
-            </Card>
           )}
 
           {!loading && familyGroupId && announcements.length > 0 && (
@@ -158,7 +144,7 @@ export default function FeedPage() {
                   אין הודעות חדשות
                 </p>
                 <Button asChild className="touch-target">
-                  <Link href="/admin">פרסם הודעה ראשונה</Link>
+                  <Link href="/admin?tab=announcements">פרסם הודעה ראשונה</Link>
                 </Button>
               </CardContent>
             </Card>

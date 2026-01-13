@@ -35,9 +35,9 @@
 - [x] אימות מספר טלפון
 - [ ] Integration עם Twilio (צריך credentials)
 
-#### WhatsApp (Cloud API) ⚙️
+#### WhatsApp (Green API) ⚙️
 - [x] Adapter מוכן
-- [ ] Integration עם WhatsApp Business (צריך credentials)
+- [ ] Integration עם Green API (צריך credentials)
 
 ### 📢 הודעות ואירועים
 

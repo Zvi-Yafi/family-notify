@@ -52,7 +52,7 @@ export default function TestAuthPage() {
         googleProvider: true, // Will be true if OAuth flow works
       }))
     } catch (err: any) {
-      setError(`שגיאה כללית: ${err.message}`)
+      setError('אירעה שגיאה כללית בבדיקת המערכת. אנא וודא שהשרת פועל.')
     } finally {
       setLoading(false)
     }
@@ -73,10 +73,10 @@ export default function TestAuthPage() {
       })
 
       if (error) {
-        alert(`שגיאה: ${error.message}`)
+        alert(`שגיאה בהתחברות: לא הצלחנו להשלים את ההתחברות עם Google.`)
       }
     } catch (err: any) {
-      alert(`שגיאה: ${err.message}`)
+      alert(`שגיאה: לא הצלחנו ליצור קשר עם שירותי האימות.`)
     }
   }
 

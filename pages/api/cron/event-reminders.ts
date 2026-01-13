@@ -1,8 +1,12 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { prisma } from '@/lib/prisma'
 import { dispatchService } from '@/lib/dispatch/dispatch.service'
+import { formatToIsraelTime } from '@/lib/utils/timezone'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  console.log('Server now (ISO):', new Date().toISOString())
+  console.log('Server now (local):', new Date().toString())
+
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
@@ -15,63 +19,85 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     const now = new Date()
-    let remindersSent = 0
+    const nowIsrael = formatToIsraelTime(now)
 
-    // Find upcoming events in the next 48 hours
-    const upcomingEvents = await prisma.event.findMany({
+    console.log(`\n⏰ Cron Job - בדיקת תזכורות מתוזמנות לאירועים`)
+    console.log(`   זמן נוכחי: ${nowIsrael} (שעון ישראל)`)
+    console.log(`   UTC: ${now.toISOString()}`)
+
+    // Find event reminders that are scheduled and due
+    const dueReminders = await prisma.eventReminder.findMany({
       where: {
-        startsAt: {
-          gte: now,
-          lte: new Date(now.getTime() + 48 * 60 * 60 * 1000), // Next 48 hours
+        scheduledAt: {
+          lte: now,
         },
+        sentAt: null, // Not yet sent
       },
+      include: {
+        event: true,
+      },
+      take: 10, // Process in batches
     })
 
-    console.log(`📅 Checking ${upcomingEvents.length} upcoming events for reminders`)
+    console.log(`📅 נמצאו ${dueReminders.length} תזכורות לשליחה`)
 
-    for (const event of upcomingEvents) {
-      const minutesUntilEvent = Math.floor((event.startsAt.getTime() - now.getTime()) / (1000 * 60))
+    for (const reminder of dueReminders) {
+      // Optimistic locking: Try to claim the reminder first
+      const { count } = await prisma.eventReminder.updateMany({
+        where: {
+          id: reminder.id,
+          sentAt: null, // Only update if still null
+        },
+        data: {
+          sentAt: now,
+        },
+      })
 
-      // Check if any reminder offset matches
-      for (const offset of event.scheduledReminderOffsets) {
-        // Allow 5-minute window for reminder
-        if (Math.abs(minutesUntilEvent - offset) <= 5) {
-          // Check if we already sent this reminder
-          const existingReminder = await prisma.deliveryAttempt.findFirst({
-            where: {
-              itemType: 'EVENT',
-              itemId: event.id,
-              createdAt: {
-                gte: new Date(now.getTime() - 10 * 60 * 1000), // In last 10 minutes
-              },
-            },
-          })
-
-          if (!existingReminder) {
-            try {
-              console.log(
-                `🔔 Sending reminder for event "${event.title}" (${offset} minutes before)`
-              )
-              await dispatchService.dispatchEventReminder({
-                eventId: event.id,
-                familyGroupId: event.familyGroupId,
-              })
-              remindersSent++
-            } catch (error: any) {
-              console.error(`❌ Failed to send reminder for event ${event.id}:`, error)
-            }
-          }
-        }
+      if (count === 0) {
+        console.log(`⏭️ התזכורת "${reminder.message}" כבר טופלה על ידי תהליך אחר. מדלג.`)
+        continue
       }
 
-      // Small delay between checks
-      await new Promise((resolve) => setTimeout(resolve, 50))
+      console.log(`🔒 התזכורת "${reminder.message}" ננעלה לשליחה (sentAt עודכן)`)
+
+      try {
+        const scheduledIsrael = reminder.scheduledAt
+          ? formatToIsraelTime(reminder.scheduledAt)
+          : 'לא מוגדר'
+
+        console.log(`\n📤 שולח תזכורת:`)
+        console.log(`   אירוע: "${reminder.event.title}"`)
+        console.log(`   הודעה: "${reminder.message}"`)
+        console.log(`   תוזמנה ל: ${scheduledIsrael}`)
+
+        // Dispatch
+        await dispatchService.dispatchEventReminder({
+          eventReminderId: reminder.id,
+          familyGroupId: reminder.familyGroupId,
+        })
+
+        console.log(`✅ התזכורת נשלחה בהצלחה!`)
+      } catch (error: any) {
+        console.error(`❌ שגיאה בשליחת תזכורת ${reminder.id}:`, error)
+        console.error(`   Error name: ${error.name}`)
+        console.error(`   Error message: ${error.message}`)
+        console.error(`   Stack: ${error.stack}`)
+
+        // Revert sentAt so it can be retried
+        console.log(`🔄 משחזר את sentAt ל-null עקב כישלון בשליחה...`)
+        await prisma.eventReminder.update({
+          where: { id: reminder.id },
+          data: { sentAt: null },
+        })
+      }
+
+      // Small delay between dispatches
+      await new Promise((resolve) => setTimeout(resolve, 100))
     }
 
     return res.status(200).json({
       success: true,
-      eventsChecked: upcomingEvents.length,
-      remindersSent,
+      processed: dueReminders.length,
     })
   } catch (error: any) {
     console.error('Error in event-reminders cron:', error)

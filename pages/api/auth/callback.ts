@@ -6,7 +6,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
-  const { code } = req.query
+  const { code, redirectTo } = req.query
   const protocol =
     req.headers['x-forwarded-proto'] || (req.headers.host?.includes('localhost') ? 'http' : 'https')
   const origin = `${protocol}://${req.headers.host}`
@@ -79,6 +79,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
   }
 
-  console.log('🔄 Redirecting to /feed')
-  return res.redirect('/feed')
+  // Determine destination
+  let destination = (redirectTo as string) || '/feed'
+
+  // If we just exchanged a code for recovery (password reset), Supabase might not explicitly tell us in the result
+  // but if the redirectTo from forgot-password.tsx was /reset-password, we should honor it.
+
+  console.log('🔄 Redirecting to:', destination)
+  return res.redirect(destination)
 }

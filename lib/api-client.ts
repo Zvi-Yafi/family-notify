@@ -80,7 +80,8 @@ class ApiClient {
     endsAt?: string
     location?: string
     familyGroupId: string
-    reminderOffsets?: number[]
+    imageUrl?: string
+    fileUrl?: string
   }) {
     return this.request<{ success: boolean; event: any }>('/api/admin/events', {
       method: 'POST',
@@ -93,6 +94,7 @@ class ApiClient {
     return this.request<{
       memberCount: number
       announcementsThisMonth: number
+      scheduledAnnouncements: number
       upcomingEvents: number
       messagesSentToday: number
       deliveryStats: {
@@ -115,6 +117,60 @@ class ApiClient {
         joinedAt: string
       }>
     }>(`/api/admin/members?familyGroupId=${familyGroupId}`)
+  }
+
+  // Groups
+  async updateGroup(groupId: string, data: { name?: string; slug?: string }) {
+    return this.request<{ success: boolean; group: any }>(`/api/groups/${groupId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async deleteGroup(groupId: string) {
+    return this.request<{ success: boolean; message: string; deletedGroup: any }>(
+      `/api/groups/${groupId}/delete`,
+      {
+        method: 'DELETE',
+      }
+    )
+  }
+
+  // Profile
+  async getProfile() {
+    return this.request<{ success: boolean; user: any }>('/api/user/me')
+  }
+
+  async updateProfile(data: { name?: string; phone?: string; email?: string }) {
+    return this.request<{ success: boolean; user: any }>('/api/user/profile', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  // Invitations
+  async getInvitations(familyGroupId: string) {
+    return this.request<{ invitations: any[] }>(`/api/groups/${familyGroupId}/invitations`)
+  }
+
+  async sendInvitations(familyGroupId: string, emails: string[]) {
+    return this.request<{ results: any[] }>(`/api/groups/${familyGroupId}/invitations`, {
+      method: 'POST',
+      body: JSON.stringify({ emails }),
+    })
+  }
+
+  async getPendingInvitations() {
+    return this.request<{ invitations: any[] }>('/api/invitations/pending')
+  }
+
+  async acceptInvitation(token: string) {
+    return this.request<{ success: boolean; groupslug: string }>(
+      `/api/invitations/${token}/accept`,
+      {
+        method: 'POST',
+      }
+    )
   }
 }
 
