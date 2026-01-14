@@ -1,4 +1,5 @@
 import { Resend } from 'resend'
+import { buildVerificationEmailHtml, buildInvitationEmailHtml } from '@/lib/utils/email-templates'
 
 export interface EmailOptions {
   to: string
@@ -87,20 +88,7 @@ export class EmailProvider {
     return this.send({
       to: email,
       subject: 'קוד אימות - FamilyNotify',
-      html: `
-        <div dir="rtl" style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2>קוד האימות שלך</h2>
-          <p>שלום,</p>
-          <p>קוד האימות שלך הוא:</p>
-          <div style="background: #f5f5f5; padding: 20px; text-align: center; font-size: 32px; font-weight: bold; letter-spacing: 5px; margin: 20px 0;">
-            ${code}
-          </div>
-          <p>הקוד תקף ל-10 דקות.</p>
-          <p>אם לא ביקשת קוד זה, אנא התעלם מהודעה זו.</p>
-          <br>
-          <p>בברכה,<br>צוות FamilyNotify</p>
-        </div>
-      `,
+      html: buildVerificationEmailHtml(code),
       text: `קוד האימות שלך: ${code}\nהקוד תקף ל-10 דקות.`,
     })
   }
@@ -114,21 +102,7 @@ export class EmailProvider {
     return this.send({
       to: email,
       subject: `הזמנה להצטרף לקבוצה ${groupName} - FamilyNotify`,
-      html: `
-        <div dir="rtl" style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2>הוזמנת להצטרף לקבוצה ${groupName}</h2>
-          <p>שלום,</p>
-          <p><strong>${inviterName}</strong> הזמין/ה אותך להצטרף לקבוצה המשפחתית <strong>${groupName}</strong> ב-FamilyNotify.</p>
-          <p>במערכת זו תוכלו לקבל עדכונים על אירועים, שמחות והודעות חשובות.</p>
-          <div style="text-align: center; margin: 30px 0;">
-            <a href="${inviteLink}" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">הצטרף לקבוצה</a>
-          </div>
-          <p>או העתק את הקישור הבא לדפדפן:</p>
-          <p style="word-break: break-all; color: #666;">${inviteLink}</p>
-          <br>
-          <p>בברכה,<br>צוות FamilyNotify</p>
-        </div>
-      `,
+      html: buildInvitationEmailHtml(groupName, inviterName, inviteLink),
       text: `הוזמנת להצטרף לקבוצה ${groupName} על ידי ${inviterName}.\n\nלהצטרפות, לחץ על הקישור הבא:\n${inviteLink}`,
     })
   }
