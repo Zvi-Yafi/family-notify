@@ -416,3 +416,83 @@ export function buildInvitationEmailHtml(
     </html>
   `
 }
+
+export function buildWelcomeEmailHtml(
+  userName: string,
+  groupName: string,
+  siteLink: string,
+  password?: string
+): string {
+  const passwordSection = password
+    ? `
+    <div style="margin: 24px 0; padding: 20px; background-color: ${COLORS.backgroundLight}; border-radius: 8px; border: 1px dashed ${COLORS.primary};">
+        <p style="margin: 0 0 8px 0; font-size: 14px; font-weight: 700; color: ${COLORS.primary};">פרטי ההתחברות שלך:</p>
+        <p style="margin: 0; font-size: 16px;"><strong>אימייל:</strong> המייל שבו קיבלת הודעה זו</p>
+        <p style="margin: 8px 0 0 0; font-size: 16px;"><strong>סיסמה:</strong> <span style="font-family: monospace; font-size: 20px; letter-spacing: 2px; color: ${COLORS.accent};">${password}</span></p>
+    </div>
+  `
+    : ''
+
+  return `
+    <!DOCTYPE html>
+    <html lang="he" dir="rtl">
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>ברוך הבא ל-${groupName}</title>
+      <style>
+        * { box-sizing: border-box; }
+        @media only screen and (max-width: 600px) {
+          .content-padding { padding: 20px !important; }
+        }
+      </style>
+    </head>
+    <body style="${BASE_STYLES.body}">
+      <table width="100%" border="0" cellspacing="0" cellpadding="0" style="width: 100%; background-color: ${COLORS.backgroundLight}; padding: 40px 0;">
+        <tr>
+          <td align="center">
+            <div style="${BASE_STYLES.container}">
+              
+              <div style="${BASE_STYLES.header}">
+                 <div style="display: flex; align-items: center; gap: 12px;">
+                  <span style="font-size: 24px;">🎉</span>
+                  <span style="${BASE_STYLES.logoText}">FamilyNotify</span>
+                </div>
+              </div>
+
+              <div class="content-padding" style="${BASE_STYLES.contentPadding}; text-align: center;">
+                <span style="${BASE_STYLES.tag}">ברוך הבא!</span>
+                <h1 style="${BASE_STYLES.h1}">היי ${userName}, ברוך הבא ל-${groupName}</h1>
+                
+                <p style="${BASE_STYLES.paragraph}">
+                    מנהל הקבוצה צירף אותך ל-FamilyNotify - המקום שבו המשפחה נשארת מעודכנת.
+                </p>
+                <p style="${BASE_STYLES.paragraph}">
+                    מעכשיו תקבל עדכונים על אירועים, שמחות והודעות חשובות ישירות בערוץ שבחרת.
+                </p>
+
+                ${passwordSection}
+
+                <div style="margin-top: 32px;">
+                  <a href="${siteLink}" style="${BASE_STYLES.button}">
+                    כניסה לאתר
+                  </a>
+                </div>
+                
+                <p style="${BASE_STYLES.paragraph}; font-size: 12px; margin-top: 32px;">
+                    מומלץ לשנות את הסיסמה לאחר ההתחברות הראשונה תחת דף הפרופיל.
+                </p>
+              </div>
+
+              <div style="${BASE_STYLES.footer}">
+                 <p style="margin: 0;">FamilyNotify • ${groupName}</p>
+              </div>
+
+            </div>
+          </td>
+        </tr>
+      </table>
+    </body>
+    </html>
+  `
+}

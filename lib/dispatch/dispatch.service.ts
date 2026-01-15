@@ -7,7 +7,11 @@ import { CommunicationChannel, DeliveryStatus } from '@prisma/client'
 import { formatInTimeZone } from 'date-fns-tz'
 import { he } from 'date-fns/locale'
 import { getHebrewDateString, getFullHebrewDate } from '@/lib/utils/hebrew-date-utils'
-import { buildEmailHtml, buildEventReminderHtml } from '@/lib/utils/email-templates'
+import {
+  buildEmailHtml,
+  buildEventReminderHtml,
+  buildWelcomeEmailHtml,
+} from '@/lib/utils/email-templates'
 
 export interface DispatchAnnouncementOptions {
   announcementId: string
@@ -485,6 +489,80 @@ export class DispatchService {
     message += `FamilyNotify - מערכת התראות משפחתית`
 
     return message
+  }
+
+  /**
+   * Send a welcome notification to a new member
+   */
+  async dispatchWelcomeNotification(
+    user: any,
+    familyGroup: any,
+    channel: CommunicationChannel,
+    password?: string
+  ): Promise<void> {
+    const siteLink = `${process.env.NEXT_PUBLIC_APP_URL}/`
+    const userName = user.name || user.email.split('@')[0]
+    const groupName = familyGroup.name
+
+    console.log(`\n👋 שולח הודעת ברוך הבא ל-${userName} (${user.email}) בקבוצת ${groupName}`)
+
+    try {
+      let result: { success: boolean; messageId?: string; error?: string }
+
+      // Get the preference for the selected channel
+      const preference = await prisma.preference.findUnique({
+        where: {
+          userId_channel: {
+            userId: user.id,
+            channel: channel,
+          },
+        },
+      })
+
+      if (!preference) {
+        console.error(`❌ לא נמצאה העדפה עבור ערוץ ${channel} למשתמש ${user.id}`)
+        return
+      }
+
+      switch (channel) {
+        case 'EMAIL':
+          result = await emailProvider.send({
+            to: preference.destination || user.email,
+            subject: `ברוך הבא ל-FamilyNotify - הצטרפת לקבוצת ${groupName}`,
+            html: buildWelcomeEmailHtml(userName, groupName, siteLink, password),
+            text: `היי ${userName}! ברוך הבא לקבוצת ${groupName} ב-FamilyNotify. כנס לאתר: ${siteLink}${password ? `\nפרטי התחברות:\nמייל: המייל שלך\nסיסמה: ${password}` : ''}`,
+          })
+          break
+
+        case 'WHATSAPP':
+          const whatsappMessage = `👋 *היי ${userName}!* \n\nברוך הבא לקבוצת *${groupName}* ב-FamilyNotify. \nמנהל הקבוצה צירף אותך כדי שתוכל להישאר מעודכן בכל מה שקורה במשפחה. \n\n${password ? `🔐 *פרטי התחברות:* \n📧 מייל: המייל שלך \n🔑 סיסמה: *${password}* \n\n` : ''}כניסה לאתר: ${siteLink} \n\n━━━━━━━━━━━━━━━━\nFamilyNotify`
+          result = await whatsAppProvider.send({
+            to: preference.destination || user.phone,
+            message: whatsappMessage,
+          })
+          break
+
+        case 'SMS':
+          const smsMessage = `היי ${userName}! ברוך הבא ל-${groupName} ב-FamilyNotify. כנס: ${siteLink}${password ? ` עובר ל: ססמה: ${password}` : ''}`
+          result = await smsProvider.send({
+            to: preference.destination || user.phone,
+            message: smsMessage,
+          })
+          break
+
+        default:
+          console.warn(`⚠️ ערוץ ${channel} לא נתמך להודעת ברוך הבא`)
+          return
+      }
+
+      if (result.success) {
+        console.log(`✅ הודעת ברוך הבא נשלחה בהצלחה ב-${channel}`)
+      } else {
+        console.error(`❌ שגיאה בשליחת הודעת ברוך הבא ב-${channel}: ${result.error}`)
+      }
+    } catch (error: any) {
+      console.error(`❌ שגיאה לא צפויה בשליחת הודעת ברוך הבא: ${error.message}`)
+    }
   }
 
   private getTimeUntilEvent(startsAt: Date): string {

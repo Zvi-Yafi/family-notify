@@ -119,6 +119,20 @@ class ApiClient {
     }>(`/api/admin/members?familyGroupId=${familyGroupId}`)
   }
 
+  async addMember(data: {
+    familyGroupId: string
+    email: string
+    name: string
+    phone?: string
+    channel?: string
+    password?: string
+  }) {
+    return this.request<{ success: boolean; user: any; membership: any }>('/api/admin/members', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
   // Groups
   async updateGroup(groupId: string, data: { name?: string; slug?: string }) {
     return this.request<{ success: boolean; group: any }>(`/api/groups/${groupId}`, {

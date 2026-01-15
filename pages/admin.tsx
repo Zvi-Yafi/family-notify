@@ -31,6 +31,8 @@ import {
   AlertTriangle,
   Mail,
   Send,
+  Plus,
+  Smartphone,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/hooks/use-toast'
@@ -69,20 +71,18 @@ interface Member {
 export default function AdminPage() {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState<
-    'announcements' | 'events' | 'stats' | 'settings' | 'invitations'
+    'announcements' | 'events' | 'stats' | 'settings' | 'invitations' | 'addMember'
   >('announcements')
 
   // Set active tab from query param
   useEffect(() => {
     if (
       router.query.tab &&
-      ['announcements', 'events', 'stats', 'settings', 'invitations'].includes(
+      ['announcements', 'events', 'stats', 'settings', 'invitations', 'addMember'].includes(
         router.query.tab as string
       )
     ) {
-      setActiveTab(
-        router.query.tab as 'announcements' | 'events' | 'stats' | 'settings' | 'invitations'
-      )
+      setActiveTab(router.query.tab as any)
     }
   }, [router.query.tab])
 
@@ -140,6 +140,37 @@ export default function AdminPage() {
   const [invitations, setInvitations] = useState<any[]>([])
   const [loadingInvitations, setLoadingInvitations] = useState(false)
   const [copied, setCopied] = useState(false)
+
+  // Direct member addition state
+  const [addMemberForm, setAddMemberForm] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    password: Math.floor(100000 + Math.random() * 900000).toString(),
+    channel: 'EMAIL' as 'EMAIL' | 'WHATSAPP' | 'SMS',
+  })
+
+  // Validation helpers
+  const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+  const isValidPhone = (phone: string) => phone.trim().length >= 9
+
+  // Auto-switch channel if current becomes invalid
+  useEffect(() => {
+    if (activeTab !== 'addMember') return
+
+    const emailValid = isValidEmail(addMemberForm.email)
+    const phoneValid = isValidPhone(addMemberForm.phone)
+
+    if (addMemberForm.channel === 'EMAIL' && !emailValid && phoneValid) {
+      setAddMemberForm((prev) => ({ ...prev, channel: 'WHATSAPP' }))
+    } else if (
+      (addMemberForm.channel === 'WHATSAPP' || addMemberForm.channel === 'SMS') &&
+      !phoneValid &&
+      emailValid
+    ) {
+      setAddMemberForm((prev) => ({ ...prev, channel: 'EMAIL' }))
+    }
+  }, [addMemberForm.email, addMemberForm.phone, activeTab, addMemberForm.channel])
 
   // Populate settings form when group changes
   useEffect(() => {
@@ -357,6 +388,50 @@ export default function AdminPage() {
       setLoading(false)
       setShowDeleteDialog(false)
       setDeleteConfirmation('')
+    }
+  }
+
+  const handleAddMemberSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!familyGroupId || !addMemberForm.email || !addMemberForm.name) return
+
+    setLoading(true)
+    try {
+      await apiClient.addMember({
+        familyGroupId,
+        email: addMemberForm.email,
+        name: addMemberForm.name,
+        phone: addMemberForm.phone || undefined,
+        channel: addMemberForm.channel,
+        password: addMemberForm.password,
+      })
+
+      toast({
+        title: 'חבר נוסף בהצלחה',
+        description: `החבר ${addMemberForm.name} נוסף לקבוצה ונשלחה אליו הודעת ברוך הבא עם פרטי התחברות.`,
+      })
+
+      setAddMemberForm({
+        name: '',
+        email: '',
+        phone: '',
+        password: Math.floor(100000 + Math.random() * 900000).toString(),
+        channel: 'EMAIL',
+      })
+
+      // Reload members and stats
+      loadMembers()
+      loadStats()
+
+      // Switch to invitations tab to see the updated member count or just stay here
+    } catch (error: any) {
+      toast({
+        title: 'שגיאה',
+        description: error.message || 'הוספת החבר נכשלה. אנא וודא שהפרטים תקינים.',
+        variant: 'destructive',
+      })
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -804,6 +879,16 @@ export default function AdminPage() {
                   >
                     <Mail className="h-4 w-4 ml-2" />
                     הזמנות
+                  </Button>
+                )}
+                {['ADMIN', 'EDITOR'].includes(selectedGroup?.role || '') && (
+                  <Button
+                    variant={activeTab === 'addMember' ? 'default' : 'outline'}
+                    onClick={() => setActiveTab('addMember')}
+                    className="w-full sm:w-auto touch-target justify-center"
+                  >
+                    <Plus className="h-4 w-4 ml-2" />
+                    הוסף חבר
                   </Button>
                 )}
                 {selectedGroup?.role === 'ADMIN' && (
@@ -1364,6 +1449,164 @@ export default function AdminPage() {
                   </CardContent>
                 </Card>
               )}
+
+              {/* Add Member Tab */}
+              {activeTab === 'addMember' &&
+                ['ADMIN', 'EDITOR'].includes(selectedGroup?.role || '') && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>הוספת חבר לקבוצה</CardTitle>
+                      <CardDescription>
+                        הוסף חבר ישירות לקבוצה ולאתר. ההודעה תישלח אליו בערוץ הנבחר.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <form onSubmit={handleAddMemberSubmit} className="space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div className="space-y-2">
+                            <Label htmlFor="memberName">שם מלא</Label>
+                            <Input
+                              id="memberName"
+                              placeholder="ישראל ישראלי"
+                              value={addMemberForm.name}
+                              onChange={(e) =>
+                                setAddMemberForm({ ...addMemberForm, name: e.target.value })
+                              }
+                              required
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="memberEmail">כתובת מייל</Label>
+                            <Input
+                              id="memberEmail"
+                              type="email"
+                              placeholder="israel@example.com"
+                              value={addMemberForm.email}
+                              onChange={(e) =>
+                                setAddMemberForm({ ...addMemberForm, email: e.target.value })
+                              }
+                              required
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="memberPhone">טלפון (אופציונלי)</Label>
+                            <Input
+                              id="memberPhone"
+                              placeholder="050-1234567"
+                              value={addMemberForm.phone}
+                              onChange={(e) =>
+                                setAddMemberForm({ ...addMemberForm, phone: e.target.value })
+                              }
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="memberPassword">
+                              סיסמת התחברות (6 ספרות רנדומליות)
+                            </Label>
+                            <div className="relative">
+                              <Input
+                                id="memberPassword"
+                                value={addMemberForm.password}
+                                onChange={(e) =>
+                                  setAddMemberForm({ ...addMemberForm, password: e.target.value })
+                                }
+                                required
+                                className="pl-24"
+                              />
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="absolute left-0 top-0 h-full px-3 text-xs"
+                                onClick={() =>
+                                  setAddMemberForm({
+                                    ...addMemberForm,
+                                    password: Math.floor(
+                                      100000 + Math.random() * 900000
+                                    ).toString(),
+                                  })
+                                }
+                              >
+                                ייצר חדש
+                              </Button>
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <Label>ערוץ תקשורת מועדף</Label>
+                            <div className="flex flex-wrap gap-2">
+                              <Button
+                                type="button"
+                                variant={addMemberForm.channel === 'EMAIL' ? 'default' : 'outline'}
+                                onClick={() =>
+                                  setAddMemberForm({ ...addMemberForm, channel: 'EMAIL' })
+                                }
+                                disabled={!isValidEmail(addMemberForm.email)}
+                                className="flex-1 min-w-[100px]"
+                              >
+                                <Mail className="h-4 w-4 ml-2" />
+                                מייל
+                              </Button>
+                              <Button
+                                type="button"
+                                variant={
+                                  addMemberForm.channel === 'WHATSAPP' ? 'default' : 'outline'
+                                }
+                                onClick={() =>
+                                  setAddMemberForm({ ...addMemberForm, channel: 'WHATSAPP' })
+                                }
+                                disabled={!isValidPhone(addMemberForm.phone)}
+                                className="flex-1 min-w-[100px] border-green-200 hover:bg-green-50 text-green-700 data-[variant=default]:bg-green-600 data-[variant=default]:text-white data-[variant=default]:hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                style={
+                                  addMemberForm.channel === 'WHATSAPP' &&
+                                  isValidPhone(addMemberForm.phone)
+                                    ? { backgroundColor: '#25D366', color: 'white' }
+                                    : {}
+                                }
+                              >
+                                <MessageCircle className="h-4 w-4 ml-2" />
+                                WhatsApp
+                              </Button>
+                              <Button
+                                type="button"
+                                variant={addMemberForm.channel === 'SMS' ? 'default' : 'outline'}
+                                onClick={() =>
+                                  setAddMemberForm({ ...addMemberForm, channel: 'SMS' })
+                                }
+                                disabled={!isValidPhone(addMemberForm.phone)}
+                                className="flex-1 min-w-[100px]"
+                              >
+                                <Smartphone className="h-4 w-4 ml-2" />
+                                SMS
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-800 rounded-lg p-4">
+                          <div className="flex items-start gap-3 text-blue-800 dark:text-blue-300">
+                            <Info className="h-5 w-5 mt-0.5 flex-shrink-0" />
+                            <div className="text-sm">
+                              <p className="font-bold mb-1">טיפ חשוב</p>
+                              <p>
+                                החבר יתווסף לקבוצה באופן מיידי. כשיכנס לאתר עם המייל שהזנת, הוא יראה
+                                שהוא כבר מחובר לקבוצה ולא יצטרך להירשם מחדש.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        <Button type="submit" disabled={loading} className="w-full h-11">
+                          {loading ? (
+                            <Loader2 className="h-4 w-4 animate-spin ml-2" />
+                          ) : (
+                            <Plus className="h-4 w-4 ml-2" />
+                          )}
+                          הוסף חבר ושלח הודעת ברוך הבא
+                        </Button>
+                      </form>
+                    </CardContent>
+                  </Card>
+                )}
 
               {/* Settings Tab */}
               {activeTab === 'settings' && selectedGroup?.role === 'ADMIN' && (
