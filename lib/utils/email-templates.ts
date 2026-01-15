@@ -21,7 +21,7 @@ const BASE_STYLES = {
   container: `max-width: 640px; margin: 0 auto; background-color: ${COLORS.white}; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); width: 100%; box-sizing: border-box;`,
   header: `background-color: ${COLORS.white}; padding: 20px 30px; border-bottom: 1px solid ${COLORS.border}; display: flex; align-items: center; justify-content: space-between;`,
   logoText: `color: ${COLORS.primary}; font-size: 18px; font-weight: 700; text-decoration: none;`,
-  hero: `width: 100%; height: 200px; background-color: ${COLORS.primary}; background-size: cover; background-position: center;`,
+  hero: `width: 100%; max-width: 100%; height: auto; display: block; border-radius: 12px 12px 0 0;`,
   contentPadding: `padding: 40px 32px;`,
   tag: `display: inline-block; padding: 4px 12px; border-radius: 9999px; background-color: rgba(15, 77, 92, 0.1); color: ${COLORS.primary}; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px;`,
   h1: `color: ${COLORS.textMain}; font-size: 28px; font-weight: 800; line-height: 1.2; margin: 0 0 24px 0;`,
@@ -100,8 +100,7 @@ export function buildEventReminderHtml(
 
 
               <!-- Hero Image -->
-              <div style="${BASE_STYLES.hero}; background-image: url('${heroImage}');">
-              </div>
+              <img src="${heroImage}" alt="Event Image" style="${BASE_STYLES.hero}" />
 
               <!-- Title Section -->
               <div class="content-padding" style="padding: 40px 32px 16px 32px; text-align: center;">
