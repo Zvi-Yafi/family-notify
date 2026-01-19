@@ -22,6 +22,7 @@ import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/ca
 import { Header } from '@/components/header'
 import { Footer } from '@/components/footer'
 import { useAuth } from '@/lib/hooks/use-auth'
+import Head from 'next/head'
 import { Logo } from '@/components/logo'
 
 const fadeInUp = {
@@ -156,6 +157,13 @@ export default function HomePage() {
   // --- Guest Landing Page View ---
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 overflow-x-hidden">
+      <Head>
+        <title>FamNotify | מערכת הודעות למשפחה וניהול אירועים משפחתיים</title>
+        <meta
+          name="description"
+          content="הפלטפורמה המובילה לשליחת הודעות ותזכורות למשפחה ב-WhatsApp, SMS ואימייל. נהלו אירועים משפחתיים, ימי הולדת ושמחות במקום אחד בטוח ופרטי."
+        />
+      </Head>
       {/* Header */}
       <header className="fixed top-0 w-full z-50 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md border-b border-slate-100 dark:border-slate-800">
         <nav className="container mx-auto px-6 py-4 flex items-center justify-between">
@@ -510,6 +518,80 @@ export default function HomePage() {
                     <MessageSquare className="h-5 w-5" /> הודעה בוואטסאפ
                   </Button>
                 </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* SEO CONTENT SECTION */}
+        <section className="py-24 bg-slate-50 dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-800">
+          <div className="container mx-auto px-6">
+            <div className="max-w-4xl mx-auto space-y-12 text-right">
+              <header className="space-y-4">
+                <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
+                  FamNotify - מערכת הודעות למשפחה וניהול אירועים משפחתיים
+                </h1>
+                <p className="text-lg text-slate-600 dark:text-slate-400 leading-relaxed">
+                  ניהול תקשורת משפחתית בעידן הדיגיטלי לא חייב להיות משימה מורכבת. FamNotify היא
+                  פלטפורמה ייעודית שנוצרה כדי להעניק למשפחות מרחב פרטי, מאורגן ושקט לניהול כל מה
+                  שקורה בתוך המשפחה. בין אם מדובר בשמחה גדולה, עדכון יומיומי או תיאום אירוע חשוב,
+                  המערכת שלנו מבטיחה שכל בן משפחה יקבל את המידע בזמן ובדרך הנוחה לו ביותר.
+                </p>
+              </header>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                <div className="space-y-4">
+                  <h2 className="text-2xl font-semibold text-slate-800 dark:text-slate-200">
+                    אתר תזכורות למשפחה: איך זה עובד?
+                  </h2>
+                  <p className="text-slate-600 dark:text-slate-400">
+                    שלא כמו קבוצות צ׳אט עמוסות, FamNotify מרכזת את כל המידע בלוח אחד מסודר. בני
+                    המשפחה יכולים לצפות בהודעות קודמות, לראות אירועים עתידיים בלוח השנה ולוודא שהם
+                    לא פספסו שום דבר. המערכת מאפשרת לכם לשלוח הודעות ותזכורות אוטומטיות, כך שלא
+                    תצטרכו לרדוף אחרי אף אחד – הטכנולוגיה עושה את העבודה בשבילכם.
+                  </p>
+                </div>
+
+                <div className="space-y-4">
+                  <h2 className="text-2xl font-semibold text-slate-800 dark:text-slate-200">
+                    שליחת הודעות למשפחה ב-WhatsApp, SMS ואימייל
+                  </h2>
+                  <p className="text-slate-600 dark:text-slate-400">
+                    אנחנו מבינים שלכל בן משפחה יש את העדפות שלו. סבתא אולי מעדיפה SMS, ההורים
+                    משתמשים באימייל, והצעירים מחוברים לוואטסאפ. FamNotify מאפשרת לכל משתמש לבחור את
+                    ערוץ התקשורת המועדף עליו, כך שהודעה אחת שאתם מפרסמים מופצת באופן אוטומטי לכל
+                    הערוצים שנבחרו בו-זמנית.
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-white dark:bg-slate-800 p-8 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-sm">
+                <h2 className="text-2xl font-semibold mb-6 text-slate-800 dark:text-slate-200">
+                  פתרון מושלם לניהול אירועים משפחתיים ושמחות
+                </h2>
+                <p className="mb-6 text-slate-600 dark:text-slate-400">
+                  מארגנים ברית, שבת חתן או סתם טיול משפחתי? הכלים שלנו עוזרים לכם לנהל את האירוע
+                  מתחילתו ועד סופו. עם מערכת תזכורות לוואטסאפ למשפחה, תוכלו לוודא שכולם זוכרים את
+                  התאריך והמיקום, מבלי להרגיש שאתם מציפים את כולם בהודעות מיותרות.
+                </p>
+                <ul className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {[
+                    'מערכת משפחתית פרטית ומאובטחת לחלוטין',
+                    'תזכורות לוואטסאפ למשפחה באופן אוטומטי',
+                    'סנכרון מלא של כל האירועים בין כל המכשירים',
+                    'ממשק פשוט בעברית שמתאים גם למבוגרים',
+                    'שליטה מלאה על רמת הפרטיות והגישה לקבוצה',
+                    'ארכיון הודעות היסטורי לשימור רגעים משפחתיים',
+                  ].map((benefit, idx) => (
+                    <li
+                      key={idx}
+                      className="flex items-center gap-3 text-slate-700 dark:text-slate-300"
+                    >
+                      <div className="h-2 w-2 rounded-full bg-blue-500" />
+                      <span>{benefit}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
             </div>
           </div>
