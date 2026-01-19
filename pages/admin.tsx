@@ -593,7 +593,7 @@ export default function AdminPage() {
       // Create reminder (either scheduled or immediate default)
       const reminderToCreate = {
         eventId: eventResponse.event.id,
-        message: eventForm.reminderMessage || `פורסם אירוע חדש: ${eventForm.title}`,
+        message: eventForm.reminderMessage || '',
         scheduledAt: eventForm.reminderScheduledAt || null,
       }
 

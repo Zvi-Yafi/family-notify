@@ -165,10 +165,9 @@ export function buildEventReminderHtml(
                 </table>
               </div>
 
-              <!-- Additional Details -->
               <div style="padding: 32px;">
                 <h3 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 700;">פרטים נוספים</h3>
-                ${customMessage ? `<p style="${BASE_STYLES.paragraph}"><strong>הודעה:</strong> ${customMessage}</p>` : ''}
+                ${customMessage && customMessage !== event.title ? `<p style="${BASE_STYLES.paragraph}">${customMessage}</p>` : ''}
                 ${(event.description || '')
                   .split('\n')
                   .map((line: string) =>
