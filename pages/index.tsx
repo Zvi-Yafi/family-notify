@@ -1,16 +1,13 @@
-'use client'
-
-import { useEffect, useState } from 'react'
+import { GetServerSideProps } from 'next'
 import Link from 'next/link'
-import { motion, AnimatePresence } from 'framer-motion'
+import Head from 'next/head'
+import { motion } from 'framer-motion'
 import {
   Mail,
   MessageSquare,
-  Bell,
   Calendar,
   Users,
   Shield,
-  ArrowRight,
   CheckCircle2,
   Phone,
   Info,
@@ -19,11 +16,10 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Header } from '@/components/header'
 import { Footer } from '@/components/footer'
-import { useAuth } from '@/lib/hooks/use-auth'
-import Head from 'next/head'
 import { Logo } from '@/components/logo'
+import { createServerClientFromCookies } from '@/lib/supabase/server'
+import { ClientDashboardGate } from '@/components/ClientDashboardGate'
 
 const fadeInUp = {
   hidden: { opacity: 0, y: 20 },
@@ -40,121 +36,11 @@ const staggerContainer = {
   },
 }
 
-export default function HomePage() {
-  const { user, loading } = useAuth()
-  const [mounted, setMounted] = useState(false)
+interface HomePageProps {
+  isAuthedFromServer: boolean
+}
 
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  if (!mounted || loading) return null
-
-  // Get user display name (consistent with header)
-  const getUserDisplayName = () => {
-    if (!user) return null
-    return user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0]
-  }
-
-  const displayName = getUserDisplayName()
-
-  // --- Authenticated Dashboard View ---
-  if (user) {
-    return (
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
-        <Header />
-
-        <main className="container mx-auto px-4 py-12">
-          <motion.div
-            initial="hidden"
-            animate="visible"
-            variants={staggerContainer}
-            className="max-w-5xl mx-auto space-y-12"
-          >
-            {/* Personalized Welcome */}
-            <motion.section variants={fadeInUp} className="text-right space-y-4">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-sm font-medium">
-                <Heart className="h-4 w-4" />
-                <span>טוב לראות אותך שוב</span>
-              </div>
-              <h1 className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-l from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400">
-                שלום, {displayName}
-              </h1>
-              <p className="text-xl text-slate-600 dark:text-slate-400 max-w-2xl ml-auto">
-                הקבוצה המשפחתית שלך מחכה לעדכונים חדשים. מה נרצה לשתף היום?
-              </p>
-            </motion.section>
-
-            {/* Quick Actions Grid */}
-            <motion.section variants={fadeInUp} className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card className="relative overflow-hidden group border-none shadow-lg bg-white dark:bg-slate-900">
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-transparent group-hover:from-blue-500/20 transition-all duration-300" />
-                <CardHeader className="relative p-8">
-                  <div className="h-12 w-12 rounded-2xl bg-blue-500 text-white flex items-center justify-center mb-6 shadow-blue-500/20 shadow-xl">
-                    <Bell className="h-6 w-6" />
-                  </div>
-                  <CardTitle className="text-2xl mb-2">פרסום הודעה</CardTitle>
-                  <CardDescription className="text-base mb-6">
-                    עדכן את כל המשפחה בשמחה חדשה, הודעה כללית או עדכון חשוב.
-                  </CardDescription>
-                  <Button asChild className="w-fit gap-2">
-                    <Link href="/feed">
-                      פרסום הודעה <ArrowRight className="h-4 w-4 rotate-180" />
-                    </Link>
-                  </Button>
-                </CardHeader>
-              </Card>
-
-              <Card className="relative overflow-hidden group border-none shadow-lg bg-white dark:bg-slate-900">
-                <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 to-transparent group-hover:from-indigo-500/20 transition-all duration-300" />
-                <CardHeader className="relative p-8">
-                  <div className="h-12 w-12 rounded-2xl bg-indigo-500 text-white flex items-center justify-center mb-6 shadow-indigo-500/20 shadow-xl">
-                    <Calendar className="h-6 w-6" />
-                  </div>
-                  <CardTitle className="text-2xl mb-2">אירועים קרובים</CardTitle>
-                  <CardDescription className="text-base mb-6">
-                    צפה בלוח האירועים המשפחתי, ימי הולדת ואירועים שתוזמנו.
-                  </CardDescription>
-                  <Button variant="outline" asChild className="w-fit gap-2">
-                    <Link href="/events">
-                      לוח האירועים <ArrowRight className="h-4 w-4 rotate-180" />
-                    </Link>
-                  </Button>
-                </CardHeader>
-              </Card>
-            </motion.section>
-
-            {/* Stats / Overview hint */}
-            <motion.div
-              variants={fadeInUp}
-              className="bg-slate-900 dark:bg-blue-600 text-white rounded-3xl p-8 md:p-12 shadow-2xl relative overflow-hidden"
-            >
-              <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8 text-center md:text-right">
-                <div className="space-y-2">
-                  <h3 className="text-2xl font-bold">הצטרפו כבר אלפי משפחות</h3>
-                  <p className="text-blue-100">
-                    FamilyNotify עוזרת למשפחות להישאר מחוברות בדרך הקלה והנוחה ביותר.
-                  </p>
-                </div>
-                <Button
-                  size="lg"
-                  variant="secondary"
-                  asChild
-                  className="bg-white text-blue-600 hover:bg-blue-50"
-                >
-                  <Link href="/groups">נהל קבוצות</Link>
-                </Button>
-              </div>
-              <div className="absolute top-0 left-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
-            </motion.div>
-          </motion.div>
-        </main>
-        <Footer />
-      </div>
-    )
-  }
-
-  // --- Guest Landing Page View ---
+export default function HomePage({ isAuthedFromServer }: HomePageProps) {
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 overflow-x-hidden">
       <Head>
@@ -164,6 +50,9 @@ export default function HomePage() {
           content="הפלטפורמה המובילה לשליחת הודעות ותזכורות למשפחה ב-WhatsApp, SMS ואימייל. נהלו אירועים משפחתיים, ימי הולדת ושמחות במקום אחד בטוח ופרטי."
         />
       </Head>
+
+      <ClientDashboardGate isAuthedFromServer={isAuthedFromServer} />
+
       {/* Header */}
       <header className="fixed top-0 w-full z-50 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md border-b border-slate-100 dark:border-slate-800">
         <nav className="container mx-auto px-6 py-4 flex items-center justify-between">
@@ -196,7 +85,7 @@ export default function HomePage() {
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.5 }}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 text-sm font-semibold mb-8 border border-blue-100 dark:border-blue-800"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50: dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 text-sm font-semibold mb-8 border border-blue-100 dark:border-blue-800"
             >
               <Globe className="h-4 w-4" />
               <span>הדרך החדשה לתקשורת משפחתית</span>
@@ -528,9 +417,9 @@ export default function HomePage() {
           <div className="container mx-auto px-6">
             <div className="max-w-4xl mx-auto space-y-12 text-right">
               <header className="space-y-4">
-                <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
+                <h2 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
                   FamNotify - מערכת הודעות למשפחה וניהול אירועים משפחתיים
-                </h1>
+                </h2>
                 <p className="text-lg text-slate-600 dark:text-slate-400 leading-relaxed">
                   ניהול תקשורת משפחתית בעידן הדיגיטלי לא חייב להיות משימה מורכבת. FamNotify היא
                   פלטפורמה ייעודית שנוצרה כדי להעניק למשפחות מרחב פרטי, מאורגן ושקט לניהול כל מה
@@ -601,4 +490,18 @@ export default function HomePage() {
       <Footer />
     </div>
   )
+}
+
+export const getServerSideProps: GetServerSideProps = async (context) => {
+  const supabase = createServerClientFromCookies(context.req.cookies)
+
+  const {
+    data: { session },
+  } = await supabase.auth.getSession()
+
+  return {
+    props: {
+      isAuthedFromServer: !!session,
+    },
+  }
 }
