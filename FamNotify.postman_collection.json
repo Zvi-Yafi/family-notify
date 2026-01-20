@@ -1,0 +1,461 @@
+{
+  "info": {
+    "_postman_id": "famnotify-full-api-collection",
+    "name": "FamNotify Full API",
+    "description": "Comprehensive API collection for FamNotify.\n\n### Folders\n- **Auth**: User authentication.\n- **User**: Profile management.\n- **Admin**: Group-level administration (Announcements, Events, Members).\n- **Super Admin**: System-wide statistics (Restricted to super-admin email).\n- **Cron**: Background job triggers.\n\n### Authentication\n1. Run **Auth > Login**.\n2. The `access_token` is saved automatically.\n3. Ensure `familyGroupId`, `eventId`, and `base_url` variables are set.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.success && jsonData.session) {",
+                  "    pm.collectionVariables.set(\"access_token\", jsonData.session.access_token);",
+                  "    pm.collectionVariables.set(\"refresh_token\", jsonData.session.refresh_token);",
+                  "    console.log(\"Access Token saved!\");",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"user@example.com\",\n    \"password\": \"your-password\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "login"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Sign Up (Create User)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"newuser@example.com\",\n    \"password\": \"securepassword\",\n    \"name\": \"משתמש חדש\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/create-user",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "create-user"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "User Profile",
+      "item": [
+        {
+          "name": "Get My Profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/user/me",
+              "host": ["{{base_url}}"],
+              "path": ["api", "user", "me"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"שם מעודכן\",\n    \"phone\": \"0501234567\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/user/profile",
+              "host": ["{{base_url}}"],
+              "path": ["api", "user", "profile"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Preferences",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": true,\n    \"whatsapp\": true,\n    \"sms\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/preferences",
+              "host": ["{{base_url}}"],
+              "path": ["api", "preferences"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Admin (Group)",
+      "item": [
+        {
+          "name": "Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/admin/stats?familyGroupId={{familyGroupId}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "stats"],
+              "query": [
+                {
+                  "key": "familyGroupId",
+                  "value": "{{familyGroupId}}"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Announcements",
+          "item": [
+            {
+              "name": "List Announcements",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/admin/announcements?familyGroupId={{familyGroupId}}",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "admin", "announcements"],
+                  "query": [
+                    {
+                      "key": "familyGroupId",
+                      "value": "{{familyGroupId}}"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Create Announcement",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"title\": \"הודעה מנהלתית\",\n    \"bodyText\": \"תוכן ההודעה כאן\",\n    \"type\": \"GENERAL\",\n    \"familyGroupId\": \"{{familyGroupId}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/admin/announcements",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "admin", "announcements"]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Events",
+          "item": [
+            {
+              "name": "List Events",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/admin/events?familyGroupId={{familyGroupId}}&includePast=true",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "admin", "events"],
+                  "query": [
+                    {
+                      "key": "familyGroupId",
+                      "value": "{{familyGroupId}}"
+                    },
+                    {
+                      "key": "includePast",
+                      "value": "true"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get Event Details",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/admin/events/{{eventId}}",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "admin", "events", "{{eventId}}"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Update Event",
+              "request": {
+                "method": "PUT",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"title\": \"שם אירוע מעודכן\",\n    \"location\": \"מיקום חדש\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/admin/events/{{eventId}}",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "admin", "events", "{{eventId}}"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Delete Event",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/admin/events/{{eventId}}",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "admin", "events", "{{eventId}}"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Event Reminders",
+              "item": [
+                {
+                  "name": "List Reminders for Event",
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{base_url}}/api/admin/event-reminders?eventId={{eventId}}",
+                      "host": ["{{base_url}}"],
+                      "path": ["api", "admin", "event-reminders"],
+                      "query": [
+                        {
+                          "key": "eventId",
+                          "value": "{{eventId}}"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Create Event Reminder",
+                  "request": {
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n    \"eventId\": \"{{eventId}}\",\n    \"message\": \"תזכורת: האירוע מתחיל בעוד שעה\",\n    \"scheduledAt\": \"2024-12-30T17:00:00Z\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{base_url}}/api/admin/event-reminders",
+                      "host": ["{{base_url}}"],
+                      "path": ["api", "admin", "event-reminders"]
+                    }
+                  },
+                  "response": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Members",
+          "item": [
+            {
+              "name": "List Members",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/admin/members?familyGroupId={{familyGroupId}}",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "admin", "members"],
+                  "query": [
+                    {
+                      "key": "familyGroupId",
+                      "value": "{{familyGroupId}}"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Add Member",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"familyGroupId\": \"{{familyGroupId}}\",\n    \"email\": \"member@example.com\",\n    \"name\": \"ישראל ישראלי\",\n    \"phone\": \"0500000000\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/admin/members",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "admin", "members"]
+                }
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Super Admin (Global)",
+      "item": [
+        {
+          "name": "Global Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/super-admin/stats",
+              "host": ["{{base_url}}"],
+              "path": ["api", "super-admin", "stats"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Cron Jobs",
+      "item": [
+        {
+          "name": "Process Due Announcements",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/cron/due-announcements",
+              "host": ["{{base_url}}"],
+              "path": ["api", "cron", "due-announcements"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Process Event Reminders",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/cron/event-reminders",
+              "host": ["{{base_url}}"],
+              "path": ["api", "cron", "event-reminders"]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{access_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://famnotify.com",
+      "type": "string"
+    },
+    {
+      "key": "access_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "refresh_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "familyGroupId",
+      "value": "ENTER_GROUP_ID_HERE",
+      "type": "string"
+    },
+    {
+      "key": "eventId",
+      "value": "ENTER_EVENT_ID_HERE",
+      "type": "string"
+    }
+  ]
+}
