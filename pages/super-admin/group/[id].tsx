@@ -13,6 +13,9 @@ import {
   Clock,
   User,
   Loader2,
+  Mail,
+  Phone,
+  Bell,
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -234,6 +237,7 @@ export default function GroupObserverPage() {
                       <tr className="bg-gray-50 dark:bg-gray-800/50 text-gray-500 text-xs">
                         <th className="p-4 font-medium">משתמש</th>
                         <th className="p-4 font-medium">תפקיד</th>
+                        <th className="p-4 font-medium text-center">העדפות התראה</th>
                         <th className="p-4 font-medium">הצטרף ב-</th>
                       </tr>
                     </thead>
@@ -250,6 +254,33 @@ export default function GroupObserverPage() {
                             >
                               {m.role === 'ADMIN' ? 'מנהל' : m.role === 'EDITOR' ? 'עורך' : 'חבר'}
                             </span>
+                          </td>
+                          <td className="p-4 text-center">
+                            <div className="flex items-center justify-center gap-2">
+                              {m.preferences?.includes('EMAIL') && (
+                                <div title="אימייל">
+                                  <Mail className="h-4 w-4 text-blue-500" />
+                                </div>
+                              )}
+                              {m.preferences?.includes('WHATSAPP') && (
+                                <div title="WhatsApp">
+                                  <MessageSquare className="h-4 w-4 text-green-500" />
+                                </div>
+                              )}
+                              {m.preferences?.includes('SMS') && (
+                                <div title="SMS">
+                                  <Phone className="h-4 w-4 text-orange-500" />
+                                </div>
+                              )}
+                              {m.preferences?.includes('PUSH') && (
+                                <div title="התראות">
+                                  <Bell className="h-4 w-4 text-purple-500" />
+                                </div>
+                              )}
+                              {(!m.preferences || m.preferences.length === 0) && (
+                                <span className="text-[10px] text-gray-400">ללא</span>
+                              )}
+                            </div>
                           </td>
                           <td className="p-4 text-gray-500">
                             {new Date(m.joinedAt).toLocaleDateString('he-IL')}

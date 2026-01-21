@@ -44,6 +44,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               select: {
                 name: true,
                 email: true,
+                preferences: {
+                  where: {
+                    enabled: true,
+                  },
+                  select: {
+                    channel: true,
+                  },
+                },
               },
             },
           },
@@ -66,6 +74,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         .filter((m) => m.role === 'ADMIN')
         .map((m) => m.user.name || m.user.email)
 
+      const preferenceCounts = {
+        EMAIL: 0,
+        WHATSAPP: 0,
+        SMS: 0,
+        PUSH: 0,
+      }
+
+      group.memberships.forEach((m) => {
+        m.user.preferences.forEach((p) => {
+          if (p.channel in preferenceCounts) {
+            preferenceCounts[p.channel as keyof typeof preferenceCounts]++
+          }
+        })
+      })
+
       return {
         id: group.id,
         name: group.name,
@@ -75,6 +98,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         announcementCount: group._count.announcements,
         eventCount: group._count.events,
         admins: admins.length > 0 ? admins : ['No Admin'],
+        preferenceCounts,
       }
     })
 

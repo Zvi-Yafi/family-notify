@@ -246,6 +246,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             email: true,
             name: true,
             phone: true,
+            preferences: {
+              where: {
+                enabled: true,
+              },
+              select: {
+                channel: true,
+              },
+            },
           },
         },
       },
@@ -261,6 +269,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       phone: membership.user.phone,
       role: membership.role,
       joinedAt: membership.createdAt,
+      preferences: membership.user.preferences.map((p) => p.channel),
     }))
 
     return res.status(200).json({ members })

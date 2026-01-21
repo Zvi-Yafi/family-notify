@@ -13,6 +13,9 @@ import {
   ArrowUpDown,
   ExternalLink,
   Loader2,
+  Mail,
+  Phone,
+  Bell,
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -41,6 +44,12 @@ interface GroupInfo {
   announcementCount: number
   eventCount: number
   admins: string[]
+  preferenceCounts: {
+    EMAIL: number
+    WHATSAPP: number
+    SMS: number
+    PUSH: number
+  }
 }
 
 export default function SuperAdminPage() {
@@ -242,6 +251,7 @@ export default function SuperAdminPage() {
                         אירועים <ArrowUpDown className="h-3 w-3" />
                       </div>
                     </th>
+                    <th className="p-4 text-center">העדפות התראה</th>
                     <th
                       className="p-4 cursor-pointer hover:text-blue-600 transition-colors"
                       onClick={() => requestSort('createdAt')}
@@ -286,8 +296,44 @@ export default function SuperAdminPage() {
                       <td className="p-4 text-center text-gray-600 dark:text-gray-400">
                         {group.announcementCount}
                       </td>
-                      <td className="p-4 text-center text-gray-600 dark:text-gray-400">
-                        {group.eventCount}
+                      <td className="p-4 text-center">
+                        <div className="flex items-center justify-center gap-2">
+                          {group.preferenceCounts.EMAIL > 0 && (
+                            <div className="flex flex-col items-center" title="אימייל">
+                              <Mail className="h-4 w-4 text-blue-500" />
+                              <span className="text-[10px] font-bold">
+                                {group.preferenceCounts.EMAIL}
+                              </span>
+                            </div>
+                          )}
+                          {group.preferenceCounts.WHATSAPP > 0 && (
+                            <div className="flex flex-col items-center" title="WhatsApp">
+                              <MessageSquare className="h-4 w-4 text-green-500" />
+                              <span className="text-[10px] font-bold">
+                                {group.preferenceCounts.WHATSAPP}
+                              </span>
+                            </div>
+                          )}
+                          {group.preferenceCounts.SMS > 0 && (
+                            <div className="flex flex-col items-center" title="SMS">
+                              <Phone className="h-4 w-4 text-orange-500" />
+                              <span className="text-[10px] font-bold">
+                                {group.preferenceCounts.SMS}
+                              </span>
+                            </div>
+                          )}
+                          {group.preferenceCounts.PUSH > 0 && (
+                            <div className="flex flex-col items-center" title="התראות">
+                              <Bell className="h-4 w-4 text-purple-500" />
+                              <span className="text-[10px] font-bold">
+                                {group.preferenceCounts.PUSH}
+                              </span>
+                            </div>
+                          )}
+                          {Object.values(group.preferenceCounts).every((v) => v === 0) && (
+                            <span className="text-xs text-gray-400">אין העדפות</span>
+                          )}
+                        </div>
                       </td>
                       <td className="p-4 text-sm text-gray-500">
                         {new Date(group.createdAt).toLocaleDateString('he-IL')}
