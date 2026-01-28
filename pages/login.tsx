@@ -17,6 +17,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [name, setName] = useState('')
+  const [phone, setPhone] = useState('')
   const router = useRouter()
   const { toast } = useToast()
   const supabase = createClient()
@@ -173,10 +174,19 @@ export default function LoginPage() {
   const handleEmailSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!email || !password || !name) {
+    if (!name || !password) {
       toast({
         title: 'שגיאה',
-        description: 'נא למלא את כל השדות',
+        description: 'נא למלא את השם והסיסמה',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    if (!email && !phone) {
+      toast({
+        title: 'שגיאה',
+        description: 'נא למלא לפחות מייל או מספר טלפון',
         variant: 'destructive',
       })
       return
@@ -193,12 +203,24 @@ export default function LoginPage() {
 
     try {
       setLoading(true)
+      
+      let signupEmail = email
+      let isTemporaryEmail = false
+      
+      if (!email && phone) {
+        const cleanPhone = phone.replace(/[^0-9]/g, '')
+        signupEmail = `phone_${cleanPhone}@temp.familynotify.internal`
+        isTemporaryEmail = true
+      }
+      
       const { data, error } = await supabase.auth.signUp({
-        email,
+        email: signupEmail,
         password,
         options: {
           data: {
             full_name: name,
+            phone_number: phone,
+            is_temp_email: isTemporaryEmail,
           },
           emailRedirectTo: `${window.location.origin}/api/auth/callback`,
         },
@@ -210,36 +232,46 @@ export default function LoginPage() {
 
       // Check if email confirmation is required
       if (data?.user && !data.session) {
-        // Email confirmation required - create user in database immediately
         try {
           await fetch('/api/auth/create-user', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               userId: data.user.id,
-              email: data.user.email,
+              email: isTemporaryEmail ? null : (email || null),
               name: name,
-              phone: data.user.phone || null,
+              phone: phone || data.user.phone || null,
             }),
           })
         } catch (syncError) {
           console.error('Failed to create user:', syncError)
         }
 
-        toast({
-          title: 'הרשמה הושלמה! 📧',
-          description: 'אנא בדוק את האימייל שלך לאימות החשבון',
-        })
+        if (isTemporaryEmail) {
+          toast({
+            title: 'הרשמה הושלמה! 🎉',
+            description: 'החשבון שלך נוצר בהצלחה',
+          })
+        } else {
+          toast({
+            title: 'הרשמה הושלמה! 📧',
+            description: 'אנא בדוק את האימייל שלך לאימות החשבון',
+          })
+        }
       } else if (data?.user && data.session) {
-        // User is signed in immediately (email confirmation disabled)
-        // Sync user to database
         try {
-          await fetch('/api/auth/sync-user', {
+          await fetch('/api/auth/create-user', {
             method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              userId: data.user.id,
+              email: isTemporaryEmail ? null : (email || null),
+              name: name,
+              phone: phone || data.user.phone || null,
+            }),
           })
         } catch (syncError) {
-          console.error('Failed to sync user:', syncError)
-          // Don't block signup if sync fails
+          console.error('Failed to create user:', syncError)
         }
 
         // Refresh groups to load user's groups before redirect
@@ -390,7 +422,7 @@ export default function LoginPage() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="signup-email" className="text-sm sm:text-base">
-                      אימייל
+                      אימייל (אופציונלי)
                     </Label>
                     <Input
                       id="signup-email"
@@ -399,8 +431,21 @@ export default function LoginPage() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       disabled={loading}
-                      required
                     />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-phone" className="text-sm sm:text-base">
+                      טלפון (אופציונלי)
+                    </Label>
+                    <Input
+                      id="signup-phone"
+                      type="tel"
+                      placeholder="+972-50-1234567"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      disabled={loading}
+                    />
+                    <p className="text-xs text-muted-foreground">נא למלא לפחות מייל או טלפון</p>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="signup-password" className="text-sm sm:text-base">
