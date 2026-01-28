@@ -1,8 +1,10 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { prisma } from '@/lib/prisma'
 import { createServerClient } from '@/lib/supabase/server'
+import { withRequestContext } from '@/lib/api-wrapper'
+import { getGroupById, invalidateGroupCache } from '@/lib/services/cached-endpoints.service'
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { id } = req.query
 
   if (!id || typeof id !== 'string') {
@@ -41,9 +43,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
       }
 
-      const group = await prisma.familyGroup.findUnique({
-        where: { id },
-      })
+      const group = await getGroupById(id)
 
       if (!group) {
         return res.status(404).json({ error: 'Group not found' })
@@ -119,6 +119,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       data: updateData,
     })
 
+    invalidateGroupCache(id)
+
     return res.status(200).json({
       success: true,
       group: {
@@ -132,3 +134,5 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(500).json({ error: error.message || 'Failed to update group' })
   }
 }
+
+export default withRequestContext(handler)

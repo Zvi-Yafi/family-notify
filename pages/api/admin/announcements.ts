@@ -4,6 +4,12 @@ import { dispatchService } from '@/lib/dispatch/dispatch.service'
 import { createServerClient } from '@/lib/supabase/server'
 import { convertIsraelToUTC, formatToIsraelTime } from '@/lib/utils/timezone'
 import { roundDateToTenMinutes } from '@/lib/utils/time-utils'
+import { invalidateStatsOnAnnouncementCreate } from '@/lib/hooks/cache-invalidation'
+import { withRequestContext } from '@/lib/api-wrapper'
+import {
+  getGroupAnnouncements,
+  invalidateGroupCache,
+} from '@/lib/services/cached-endpoints.service'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   // Handle CORS preflight
@@ -71,6 +77,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           publishedAt: scheduledAt ? null : new Date(),
         },
       })
+
+      invalidateStatsOnAnnouncementCreate(familyGroupId)
 
       if (!scheduledAt) {
         await dispatchService.dispatchAnnouncement({

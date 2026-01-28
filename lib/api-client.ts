@@ -110,7 +110,7 @@ class ApiClient {
     return this.request<{
       members: Array<{
         id: string
-        email: string
+        email: string | null
         name: string | null
         phone: string | null
         role: string
@@ -121,7 +121,7 @@ class ApiClient {
 
   async addMember(data: {
     familyGroupId: string
-    email: string
+    email?: string
     name: string
     phone?: string
     channel?: string

@@ -3,13 +3,16 @@ import { prisma } from '@/lib/prisma'
 import { createServerClient } from '@/lib/supabase/server'
 import { convertIsraelToUTC, formatToIsraelTime } from '@/lib/utils/timezone'
 import { roundDateToTenMinutes } from '@/lib/utils/time-utils'
+import { invalidateStatsOnEventCreate } from '@/lib/hooks/cache-invalidation'
+import { withRequestContext } from '@/lib/api-wrapper'
+import { getGroupEvents, invalidateGroupCache } from '@/lib/services/cached-endpoints.service'
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  // Handle CORS preflight
+async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void> {
   if (req.method === 'OPTIONS') {
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
-    return res.status(200).end()
+    res.status(200).end()
+    return
   }
 
   if (req.method === 'POST') {
@@ -54,11 +57,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         })
 
         if (!membership || !['ADMIN', 'EDITOR'].includes(membership.role)) {
-          return res
-            .status(403)
-            .json({
-              error: 'Forbidden - You do not have permission to create events in this group',
-            })
+          return res.status(403).json({
+            error: 'Forbidden - You do not have permission to create events in this group',
+          })
         }
       }
 
@@ -79,6 +80,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           createdBy: userId,
         },
       })
+
+      invalidateStatsOnEventCreate(familyGroupId)
+      invalidateGroupCache(familyGroupId)
 
       return res.status(200).json({ success: true, event })
     } catch (error: any) {
@@ -132,28 +136,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
       }
 
-      // Only filter future events if includePast is not 'true'
-      if (includePast !== 'true') {
-        whereClause.startsAt = {
-          gte: now,
-        }
-      }
-
-      const events = await prisma.event.findMany({
-        where: whereClause,
-        include: {
-          creator: {
-            select: {
-              email: true,
-            },
-          },
-        },
-        orderBy: {
-          startsAt: 'asc',
-        },
-      })
-
-      return res.status(200).json({ events })
+      const result = await getGroupEvents(familyGroupId, includePast === 'true')
+      return res.status(200).json(result)
     } catch (error: any) {
       console.error('Error fetching events:', error)
       return res.status(500).json({ error: error.message || 'Failed to fetch events' })
@@ -162,3 +146,5 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   return res.status(405).json({ error: 'Method not allowed' })
 }
+
+export default withRequestContext(handler)

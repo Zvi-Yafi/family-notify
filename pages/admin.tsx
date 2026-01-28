@@ -61,7 +61,7 @@ interface Stats {
 
 interface Member {
   id: string
-  email: string
+  email: string | null
   name: string | null
   phone: string | null
   role: string
@@ -393,18 +393,28 @@ export default function AdminPage() {
 
   const handleAddMemberSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!familyGroupId || !addMemberForm.email || !addMemberForm.name) return
+    if (!familyGroupId || !addMemberForm.name) return
+    if (!addMemberForm.email && !addMemberForm.phone) {
+      toast({
+        title: 'שגיאה',
+        description: 'נא להזין לפחות מייל או מספר טלפון',
+        variant: 'destructive',
+      })
+      return
+    }
 
     setLoading(true)
     try {
-      await apiClient.addMember({
+      const memberData: any = {
         familyGroupId,
-        email: addMemberForm.email,
         name: addMemberForm.name,
-        phone: addMemberForm.phone || undefined,
         channel: addMemberForm.channel,
         password: addMemberForm.password,
-      })
+      }
+      if (addMemberForm.email) memberData.email = addMemberForm.email
+      if (addMemberForm.phone) memberData.phone = addMemberForm.phone
+
+      await apiClient.addMember(memberData)
 
       toast({
         title: 'חבר נוסף בהצלחה',
@@ -784,8 +794,9 @@ export default function AdminPage() {
                       ) : (
                         <div className="space-y-3 sm:space-y-4">
                           {members.map((member) => {
-                            // Use name if available, otherwise extract from email
-                            const displayName = member.name || member.email.split('@')[0]
+                            const displayName =
+                              member.name ||
+                              (member.email ? member.email.split('@')[0] : member.phone || 'משתמש')
 
                             return (
                               <div
@@ -797,15 +808,15 @@ export default function AdminPage() {
                                     <UserIcon className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600 dark:text-blue-300" />
                                   </div>
                                   <div className="flex-1 min-w-0">
-                                    {/* שורה 1: שם */}
                                     <p className="font-semibold text-base sm:text-lg text-gray-900 dark:text-gray-100 truncate">
                                       {displayName}
                                     </p>
 
-                                    {/* שורה 2: מייל */}
-                                    <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate mt-1">
-                                      📧 {member.email}
-                                    </p>
+                                    {member.email && (
+                                      <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate mt-1">
+                                        📧 {member.email}
+                                      </p>
+                                    )}
 
                                     {/* שורה 3: תאריך הצטרפות */}
                                     <p className="text-xs text-gray-500 dark:text-gray-500 mt-1 flex items-center gap-1 flex-wrap">

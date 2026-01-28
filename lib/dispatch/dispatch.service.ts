@@ -70,8 +70,12 @@ export class DispatchService {
 
     // Create delivery attempts for each user and their enabled channels
     for (const membership of memberships) {
-      const userName = membership.user.name || membership.user.email.split('@')[0]
-      console.log(`\n👤 שולח ל-${userName} (${membership.user.email})...`)
+      const userName =
+        membership.user.name ||
+        (membership.user.email ? membership.user.email.split('@')[0] : membership.user.phone) ||
+        'משתמש'
+      const contact = membership.user.email || membership.user.phone || 'ללא פרטי קשר'
+      console.log(`\n👤 שולח ל-${userName} (${contact})...`)
 
       for (const preference of membership.user.preferences) {
         // Skip if not verified
@@ -176,9 +180,8 @@ export class DispatchService {
       for (const preference of membership.user.preferences) {
         // Skip if not verified
         if (!preference.verifiedAt) {
-          console.log(
-            `⏭️  Skipping ${preference.channel} for ${membership.user.email} - not verified`
-          )
+          const userContact = membership.user.email || membership.user.phone || membership.user.id
+          console.log(`⏭️  Skipping ${preference.channel} for ${userContact} - not verified`)
           continue
         }
 
@@ -406,15 +409,17 @@ export class DispatchService {
         },
       })
 
+      const userContact = user.email || user.phone || user.id
       if (result.success) {
-        console.log(`✅ Sent event reminder via ${preference.channel} to ${user.email}`)
+        console.log(`✅ Sent event reminder via ${preference.channel} to ${userContact}`)
       } else {
         console.error(
-          `❌ Failed event reminder via ${preference.channel} to ${user.email}: ${result.error}`
+          `❌ Failed event reminder via ${preference.channel} to ${userContact}: ${result.error}`
         )
       }
     } catch (error: any) {
-      console.error(`❌ Error sending event reminder to ${user.email}:`, error)
+      const userContact = user.email || user.phone || user.id
+      console.error(`❌ Error sending event reminder to ${userContact}:`, error)
       await prisma.deliveryAttempt.update({
         where: { id: attemptId },
         data: {
@@ -501,10 +506,11 @@ export class DispatchService {
     password?: string
   ): Promise<void> {
     const siteLink = `${process.env.NEXT_PUBLIC_APP_URL}/`
-    const userName = user.name || user.email.split('@')[0]
+    const userName = user.name || (user.email ? user.email.split('@')[0] : user.phone) || 'משתמש'
     const groupName = familyGroup.name
+    const userContact = user.email || user.phone || 'ללא פרטי קשר'
 
-    console.log(`\n👋 שולח הודעת ברוך הבא ל-${userName} (${user.email}) בקבוצת ${groupName}`)
+    console.log(`\n👋 שולח הודעת ברוך הבא ל-${userName} (${userContact}) בקבוצת ${groupName}`)
 
     try {
       let result: { success: boolean; messageId?: string; error?: string }
@@ -526,8 +532,12 @@ export class DispatchService {
 
       switch (channel) {
         case 'EMAIL':
+          if (!preference.destination && !user.email) {
+            console.error(`❌ אין כתובת מייל למשתמש ${user.id}`)
+            return
+          }
           result = await emailProvider.send({
-            to: preference.destination || user.email,
+            to: preference.destination || user.email!,
             subject: `ברוך הבא ל-FamilyNotify - הצטרפת לקבוצת ${groupName}`,
             html: buildWelcomeEmailHtml(userName, groupName, siteLink, password),
             text: `היי ${userName}! ברוך הבא לקבוצת ${groupName} ב-FamilyNotify. כנס לאתר: ${siteLink}${password ? `\nפרטי התחברות:\nמייל: המייל שלך\nסיסמה: ${password}` : ''}`,
@@ -535,9 +545,13 @@ export class DispatchService {
           break
 
         case 'WHATSAPP':
+          if (!preference.destination && !user.phone) {
+            console.error(`❌ אין מספר טלפון למשתמש ${user.id}`)
+            return
+          }
           const whatsappMessage = `👋 *היי ${userName}!* \n\nברוך הבא לקבוצת *${groupName}* ב-FamilyNotify. \nמנהל הקבוצה צירף אותך כדי שתוכל להישאר מעודכן בכל מה שקורה במשפחה. \n\n${password ? `🔐 *פרטי התחברות:* \n📧 מייל: המייל שלך \n🔑 סיסמה: *${password}* \n\n` : ''}כניסה לאתר: ${siteLink} \n\n━━━━━━━━━━━━━━━━\nFamilyNotify`
           result = await whatsAppProvider.send({
-            to: preference.destination || user.phone,
+            to: preference.destination || user.phone!,
             message: whatsappMessage,
           })
           break

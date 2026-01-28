@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,247 +7,181 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// User model - synced with Supabase Auth
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  name      String?  // Full name of the user
-  phone     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  memberships       Membership[]
-  preferences       Preference[]
-  createdAnnouncements Announcement[]
-  createdEvents     Event[]
+  id                    String            @id @default(uuid())
+  email                 String?           @unique
+  phone                 String?           @unique
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+  name                  String?
+  createdAnnouncements  Announcement[]
+  consents              Consent[]
+  deliveryAttempts      DeliveryAttempt[]
   createdEventReminders EventReminder[]
-  deliveryAttempts  DeliveryAttempt[]
-  consents          Consent[]
-  sentInvitations     GroupInvitation[] @relation("InvitationsSent")
-  acceptedInvitations GroupInvitation[] @relation("InvitationsAccepted")
+  createdEvents         Event[]
+  acceptedInvitations   GroupInvitation[] @relation("InvitationsAccepted")
+  sentInvitations       GroupInvitation[] @relation("InvitationsSent")
+  memberships           Membership[]
+  preferences           Preference[]
 
   @@map("users")
 }
 
-// FamilyGroup - represents a family or group
 model FamilyGroup {
-  id        String   @id @default(uuid())
-  name      String
-  slug      String   @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  memberships   Membership[]
-  announcements Announcement[]
-  events        Event[]
+  id             String            @id @default(uuid())
+  name           String
+  slug           String            @unique
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  announcements  Announcement[]
   eventReminders EventReminder[]
-  topics        Topic[]
-  invitations   GroupInvitation[]
+  events         Event[]
+  invitations    GroupInvitation[]
+  memberships    Membership[]
+  topics         Topic[]
 
   @@map("family_groups")
 }
 
-// Membership - links users to groups with roles
 model Membership {
-  id            String   @id @default(uuid())
+  id            String      @id @default(uuid())
   userId        String
   familyGroupId String
-  role          Role     @default(MEMBER)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  // Relations
-  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  familyGroup FamilyGroup @relation(fields: [familyGroupId], references: [id], onDelete: Cascade)
+  role          Role        @default(MEMBER)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  familyGroup   FamilyGroup @relation(fields: [familyGroupId], references: [id], onDelete: Cascade)
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, familyGroupId])
   @@map("memberships")
 }
 
-enum Role {
-  ADMIN
-  EDITOR
-  MEMBER
-}
-
-// Preference - user's communication channel preferences
 model Preference {
-  id          String            @id @default(uuid())
+  id          String               @id @default(uuid())
   userId      String
   channel     CommunicationChannel
-  enabled     Boolean           @default(false)
-  destination String? // email address, phone number, etc.
+  enabled     Boolean              @default(false)
+  destination String?
   verifiedAt  DateTime?
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
-
-  // Relations
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+  user        User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, channel])
   @@map("preferences")
 }
 
-enum CommunicationChannel {
-  EMAIL
-  SMS
-  WHATSAPP
-  PUSH
-}
-
-// Announcement - family announcements/simchas
 model Announcement {
-  id            String   @id @default(uuid())
+  id            String              @id @default(uuid())
   familyGroupId String
   title         String
-  body          String   @db.Text
-  type          AnnouncementType @default(GENERAL)
+  body          String
+  type          AnnouncementType    @default(GENERAL)
   createdBy     String
   scheduledAt   DateTime?
   publishedAt   DateTime?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  // Relations
-  familyGroup FamilyGroup          @relation(fields: [familyGroupId], references: [id], onDelete: Cascade)
-  creator     User                 @relation(fields: [createdBy], references: [id], onDelete: Cascade)
-  topics      AnnouncementTopic[]
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  topics        AnnouncementTopic[]
+  creator       User                @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+  familyGroup   FamilyGroup         @relation(fields: [familyGroupId], references: [id], onDelete: Cascade)
 
   @@index([familyGroupId, publishedAt])
   @@map("announcements")
 }
 
-enum AnnouncementType {
-  SIMCHA
-  GENERAL
-}
-
-// Event - family events (birthdays, weddings, etc.)
 model Event {
-  id                      String   @id @default(uuid())
-  familyGroupId           String
-  title                   String
-  description             String?  @db.Text
-  startsAt                DateTime
-  endsAt                  DateTime?
-  location                String?
-  imageUrl                String?
-  fileUrl                 String?
-  createdBy               String
-  createdAt               DateTime @default(now())
-  updatedAt               DateTime @updatedAt
-
-  // Relations
-  familyGroup FamilyGroup @relation(fields: [familyGroupId], references: [id], onDelete: Cascade)
-  creator     User        @relation(fields: [createdBy], references: [id], onDelete: Cascade)
-  reminders   EventReminder[]
+  id            String          @id @default(uuid())
+  familyGroupId String
+  title         String
+  description   String?
+  startsAt      DateTime
+  endsAt        DateTime?
+  location      String?
+  createdBy     String
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  fileUrl       String?
+  imageUrl      String?
+  reminders     EventReminder[]
+  creator       User            @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+  familyGroup   FamilyGroup     @relation(fields: [familyGroupId], references: [id], onDelete: Cascade)
 
   @@index([familyGroupId, startsAt])
   @@map("events")
 }
 
-// EventReminder - reminders for events (can be scheduled like announcements)
 model EventReminder {
-  id            String   @id @default(uuid())
+  id            String      @id @default(uuid())
   eventId       String
   familyGroupId String
-  message       String   @db.Text
+  message       String
   createdBy     String
-  scheduledAt   DateTime? // When to send the reminder (null = send immediately)
-  sentAt        DateTime? // When the reminder was actually sent
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  // Relations
-  event       Event       @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  familyGroup FamilyGroup @relation(fields: [familyGroupId], references: [id], onDelete: Cascade)
-  creator     User        @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+  scheduledAt   DateTime?
+  sentAt        DateTime?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  creator       User        @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+  event         Event       @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  familyGroup   FamilyGroup @relation(fields: [familyGroupId], references: [id], onDelete: Cascade)
 
   @@index([eventId, scheduledAt])
   @@index([familyGroupId, sentAt])
   @@map("event_reminders")
 }
 
-// DeliveryAttempt - tracks message delivery status
 model DeliveryAttempt {
-  id                String            @id @default(uuid())
+  id                String               @id @default(uuid())
   itemType          ItemType
-  itemId            String // announcementId or eventId (no FK constraint to support both)
+  itemId            String
   userId            String
   channel           CommunicationChannel
-  status            DeliveryStatus    @default(QUEUED)
+  status            DeliveryStatus       @default(QUEUED)
   providerMessageId String?
   error             String?
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
-
-  // Relations
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  // Note: announcement and event relations removed to avoid FK constraint issues
-  // itemId can reference either announcements.id or events.id based on itemType
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+  user              User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([itemType, itemId, status])
   @@index([userId, status])
   @@map("delivery_attempts")
 }
 
-enum ItemType {
-  ANNOUNCEMENT
-  EVENT
-  EVENT_REMINDER
-}
-
-enum DeliveryStatus {
-  QUEUED
-  SENT
-  FAILED
-}
-
-// Topic - categories for announcements
 model Topic {
-  id            String   @id @default(uuid())
+  id            String              @id @default(uuid())
   familyGroupId String
   name          String
   slug          String
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  // Relations
-  familyGroup   FamilyGroup         @relation(fields: [familyGroupId], references: [id], onDelete: Cascade)
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
   announcements AnnouncementTopic[]
+  familyGroup   FamilyGroup         @relation(fields: [familyGroupId], references: [id], onDelete: Cascade)
 
   @@unique([familyGroupId, slug])
   @@map("topics")
 }
 
-// AnnouncementTopic - junction table for announcements and topics
 model AnnouncementTopic {
-  id             String   @id @default(uuid())
+  id             String       @id @default(uuid())
   announcementId String
   topicId        String
-  createdAt      DateTime @default(now())
-
-  // Relations
-  announcement Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
-  topic        Topic        @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+  announcement   Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  topic          Topic        @relation(fields: [topicId], references: [id], onDelete: Cascade)
 
   @@unique([announcementId, topicId])
   @@map("announcement_topics")
 }
 
-
-// Consent - privacy and terms acceptance tracking
 model Consent {
   id         String   @id @default(uuid())
   userId     String
-  text       String   @db.Text
+  text       String
   version    String
   acceptedAt DateTime @default(now())
-
-  // Relations
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, version])
   @@map("consents")
@@ -267,10 +198,9 @@ model GroupInvitation {
   acceptedAt       DateTime?
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
-
-  familyGroup FamilyGroup @relation(fields: [familyGroupId], references: [id], onDelete: Cascade)
-  inviter     User        @relation("InvitationsSent", fields: [invitedBy], references: [id], onDelete: Cascade)
-  acceptedBy  User?       @relation("InvitationsAccepted", fields: [acceptedByUserId], references: [id], onDelete: SetNull)
+  acceptedBy       User?            @relation("InvitationsAccepted", fields: [acceptedByUserId], references: [id])
+  familyGroup      FamilyGroup      @relation(fields: [familyGroupId], references: [id], onDelete: Cascade)
+  inviter          User             @relation("InvitationsSent", fields: [invitedBy], references: [id], onDelete: Cascade)
 
   @@unique([familyGroupId, email, status])
   @@index([token])
@@ -278,9 +208,38 @@ model GroupInvitation {
   @@map("group_invitations")
 }
 
+enum Role {
+  ADMIN
+  EDITOR
+  MEMBER
+}
+
+enum CommunicationChannel {
+  EMAIL
+  SMS
+  WHATSAPP
+  PUSH
+}
+
+enum AnnouncementType {
+  SIMCHA
+  GENERAL
+}
+
+enum ItemType {
+  ANNOUNCEMENT
+  EVENT
+  EVENT_REMINDER
+}
+
+enum DeliveryStatus {
+  QUEUED
+  SENT
+  FAILED
+}
+
 enum InvitationStatus {
   PENDING
   ACCEPTED
   EXPIRED
 }
-

@@ -3,12 +3,15 @@ import { prisma } from '@/lib/prisma'
 import { createServerClient, createAdminClient } from '@/lib/supabase/server'
 import { CommunicationChannel } from '@prisma/client'
 import { dispatchService } from '@/lib/dispatch/dispatch.service'
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  // Handle CORS preflight
+import { withRequestContext } from '@/lib/api-wrapper'
+import { getGroupMembers, invalidateGroupCache } from '@/lib/services/cached-endpoints.service'
+
+async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void> {
   if (req.method === 'OPTIONS') {
     res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS')
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
-    return res.status(200).end()
+    res.status(200).end()
+    return
   }
 
   if (req.method !== 'GET' && req.method !== 'POST') {
@@ -19,8 +22,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     try {
       const { familyGroupId, email, name, phone, channel } = req.body
 
-      if (!familyGroupId || !email || !name) {
-        return res.status(400).json({ error: 'familyGroupId, email, and name are required' })
+      if (!familyGroupId || !name) {
+        return res.status(400).json({ error: 'familyGroupId and name are required' })
+      }
+
+      if (!email && !phone) {
+        return res.status(400).json({ error: 'At least one of email or phone is required' })
       }
 
       // 1. Get authenticated user (admin)
@@ -58,57 +65,60 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
       }
 
-      // 3. Normalize email
-      const normalizedEmail = email.trim().toLowerCase()
+      // 3. Normalize email if provided
+      const normalizedEmail = email ? email.trim().toLowerCase() : null
 
       // 4. Supabase Auth Management
       const adminClient = createAdminClient()
       let supabaseUserId: string | null = null
 
-      // Check if user exists in Supabase Auth
-      const {
-        data: { users },
-        error: listError,
-      } = await adminClient.auth.admin.listUsers()
-      if (listError) throw listError
-
-      const existingAuthUser = users.find((u) => u.email?.toLowerCase() === normalizedEmail)
-
-      if (existingAuthUser) {
-        supabaseUserId = existingAuthUser.id
-        console.log(
-          `🔗 User ${normalizedEmail} already exists in Supabase Auth with ID ${supabaseUserId}`
-        )
-      } else {
-        // Create new user in Supabase Auth
+      if (normalizedEmail) {
         const {
-          data: { user: newAuthUser },
-          error: createError,
-        } = await adminClient.auth.admin.createUser({
-          email: normalizedEmail,
-          password: req.body.password || Math.random().toString(36).slice(-8), // Fallback if no password provided
-          email_confirm: true,
-          user_metadata: { full_name: name },
-        })
+          data: { users },
+          error: listError,
+        } = await adminClient.auth.admin.listUsers()
+        if (listError) throw listError
 
-        if (createError) throw createError
-        supabaseUserId = newAuthUser!.id
-        console.log(
-          `✨ Created new Supabase Auth user for ${normalizedEmail} with ID ${supabaseUserId}`
-        )
+        const existingAuthUser = users.find((u) => u.email?.toLowerCase() === normalizedEmail)
+
+        if (existingAuthUser) {
+          supabaseUserId = existingAuthUser.id
+          console.log(
+            `🔗 User ${normalizedEmail} already exists in Supabase Auth with ID ${supabaseUserId}`
+          )
+        } else {
+          const {
+            data: { user: newAuthUser },
+            error: createError,
+          } = await adminClient.auth.admin.createUser({
+            email: normalizedEmail,
+            password: req.body.password || Math.random().toString(36).slice(-8),
+            email_confirm: true,
+            user_metadata: { full_name: name },
+          })
+
+          if (createError) throw createError
+          supabaseUserId = newAuthUser!.id
+          console.log(
+            `✨ Created new Supabase Auth user for ${normalizedEmail} with ID ${supabaseUserId}`
+          )
+        }
       }
 
       // 5. Create/Update user in Prisma
+      const searchConditions = []
+      if (normalizedEmail) searchConditions.push({ email: normalizedEmail })
+      if (phone) searchConditions.push({ phone: phone })
+      if (supabaseUserId) searchConditions.push({ id: supabaseUserId })
+
       let targetUser = await prisma.user.findFirst({
-        where: {
-          OR: [{ email: normalizedEmail }, { id: supabaseUserId }],
-        },
+        where: searchConditions.length > 0 ? { OR: searchConditions } : undefined,
       })
 
       if (!targetUser) {
         targetUser = await prisma.user.create({
           data: {
-            id: supabaseUserId,
+            id: supabaseUserId || undefined,
             email: normalizedEmail,
             name: name,
             phone: phone || null,
@@ -118,9 +128,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         targetUser = await prisma.user.update({
           where: { id: targetUser.id },
           data: {
-            id: supabaseUserId, // Ensure ID is synced with Supabase
+            id: supabaseUserId || targetUser.id,
+            email: normalizedEmail || targetUser.email,
             name: targetUser.name || name,
-            phone: targetUser.phone || phone || null,
+            phone: phone || targetUser.phone,
           },
         })
       }
@@ -171,7 +182,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       })
 
       if (channel && familyGroup) {
-        // Run asnyc dispatch
         dispatchService
           .dispatchWelcomeNotification(
             targetUser,
@@ -181,6 +191,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           )
           .catch((err) => console.error('Failed to dispatch welcome notification:', err))
       }
+
+      invalidateGroupCache(familyGroupId)
 
       return res.status(200).json({
         success: true,
@@ -234,47 +246,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     }
 
-    // Get all members of the group
-    const memberships = await prisma.membership.findMany({
-      where: {
-        familyGroupId,
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            email: true,
-            name: true,
-            phone: true,
-            preferences: {
-              where: {
-                enabled: true,
-              },
-              select: {
-                channel: true,
-              },
-            },
-          },
-        },
-      },
-      orderBy: {
-        createdAt: 'asc',
-      },
-    })
-
-    const members = memberships.map((membership) => ({
-      id: membership.user.id,
-      email: membership.user.email,
-      name: membership.user.name,
-      phone: membership.user.phone,
-      role: membership.role,
-      joinedAt: membership.createdAt,
-      preferences: membership.user.preferences.map((p) => p.channel),
-    }))
-
-    return res.status(200).json({ members })
+    const result = await getGroupMembers(familyGroupId)
+    return res.status(200).json(result)
   } catch (error: any) {
     console.error('Error fetching members:', error)
     return res.status(500).json({ error: error.message || 'Failed to fetch members' })
   }
 }
+
+export default withRequestContext(handler)
