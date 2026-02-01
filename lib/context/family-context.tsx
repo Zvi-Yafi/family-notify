@@ -1,6 +1,7 @@
 'use client'
 
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react'
+import { createClient } from '@/lib/supabase/client'
 
 interface Group {
   id: string
@@ -32,19 +33,19 @@ export function FamilyProvider({ children }: { children: ReactNode }) {
   const [pendingInvitations, setPendingInvitations] = useState<any[]>([])
   const [loadingGroups, setLoadingGroups] = useState(true)
 
-  // Fetch user's groups
   const refreshGroups = useCallback(async () => {
     try {
       setLoadingGroups(true)
-      const response = await fetch('/api/groups')
+      const response = await fetch('/api/groups', {
+        credentials: 'include',
+      })
 
-      // If not authenticated, just set empty groups and clear user
       if (response.status === 401) {
-        // Only update if not already cleared to avoid re-render loops
-        setGroups((prev) => (prev.length > 0 ? [] : prev))
-        setPendingInvitations((prev) => (prev.length > 0 ? [] : prev))
-        setUserIdState((prev) => (prev !== null ? null : prev))
-        setFamilyGroupIdState((prev) => (prev !== null ? null : prev))
+        setGroups([])
+        setPendingInvitations([])
+        setUserIdState(null)
+        setFamilyGroupIdState(null)
+        setLoadingGroups(false)
         return
       }
 
@@ -53,13 +54,10 @@ export function FamilyProvider({ children }: { children: ReactNode }) {
         const userGroups = data.groups || []
         setGroups(userGroups)
 
-        // Validate currently selected group against fresh list
-        // Note: we'll use a functional update or just check the state later if needed
-        // but for now let's just use the current groups to pick a default if needed
-
-        // Fetch pending invitations too
         try {
-          const invResponse = await fetch('/api/invitations/pending')
+          const invResponse = await fetch('/api/invitations/pending', {
+            credentials: 'include',
+          })
           if (invResponse.ok) {
             const data = await invResponse.json()
             setPendingInvitations(data.invitations || [])
@@ -74,7 +72,7 @@ export function FamilyProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoadingGroups(false)
     }
-  }, []) // Removed dependency on familyGroupId to make it stable
+  }, [])
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -87,9 +85,35 @@ export function FamilyProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  // Initial fetch and auto-selection logic
   useEffect(() => {
-    refreshGroups()
+    const checkAuthAndFetch = async () => {
+      try {
+        const supabase = createClient()
+        const {
+          data: { session },
+          error,
+        } = await supabase.auth.getSession()
+
+        if (error) {
+          console.log('No active session:', error.message)
+          setLoadingGroups(false)
+          return
+        }
+
+        if (session) {
+          await refreshGroups()
+        } else {
+          setGroups([])
+          setPendingInvitations([])
+          setLoadingGroups(false)
+        }
+      } catch (error) {
+        console.error('Error checking auth:', error)
+        setLoadingGroups(false)
+      }
+    }
+
+    checkAuthAndFetch()
   }, [refreshGroups])
 
   // Sync familyGroupId with storage and handle validation
