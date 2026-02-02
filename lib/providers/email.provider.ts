@@ -11,15 +11,20 @@ export interface EmailOptions {
 export class EmailProvider {
   private resend: Resend | null = null
   private fromEmail: string
+  private replyTo?: string
 
   constructor() {
     const apiKey = process.env.RESEND_API_KEY
     this.fromEmail = process.env.RESEND_FROM_EMAIL || 'FamilyNotify <noreply@example.com>'
+    this.replyTo = process.env.RESEND_REPLY_TO
 
     if (apiKey) {
       this.resend = new Resend(apiKey)
       console.log('✅ Email provider (Resend) initialized')
       console.log(`   From: ${this.fromEmail}`)
+      if (this.replyTo) {
+        console.log(`   Reply-To: ${this.replyTo}`)
+      }
     } else {
       console.warn('⚠️  RESEND_API_KEY not configured - email sending disabled')
     }
@@ -46,6 +51,7 @@ export class EmailProvider {
         subject: options.subject,
         html: options.html,
         text: options.text,
+        reply_to: this.replyTo,
       })
 
       if (result.error) {

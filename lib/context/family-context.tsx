@@ -107,8 +107,17 @@ export function FamilyProvider({ children }: { children: ReactNode }) {
           setPendingInvitations([])
           setLoadingGroups(false)
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error checking auth:', error)
+        if (
+          error?.name === 'NetworkBlockedError' ||
+          error?.message?.includes('supabaseUrl is required') ||
+          error?.message?.includes('Failed to fetch')
+        ) {
+          throw error
+        }
+        setGroups([])
+        setPendingInvitations([])
         setLoadingGroups(false)
       }
     }

@@ -5,6 +5,7 @@ import '@/styles/globals.css'
 import { Toaster } from '@/components/ui/toaster'
 import { Toaster as Sonner } from 'sonner'
 import { Providers } from '@/components/providers'
+import { ErrorBoundary } from '@/components/error-boundary'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -23,13 +24,15 @@ export default function App({ Component, pageProps }: AppProps) {
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="FamilyNotify" />
       </Head>
-      <div className={inter.className}>
-        <Providers>
-          <Component {...pageProps} />
-          <Toaster />
-          <Sonner position="top-center" richColors />
-        </Providers>
-      </div>
+      <ErrorBoundary>
+        <div className={inter.className}>
+          <Providers>
+            <Component {...pageProps} />
+            <Toaster />
+            <Sonner position="top-center" richColors />
+          </Providers>
+        </div>
+      </ErrorBoundary>
     </>
   )
 }
