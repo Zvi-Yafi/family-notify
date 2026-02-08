@@ -30,12 +30,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       user: newUser,
       action: 'synced',
     })
-
-    return res.status(200).json({
-      success: true,
-      user: newUser,
-      action: 'created',
-    })
   } catch (error: any) {
     console.error('Error creating user:', error)
     return res.status(500).json({ error: error.message || 'Failed to create user' })

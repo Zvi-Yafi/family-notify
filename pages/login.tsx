@@ -8,9 +8,16 @@ import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/hooks/use-toast'
-import { Mail, Chrome, Lock, User } from 'lucide-react'
+import { Mail, Chrome, Lock, User, AlertCircle } from 'lucide-react'
 import { useFamilyContext } from '@/lib/context/family-context'
 import { Footer } from '@/components/footer'
+
+const isValidEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+
+const isValidPhone = (value: string) => {
+  const cleaned = value.replace(/[\s\-()]/g, '')
+  return /^(\+?\d{9,15})$/.test(cleaned)
+}
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false)
@@ -18,10 +25,15 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
+  const [touched, setTouched] = useState<Record<string, boolean>>({})
   const router = useRouter()
   const { toast } = useToast()
   const supabase = createClient()
   const { refreshGroups } = useFamilyContext()
+
+  const emailError = touched.email && email && !isValidEmail(email) ? 'כתובת מייל לא תקינה' : ''
+  const phoneError = touched.phone && phone && !isValidPhone(phone) ? 'מספר טלפון לא תקין (9-15 ספרות)' : ''
+  const signInEmailError = touched.signInEmail && email && !isValidEmail(email) ? 'כתובת מייל לא תקינה' : ''
 
   // Check for errors in URL
   useEffect(() => {
@@ -92,6 +104,15 @@ export default function LoginPage() {
       return
     }
 
+    if (!isValidEmail(email)) {
+      toast({
+        title: 'מייל לא תקין',
+        description: 'נא להזין כתובת מייל תקינה, לדוגמה: name@example.com',
+        variant: 'destructive',
+      })
+      return
+    }
+
     try {
       setLoading(true)
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -100,48 +121,36 @@ export default function LoginPage() {
       })
 
       if (error) {
-        throw error
+        let errorTitle = 'שגיאת התחברות'
+        let errorMessage = 'חלה שגיאה בהתחברות. אנא נסה שוב.'
+
+        if (error.message === 'Invalid login credentials') {
+          errorTitle = 'פרטים שגויים'
+          errorMessage = 'האימייל או הסיסמה לא נכונים. אם עדיין לא נרשמת, עבור ללשונית "הרשמה" כדי ליצור חשבון חדש.'
+        } else if (error.message?.includes('Email not confirmed')) {
+          errorTitle = 'נדרש אימות מייל'
+          errorMessage = 'אנא בדוק את תיבת המייל שלך ולחץ על קישור האימות לפני ההתחברות.'
+        } else if (error.message?.includes('Too many requests')) {
+          errorTitle = 'יותר מדי ניסיונות'
+          errorMessage = 'ביצעת יותר מדי ניסיונות התחברות. אנא המתן מספר דקות ונסה שוב.'
+        }
+
+        toast({
+          title: errorTitle,
+          description: errorMessage,
+          variant: 'destructive',
+        })
+        return
       }
 
-      // signInWithPassword should return session in data, but wait a bit for cookies to be set
-      // The browser client from @supabase/ssr should automatically set cookies
       if (data?.session) {
-        // Small delay to ensure cookies are set by the browser client
         await new Promise((resolve) => setTimeout(resolve, 200))
 
-        // Sync user to database - include credentials to ensure cookies are sent
         try {
-          const syncResponse = await fetch('/api/auth/sync-user', {
-            method: 'POST',
-            credentials: 'include', // Ensure cookies are sent
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          })
-
-          if (!syncResponse.ok) {
-            const errorText = await syncResponse.text()
-            console.error('Failed to sync user:', errorText)
-            // Don't block login if sync fails, but log it
-          } else {
-            console.log('✅ User synced successfully')
-          }
-        } catch (syncError) {
-          console.error('Failed to sync user:', syncError)
-          // Don't block login if sync fails
-        }
-
-        // Refresh groups to load user's groups before redirect
-        try {
-          console.log('🔄 Refreshing groups...')
           await refreshGroups()
-          console.log('✅ Groups refreshed successfully')
         } catch (refreshError) {
           console.error('Failed to refresh groups:', refreshError)
-          // Don't block login if refresh fails
         }
-      } else {
-        console.warn('No session in response, sync-user will be called on next page load')
       }
 
       toast({
@@ -149,21 +158,13 @@ export default function LoginPage() {
         description: 'מעביר אותך...',
       })
 
-      // Redirect to feed or custom destination
       const dest = (router.query.redirectTo as string) || '/feed'
       router.push(dest)
     } catch (error: any) {
       console.error('Sign in error:', error)
-      let errorMessage = 'חלה שגיאה בהתחברות'
-      if (error.message === 'Invalid login credentials') {
-        errorMessage = 'האימייל או הסיסמה לא נכונים'
-      } else if (error.message?.includes('Email not confirmed')) {
-        errorMessage = 'אנא אמת את כתובת האימייל שלך לפני ההתחברות'
-      }
-
       toast({
-        title: 'שגיאת התחברות',
-        description: errorMessage,
+        title: 'שגיאה בלתי צפויה',
+        description: 'לא הצלחנו להתחבר. בדוק את חיבור האינטרנט ונסה שוב.',
         variant: 'destructive',
       })
     } finally {
@@ -187,6 +188,24 @@ export default function LoginPage() {
       toast({
         title: 'שגיאה',
         description: 'נא למלא לפחות מייל או מספר טלפון',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    if (email && !isValidEmail(email)) {
+      toast({
+        title: 'מייל לא תקין',
+        description: 'נא להזין כתובת מייל תקינה, לדוגמה: name@example.com',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    if (phone && !isValidPhone(phone)) {
+      toast({
+        title: 'טלפון לא תקין',
+        description: 'נא להזין מספר טלפון תקין (9-15 ספרות). לדוגמה: 050-1234567 או +972501234567',
         variant: 'destructive',
       })
       return
@@ -349,9 +368,17 @@ export default function LoginPage() {
                       placeholder="name@example.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
+                      onBlur={() => setTouched((prev) => ({ ...prev, signInEmail: true }))}
                       disabled={loading}
                       required
+                      className={signInEmailError ? 'border-red-500 focus-visible:ring-red-500' : ''}
                     />
+                    {signInEmailError && (
+                      <p className="text-xs text-red-500 flex items-center gap-1">
+                        <AlertCircle className="h-3 w-3" />
+                        {signInEmailError}
+                      </p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="signin-password" className="text-sm sm:text-base">
@@ -430,8 +457,16 @@ export default function LoginPage() {
                       placeholder="name@example.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
+                      onBlur={() => setTouched((prev) => ({ ...prev, email: true }))}
                       disabled={loading}
+                      className={emailError ? 'border-red-500 focus-visible:ring-red-500' : ''}
                     />
+                    {emailError && (
+                      <p className="text-xs text-red-500 flex items-center gap-1">
+                        <AlertCircle className="h-3 w-3" />
+                        {emailError}
+                      </p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="signup-phone" className="text-sm sm:text-base">
@@ -443,9 +478,18 @@ export default function LoginPage() {
                       placeholder="+972-50-1234567"
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
+                      onBlur={() => setTouched((prev) => ({ ...prev, phone: true }))}
                       disabled={loading}
+                      className={phoneError ? 'border-red-500 focus-visible:ring-red-500' : ''}
                     />
-                    <p className="text-xs text-muted-foreground">נא למלא לפחות מייל או טלפון</p>
+                    {phoneError ? (
+                      <p className="text-xs text-red-500 flex items-center gap-1">
+                        <AlertCircle className="h-3 w-3" />
+                        {phoneError}
+                      </p>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">נא למלא לפחות מייל או טלפון</p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="signup-password" className="text-sm sm:text-base">

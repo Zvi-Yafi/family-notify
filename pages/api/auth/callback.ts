@@ -60,19 +60,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       } else {
         console.error('❌ Failed to create user in database:', await createResponse.text())
       }
-
-      // Then sync any additional data
-      const syncResponse = await fetch(`${origin}/api/auth/sync-user`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Cookie: req.headers.cookie || '',
-        },
-      })
-
-      if (!syncResponse.ok) {
-        console.error('⚠️ Failed to sync user metadata')
-      }
     } catch (syncError) {
       console.error('❌ Error syncing user:', syncError)
       // Don't fail the auth flow if sync fails

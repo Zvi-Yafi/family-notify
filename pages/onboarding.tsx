@@ -7,7 +7,14 @@ import { Label } from '@/components/ui/label'
 import { useToast } from '@/hooks/use-toast'
 import { useFamilyContext } from '@/lib/context/family-context'
 import { createClient } from '@/lib/supabase/client'
-import { Info } from 'lucide-react'
+import { Info, AlertCircle } from 'lucide-react'
+
+const isValidEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+
+const isValidPhone = (value: string) => {
+  const cleaned = value.replace(/[\s\-()]/g, '')
+  return /^(\+?\d{9,15})$/.test(cleaned)
+}
 
 export default function OnboardingPage() {
   const [step, setStep] = useState(1)
@@ -23,7 +30,11 @@ export default function OnboardingPage() {
   const router = useRouter()
   const { toast } = useToast()
   const { setFamilyGroup, setUser, refreshGroups } = useFamilyContext()
+  const [touched, setTouched] = useState<Record<string, boolean>>({})
   const supabase = createClient()
+
+  const emailError = touched.email && formData.email && !isValidEmail(formData.email) ? 'כתובת מייל לא תקינה' : ''
+  const phoneError = touched.phone && formData.phone && !isValidPhone(formData.phone) ? 'מספר טלפון לא תקין (9-15 ספרות)' : ''
 
   // Check if user is already authenticated and handle query params
   useEffect(() => {
@@ -118,15 +129,6 @@ export default function OnboardingPage() {
         })
       }
 
-      // Sync user to Prisma
-      try {
-        await fetch('/api/auth/sync-user', {
-          method: 'POST',
-        })
-      } catch (syncError) {
-        console.error('Failed to sync user:', syncError)
-      }
-
       // Create new group or join existing one
       let groupResult
       if (formData.createNew) {
@@ -218,6 +220,22 @@ export default function OnboardingPage() {
             <form
               onSubmit={(e) => {
                 e.preventDefault()
+                if (formData.email && !isValidEmail(formData.email)) {
+                  toast({
+                    title: 'מייל לא תקין',
+                    description: 'נא להזין כתובת מייל תקינה, לדוגמה: name@example.com',
+                    variant: 'destructive',
+                  })
+                  return
+                }
+                if (formData.phone && !isValidPhone(formData.phone)) {
+                  toast({
+                    title: 'טלפון לא תקין',
+                    description: 'נא להזין מספר טלפון תקין (9-15 ספרות). לדוגמה: 050-1234567',
+                    variant: 'destructive',
+                  })
+                  return
+                }
                 setStep(2)
               }}
               className="space-y-4"
@@ -238,8 +256,16 @@ export default function OnboardingPage() {
                   placeholder="your@email.com"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  onBlur={() => setTouched((prev) => ({ ...prev, email: true }))}
                   required
+                  className={emailError ? 'border-red-500 focus-visible:ring-red-500' : ''}
                 />
+                {emailError && (
+                  <p className="text-xs text-red-500 flex items-center gap-1 mt-1">
+                    <AlertCircle className="h-3 w-3" />
+                    {emailError}
+                  </p>
+                )}
               </div>
 
               <div>
@@ -250,8 +276,17 @@ export default function OnboardingPage() {
                   placeholder="+972-50-1234567"
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  onBlur={() => setTouched((prev) => ({ ...prev, phone: true }))}
+                  className={phoneError ? 'border-red-500 focus-visible:ring-red-500' : ''}
                 />
-                <p className="text-sm text-gray-500 mt-1">נדרש לקבלת SMS ו-WhatsApp</p>
+                {phoneError ? (
+                  <p className="text-xs text-red-500 flex items-center gap-1 mt-1">
+                    <AlertCircle className="h-3 w-3" />
+                    {phoneError}
+                  </p>
+                ) : (
+                  <p className="text-sm text-gray-500 mt-1">נדרש לקבלת SMS ו-WhatsApp</p>
+                )}
               </div>
 
               <Button type="submit" className="w-full">
