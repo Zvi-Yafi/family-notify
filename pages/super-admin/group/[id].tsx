@@ -141,7 +141,7 @@ export default function GroupObserverPage() {
             </div>
           </div>
 
-          <Tabs defaultValue="announcements" className="w-full">
+          <Tabs defaultValue="members" className="w-full">
             <TabsList className="grid w-full grid-cols-3 h-12 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 p-1 rounded-xl">
               <TabsTrigger
                 value="announcements"

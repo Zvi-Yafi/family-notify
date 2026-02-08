@@ -103,8 +103,11 @@ export default function AdminPage() {
   const [showMembersDialog, setShowMembersDialog] = useState(false)
   const [members, setMembers] = useState<Member[]>([])
   const [loadingMembers, setLoadingMembers] = useState(false)
+  const [memberToRemove, setMemberToRemove] = useState<Member | null>(null)
+  const [showRemoveMemberDialog, setShowRemoveMemberDialog] = useState(false)
+  const [removingMember, setRemovingMember] = useState(false)
   const { toast } = useToast()
-  const { familyGroupId, groups, loadingGroups, selectedGroup } = useFamilyContext()
+  const { familyGroupId, userId, groups, loadingGroups, selectedGroup } = useFamilyContext()
 
   const [announcementForm, setAnnouncementForm] = useState({
     title: '',
@@ -239,6 +242,69 @@ export default function AdminPage() {
       loadMembers()
     }
   }, [showMembersDialog, loadMembers])
+
+  const handleRemoveMember = async () => {
+    if (!familyGroupId || !memberToRemove) return
+
+    const memberDisplayName =
+      memberToRemove.name || memberToRemove.email?.split('@')[0] || 'החבר'
+
+    setRemovingMember(true)
+    try {
+      const response = await fetch(`/api/groups/${familyGroupId}/remove-member`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: memberToRemove.id }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        const errorTitles: Record<string, string> = {
+          AUTH_REQUIRED: 'נדרשת התחברות',
+          PERMISSION_DENIED: 'אין הרשאה',
+          MEMBER_NOT_FOUND: 'החבר לא נמצא',
+          LAST_ADMIN: 'לא ניתן להסיר מנהל יחיד',
+          SELF_REMOVAL: 'לא ניתן להסיר את עצמך',
+          INVALID_REQUEST: 'בקשה לא תקינה',
+          SERVER_ERROR: 'שגיאת שרת',
+        }
+
+        toast({
+          title: errorTitles[data.code] || 'שגיאה בהסרת החבר',
+          description: data.error || 'אירעה שגיאה בלתי צפויה. אנא נסה שוב.',
+          variant: 'destructive',
+        })
+        return
+      }
+
+      toast({
+        title: 'החבר הוסר בהצלחה',
+        description: data.message || `${memberDisplayName} הוסר מהקבוצה`,
+      })
+
+      setShowRemoveMemberDialog(false)
+      setMemberToRemove(null)
+      loadMembers()
+      loadStats()
+    } catch (error: any) {
+      if (error.name === 'TypeError' && error.message.includes('fetch')) {
+        toast({
+          title: 'בעיית תקשורת',
+          description: 'לא ניתן להתחבר לשרת. בדוק את חיבור האינטרנט ונסה שוב.',
+          variant: 'destructive',
+        })
+      } else {
+        toast({
+          title: 'שגיאה בלתי צפויה',
+          description: `לא הצלחנו להסיר את ${memberDisplayName}. אנא רענן את הדף ונסה שוב.`,
+          variant: 'destructive',
+        })
+      }
+    } finally {
+      setRemovingMember(false)
+    }
+  }
 
   const loadInvitations = useCallback(async () => {
     if (!familyGroupId) return
@@ -845,6 +911,20 @@ export default function AdminPage() {
                                   <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 font-medium">
                                     {getRoleLabel(member.role)}
                                   </span>
+                                  {selectedGroup?.role === 'ADMIN' && member.id !== userId && (
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                      onClick={() => {
+                                        setMemberToRemove(member)
+                                        setShowRemoveMemberDialog(true)
+                                      }}
+                                      aria-label="הסר חבר"
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  )}
                                 </div>
                               </div>
                             )
@@ -852,6 +932,90 @@ export default function AdminPage() {
                         </div>
                       )}
                     </CardContent>
+                  </Card>
+                </div>
+              )}
+
+              {showRemoveMemberDialog && memberToRemove && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
+                  <Card className="w-full max-w-md">
+                    <CardHeader>
+                      <CardTitle className="text-red-600 dark:text-red-400 flex items-center gap-2">
+                        <AlertTriangle className="h-6 w-6" />
+                        הסרת חבר מהקבוצה
+                      </CardTitle>
+                      <CardDescription>
+                        האם אתה בטוח שברצונך להסיר את החבר מהקבוצה?
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900 dark:to-blue-800 flex items-center justify-center">
+                            <UserIcon className="h-5 w-5 text-blue-600 dark:text-blue-300" />
+                          </div>
+                          <div>
+                            <p className="font-semibold text-gray-900 dark:text-gray-100">
+                              {memberToRemove.name || memberToRemove.email?.split('@')[0] || 'משתמש'}
+                            </p>
+                            {memberToRemove.email && (
+                              <p className="text-sm text-gray-500">{memberToRemove.email}</p>
+                            )}
+                            <div className="flex items-center gap-1 mt-1">
+                              {getRoleIcon(memberToRemove.role)}
+                              <span className="text-xs text-gray-500">
+                                {getRoleLabel(memberToRemove.role)}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {memberToRemove.role === 'ADMIN' && (
+                        <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3">
+                          <div className="flex items-start gap-2">
+                            <Crown className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                            <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                              <strong>שים לב:</strong> חבר זה הוא מנהל. הסרתו תסיר את הרשאות הניהול שלו מהקבוצה.
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+                        <p className="text-sm text-red-800 dark:text-red-200">
+                          לאחר ההסרה, החבר לא יקבל יותר הודעות ועדכונים מהקבוצה. הוא יוכל להצטרף מחדש רק דרך הזמנה חדשה.
+                        </p>
+                      </div>
+                    </CardContent>
+                    <CardFooter className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setShowRemoveMemberDialog(false)
+                          setMemberToRemove(null)
+                        }}
+                        className="flex-1"
+                        disabled={removingMember}
+                      >
+                        ביטול
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        onClick={handleRemoveMember}
+                        disabled={removingMember}
+                        className="flex-1"
+                      >
+                        {removingMember ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <>
+                            <Trash2 className="h-4 w-4 ml-2" />
+                            הסר חבר
+                          </>
+                        )}
+                      </Button>
+                    </CardFooter>
                   </Card>
                 </div>
               )}
