@@ -49,11 +49,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         },
       })
 
-      if (!membership || !['ADMIN', 'EDITOR'].includes(membership.role)) {
+      if (!membership) {
         return res
           .status(403)
           .json({
-            error: 'Forbidden - You do not have permission to create reminders for this event',
+            error: 'Forbidden - You are not a member of this group',
           })
       }
 
