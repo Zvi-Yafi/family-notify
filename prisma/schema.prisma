@@ -210,7 +210,6 @@ model GroupInvitation {
 
 enum Role {
   ADMIN
-  EDITOR
   MEMBER
 }
 

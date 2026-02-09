@@ -55,13 +55,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void>
           },
         })
 
-        if (
-          !adminMembership ||
-          (adminMembership.role !== 'ADMIN' && adminMembership.role !== 'EDITOR')
-        ) {
+        if (!adminMembership || adminMembership.role !== 'ADMIN') {
           return res
             .status(403)
-            .json({ error: 'Forbidden - Only admins and editors can add members' })
+            .json({ error: 'Forbidden - Only admins can add members' })
         }
       }
 

@@ -7,7 +7,7 @@ interface Group {
   id: string
   name: string
   slug: string
-  role: 'ADMIN' | 'EDITOR' | 'MEMBER'
+  role: 'ADMIN' | 'MEMBER'
   joinedAt?: string
 }
 

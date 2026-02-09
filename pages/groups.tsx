@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Header } from '@/components/header'
 import { toast } from 'sonner'
-import { Copy, Users, Crown, Edit, User, RefreshCw, LogOut, X, Check } from 'lucide-react'
+import { Copy, Users, Crown, User, RefreshCw, LogOut, X, Check, AlertTriangle } from 'lucide-react'
 import { PendingInvitations } from '@/components/pending-invitations'
 import { useFamilyContext } from '@/lib/context/family-context'
 
@@ -12,7 +12,7 @@ interface Group {
   id: string
   name: string
   slug: string
-  role: 'ADMIN' | 'EDITOR' | 'MEMBER'
+  role: 'ADMIN' | 'MEMBER'
   joinedAt: string
 }
 
@@ -21,6 +21,12 @@ export default function GroupsPage() {
   const { groups, refreshGroups, loadingGroups: loading, clearAll } = useFamilyContext()
   const [leavingGroupId, setLeavingGroupId] = useState<string | null>(null)
   const [isLeaving, setIsLeaving] = useState(false)
+  const [deleteWarning, setDeleteWarning] = useState<{
+    groupId: string
+    groupName: string
+    message: string
+    memberCount?: number
+  } | null>(null)
 
   useEffect(() => {
     refreshGroups()
@@ -46,20 +52,56 @@ export default function GroupsPage() {
 
       const data = await response.json()
 
+      if (response.status === 409) {
+        setLeavingGroupId(null)
+        setDeleteWarning({
+          groupId,
+          groupName,
+          message: data.error,
+          memberCount: data.memberCount,
+        })
+        return
+      }
+
       if (!response.ok) {
         throw new Error(data.error || 'נכשל בעזיבת הקבוצה')
       }
 
-      toast.success(`עזבת את הקבוצה "${groupName}" בהצלחה`)
+      if (data.groupDeleted) {
+        toast.success(`הקבוצה "${groupName}" נמחקה בהצלחה`)
+      } else {
+        toast.success(`עזבת את הקבוצה "${groupName}" בהצלחה`)
+      }
       await refreshGroups()
       setLeavingGroupId(null)
-
-      // If user has no more groups, redirect to onboarding
-      // Note: groups state might not be updated yet, so we check the result of refreshGroups if it returned data,
-      // but refreshGroups is void. We can check the local 'groups' length after a short delay or use the updated context.
-      // Actually, since refreshGroups updates the context, we can check groups.length in a useEffect or here if possible.
     } catch (error: any) {
-      toast.error('חלה שגיאה בעזיבת הקבוצה')
+      toast.error(error.message || 'חלה שגיאה בעזיבת הקבוצה')
+    } finally {
+      setIsLeaving(false)
+    }
+  }
+
+  const handleConfirmDeleteAndLeave = async () => {
+    if (!deleteWarning) return
+    try {
+      setIsLeaving(true)
+      const response = await fetch(`/api/groups/${deleteWarning.groupId}/leave`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ confirmDelete: true }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'נכשל במחיקת הקבוצה')
+      }
+
+      toast.success(`הקבוצה "${deleteWarning.groupName}" נמחקה בהצלחה`)
+      setDeleteWarning(null)
+      await refreshGroups()
+    } catch (error: any) {
+      toast.error(error.message || 'חלה שגיאה במחיקת הקבוצה')
     } finally {
       setIsLeaving(false)
     }
@@ -69,8 +111,6 @@ export default function GroupsPage() {
     switch (role) {
       case 'ADMIN':
         return <Crown className="h-4 w-4 text-yellow-500" />
-      case 'EDITOR':
-        return <Edit className="h-4 w-4 text-blue-500" />
       default:
         return <User className="h-4 w-4 text-gray-500" />
     }
@@ -80,8 +120,6 @@ export default function GroupsPage() {
     switch (role) {
       case 'ADMIN':
         return 'מנהל'
-      case 'EDITOR':
-        return 'עורך'
       default:
         return 'חבר'
     }
@@ -236,6 +274,58 @@ export default function GroupsPage() {
             הצטרף לקבוצה נוספת
           </Button>
         </div>
+
+        {deleteWarning && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <Card className="w-full max-w-md">
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  <div className="bg-red-100 dark:bg-red-900/30 p-2 rounded-full">
+                    <AlertTriangle className="h-6 w-6 text-red-600" />
+                  </div>
+                  <CardTitle className="text-lg">מחיקת קבוצה</CardTitle>
+                </div>
+                <CardDescription className="text-right mt-2">
+                  {deleteWarning.message}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800 rounded-lg p-3 mb-4">
+                  <p className="text-sm font-semibold text-red-800 dark:text-red-300 mb-2">
+                    מה יימחק:
+                  </p>
+                  <ul className="text-sm text-red-700 dark:text-red-400 space-y-1 list-disc list-inside">
+                    <li>כל ההודעות שנשלחו בקבוצה</li>
+                    <li>כל האירועים והתזכורות</li>
+                    {deleteWarning.memberCount && deleteWarning.memberCount > 0 && (
+                      <li>{deleteWarning.memberCount} חברים יוסרו מהקבוצה</li>
+                    )}
+                    <li>כל ההזמנות הפעילות</li>
+                  </ul>
+                </div>
+                <p className="text-sm text-gray-600 mb-4 font-semibold">
+                  פעולה זו אינה ניתנת לביטול!
+                </p>
+                <div className="flex gap-3 justify-end">
+                  <Button
+                    variant="ghost"
+                    onClick={() => setDeleteWarning(null)}
+                    disabled={isLeaving}
+                  >
+                    ביטול
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={handleConfirmDeleteAndLeave}
+                    disabled={isLeaving}
+                  >
+                    {isLeaving ? 'מוחק...' : 'עזוב ומחק קבוצה'}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </main>
     </div>
   )

@@ -21,7 +21,6 @@ import {
   Loader2,
   X,
   Crown,
-  Edit,
   User as UserIcon,
   Settings,
   Info,
@@ -515,8 +514,6 @@ export default function AdminPage() {
     switch (role) {
       case 'ADMIN':
         return <Crown className="h-4 w-4 text-yellow-500" />
-      case 'EDITOR':
-        return <Edit className="h-4 w-4 text-blue-500" />
       default:
         return <UserIcon className="h-4 w-4 text-gray-500" />
     }
@@ -526,8 +523,6 @@ export default function AdminPage() {
     switch (role) {
       case 'ADMIN':
         return 'מנהל'
-      case 'EDITOR':
-        return 'עורך'
       default:
         return 'חבר'
     }
@@ -1046,7 +1041,7 @@ export default function AdminPage() {
                   <Bell className="h-4 w-4 ml-2" />
                   סטטוסים
                 </Button>
-                {['ADMIN', 'EDITOR'].includes(selectedGroup?.role || '') && (
+                {selectedGroup?.role === 'ADMIN' && (
                   <Button
                     variant={activeTab === 'invitations' ? 'default' : 'outline'}
                     onClick={() => setActiveTab('invitations')}
@@ -1056,7 +1051,7 @@ export default function AdminPage() {
                     הזמנות
                   </Button>
                 )}
-                {['ADMIN', 'EDITOR'].includes(selectedGroup?.role || '') && (
+                {selectedGroup?.role === 'ADMIN' && (
                   <Button
                     variant={activeTab === 'addMember' ? 'default' : 'outline'}
                     onClick={() => setActiveTab('addMember')}
@@ -1627,7 +1622,7 @@ export default function AdminPage() {
 
               {/* Add Member Tab */}
               {activeTab === 'addMember' &&
-                ['ADMIN', 'EDITOR'].includes(selectedGroup?.role || '') && (
+                selectedGroup?.role === 'ADMIN' && (
                   <Card>
                     <CardHeader>
                       <CardTitle>הוספת חבר לקבוצה</CardTitle>

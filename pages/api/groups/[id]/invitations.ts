@@ -40,7 +40,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(403).json({ error: 'Not a member of this group' })
     }
 
-    if (!['ADMIN', 'EDITOR'].includes(membership.role)) {
+    if (membership.role !== 'ADMIN') {
       return res.status(403).json({ error: 'Insufficient permissions' })
     }
 
