@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Bell } from 'lucide-react'
+import { Bell, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 import { apiClient, UnauthorizedError } from '@/lib/api-client'
 import { useFamilyContext } from '@/lib/context/family-context'
@@ -51,14 +51,14 @@ export default function FeedPage() {
     loadAnnouncements()
   }, [familyGroupId])
 
-  // Show loading while fetching groups
   if (loadingGroups) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
         <Header />
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-3xl mx-auto text-center py-12">
-            <p className="text-gray-600 dark:text-gray-400">טוען...</p>
+            <Loader2 className="h-8 w-8 mx-auto text-blue-600 mb-4 animate-spin" />
+            <p className="text-gray-600 dark:text-gray-400">טוען קבוצות...</p>
           </div>
         </div>
       </div>
@@ -94,8 +94,9 @@ export default function FeedPage() {
             />
           )}
 
-          {loading && (
+          {loading && familyGroupId && (
             <div className="text-center py-12">
+              <Loader2 className="h-8 w-8 mx-auto text-blue-600 mb-4 animate-spin" />
               <p className="text-gray-600 dark:text-gray-400">טוען הודעות...</p>
             </div>
           )}

@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Calendar, MapPin, Clock, RefreshCw, Bell, Paperclip } from 'lucide-react'
+import { Calendar, MapPin, Clock, RefreshCw, Bell, Paperclip, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 import NextImage from 'next/image'
 import { useRouter } from 'next/router'
@@ -121,14 +121,14 @@ export default function EventsPage() {
     }
   }, [familyGroupId, loadEvents])
 
-  // Show loading while fetching groups
   if (loadingGroups) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
         <Header />
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-4xl mx-auto text-center py-12">
-            <p className="text-gray-600 dark:text-gray-400">טוען...</p>
+            <Loader2 className="h-8 w-8 mx-auto text-blue-600 mb-4 animate-spin" />
+            <p className="text-gray-600 dark:text-gray-400">טוען קבוצות...</p>
           </div>
         </div>
       </div>

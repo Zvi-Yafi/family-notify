@@ -296,6 +296,9 @@ export default function SuperAdminPage() {
                       <td className="p-4 text-center text-gray-600 dark:text-gray-400">
                         {group.announcementCount}
                       </td>
+                      <td className="p-4 text-center text-gray-600 dark:text-gray-400">
+                        {group.eventCount}
+                      </td>
                       <td className="p-4 text-center">
                         <div className="flex items-center justify-center gap-2">
                           {group.preferenceCounts.EMAIL > 0 && (
@@ -343,7 +346,7 @@ export default function SuperAdminPage() {
                           variant="ghost"
                           size="sm"
                           asChild
-                          className="opacity-0 group-hover:opacity-100 transition-opacity gap-1 text-blue-600"
+                          className="gap-1 text-blue-600"
                         >
                           <Link href={`/super-admin/group/${group.id}`}>
                             <ExternalLink className="h-3 w-3" />
@@ -355,7 +358,7 @@ export default function SuperAdminPage() {
                   ))}
                   {sortedGroups.length === 0 && (
                     <tr>
-                      <td colSpan={7} className="p-12 text-center text-gray-500">
+                      <td colSpan={8} className="p-12 text-center text-gray-500">
                         לא נמצאו קבוצות התואמות את החיפוש
                       </td>
                     </tr>

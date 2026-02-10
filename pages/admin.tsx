@@ -706,14 +706,14 @@ export default function AdminPage() {
     }
   }
 
-  // Show loading while fetching groups
   if (loadingGroups) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
         <Header />
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-5xl mx-auto text-center py-12">
-            <p className="text-gray-600 dark:text-gray-400">טוען...</p>
+            <Loader2 className="h-8 w-8 mx-auto text-blue-600 mb-4 animate-spin" />
+            <p className="text-gray-600 dark:text-gray-400">טוען קבוצות...</p>
           </div>
         </div>
       </div>
