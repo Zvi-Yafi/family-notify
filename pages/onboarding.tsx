@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label'
 import { useToast } from '@/hooks/use-toast'
 import { useFamilyContext } from '@/lib/context/family-context'
 import { createClient } from '@/lib/supabase/client'
-import { Info, AlertCircle } from 'lucide-react'
+import { Info, AlertCircle, ArrowRight } from 'lucide-react'
 
 const isValidEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
 
@@ -212,6 +212,17 @@ export default function OnboardingPage() {
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
       <Card className="w-full max-w-lg">
         <CardHeader>
+          {isAuthenticated && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => router.push('/groups')}
+              className="self-start mb-2 gap-2 text-gray-600 hover:text-gray-800"
+            >
+              <ArrowRight className="h-4 w-4" />
+              חזרה לקבוצות שלי
+            </Button>
+          )}
           <CardTitle>ברוכים הבאים ל-FamilyNotify</CardTitle>
           <CardDescription>שלב {step} מתוך 2 - בואו נתחיל</CardDescription>
         </CardHeader>
