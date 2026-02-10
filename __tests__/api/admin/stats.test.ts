@@ -5,15 +5,26 @@ jest.mock('@/lib/prisma', () => ({
   prisma: {
     $transaction: jest.fn(),
     $use: jest.fn(),
+    $queryRaw: jest.fn(),
     membership: {
       findUnique: jest.fn(),
+      count: jest.fn(),
+    },
+    announcement: {
+      count: jest.fn(),
+    },
+    event: {
+      count: jest.fn(),
     },
   },
 }))
 
 jest.mock('@/lib/request-context', () => ({
+  requestStorage: {
+    run: jest.fn((_ctx: any, fn: () => any) => fn()),
+    getStore: jest.fn(),
+  },
   getRequestContext: jest.fn(),
-  setRequestContext: jest.fn(),
   incrementQueryCount: jest.fn(),
   createRequestId: jest.fn(() => 'test-request-id'),
   logRequestStart: jest.fn(),
