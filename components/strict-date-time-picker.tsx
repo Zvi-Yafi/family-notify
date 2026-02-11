@@ -23,6 +23,22 @@ interface StrictDateTimePickerProps {
   helperText?: string
 }
 
+function getDefaultTime() {
+  const now = new Date()
+  now.setMinutes(now.getMinutes() + 10)
+  const roundedMinutes = Math.ceil(now.getMinutes() / 10) * 10
+  if (roundedMinutes === 60) {
+    now.setHours(now.getHours() + 1)
+    now.setMinutes(0)
+  } else {
+    now.setMinutes(roundedMinutes)
+  }
+  return {
+    hour: String(now.getHours()).padStart(2, '0'),
+    minute: String(now.getMinutes()).padStart(2, '0'),
+  }
+}
+
 export function StrictDateTimePicker({
   value,
   onChange,
@@ -32,18 +48,17 @@ export function StrictDateTimePicker({
   className,
   helperText,
 }: StrictDateTimePickerProps) {
-  // Parse initial value
   const dateObj = value ? new Date(value) : undefined
+  const defaultTime = React.useMemo(() => getDefaultTime(), [])
 
-  // State to manage parts
   const [datePart, setDatePart] = React.useState<string>(
     dateObj && !isNaN(dateObj.getTime()) ? value.split('T')[0] : ''
   )
   const [hourPart, setHourPart] = React.useState<string>(
-    dateObj && !isNaN(dateObj.getTime()) ? String(dateObj.getHours()).padStart(2, '0') : '18'
+    dateObj && !isNaN(dateObj.getTime()) ? String(dateObj.getHours()).padStart(2, '0') : defaultTime.hour
   )
   const [minutePart, setMinutePart] = React.useState<string>(
-    dateObj && !isNaN(dateObj.getTime()) ? String(dateObj.getMinutes()).padStart(2, '0') : '00'
+    dateObj && !isNaN(dateObj.getTime()) ? String(dateObj.getMinutes()).padStart(2, '0') : defaultTime.minute
   )
 
   // Sync internal state if external value changes (and is valid)
@@ -81,7 +96,14 @@ export function StrictDateTimePicker({
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newVal = e.target.value
     setDatePart(newVal)
-    updateValue(newVal, hourPart, minutePart)
+    if (newVal && !datePart) {
+      const fresh = getDefaultTime()
+      setHourPart(fresh.hour)
+      setMinutePart(fresh.minute)
+      updateValue(newVal, fresh.hour, fresh.minute)
+    } else {
+      updateValue(newVal, hourPart, minutePart)
+    }
   }
 
   const handleHourChange = (val: string) => {

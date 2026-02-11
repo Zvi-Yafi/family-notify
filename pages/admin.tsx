@@ -537,12 +537,13 @@ export default function AdminPage() {
         description: 'אנא היכנס כאורח דרך דף ההתחלה כדי לפרסם הודעות',
         variant: 'destructive',
       })
-      // Redirect to onboarding after a delay
       setTimeout(() => {
         window.location.href = '/onboarding'
       }, 2000)
       return
     }
+
+
 
     setLoading(true)
 
@@ -640,7 +641,6 @@ export default function AdminPage() {
         description: 'אנא היכנס כאורח דרך דף ההתחלה כדי ליצור אירועים',
         variant: 'destructive',
       })
-      // Redirect to onboarding after a delay
       setTimeout(() => {
         window.location.href = '/onboarding'
       }, 2000)
@@ -741,6 +741,32 @@ export default function AdminPage() {
                     : 'בחר את הקבוצה שאליה תרצה לשלוח הודעות ואירועים'
                 }
               />
+            </div>
+          )}
+
+          {selectedGroup && groups.length > 1 && familyGroupId && (
+            <div className="sticky top-16 z-10 mb-4">
+              <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700 rounded-lg p-3 flex items-center justify-between shadow-sm">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0" />
+                  <span className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                    אתה שולח לקבוצה: <strong>{selectedGroup.name}</strong>
+                    {stats.memberCount > 0 && (
+                      <span className="text-amber-600 dark:text-amber-300">
+                        {' '}({stats.memberCount} חברים)
+                      </span>
+                    )}
+                  </span>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-amber-700 hover:text-amber-900 hover:bg-amber-100 dark:text-amber-300 dark:hover:bg-amber-900/30"
+                  onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                >
+                  החלף קבוצה
+                </Button>
+              </div>
             </div>
           )}
 
@@ -1081,17 +1107,6 @@ export default function AdminPage() {
                     <CardDescription>
                       ההודעה תישלח לכל חברי הקבוצה בהתאם להעדפות שלהם
                     </CardDescription>
-                    {/* Show selected group indicator */}
-                    {selectedGroup && groups.length > 1 && (
-                      <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                        <div className="flex items-center gap-2">
-                          <Users className="h-4 w-4 text-blue-600" />
-                          <span className="text-sm text-blue-800 dark:text-blue-200">
-                            שולח לקבוצה: <strong>{selectedGroup.name}</strong>
-                          </span>
-                        </div>
-                      </div>
-                    )}
                   </CardHeader>
                   <CardContent>
                     <form onSubmit={handleAnnouncementSubmit} className="space-y-4">
@@ -1206,17 +1221,6 @@ export default function AdminPage() {
                   <CardHeader>
                     <CardTitle>צור אירוע חדש</CardTitle>
                     <CardDescription>תזכורות יישלחו אוטומטית לפני האירוע</CardDescription>
-                    {/* Show selected group indicator */}
-                    {selectedGroup && groups.length > 1 && (
-                      <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                        <div className="flex items-center gap-2">
-                          <Users className="h-4 w-4 text-blue-600" />
-                          <span className="text-sm text-blue-800 dark:text-blue-200">
-                            שולח לקבוצה: <strong>{selectedGroup.name}</strong>
-                          </span>
-                        </div>
-                      </div>
-                    )}
                   </CardHeader>
                   <CardContent>
                     <form onSubmit={handleEventSubmit} className="space-y-4">
