@@ -47,7 +47,7 @@ async function createAnnouncementAsAdmin(page: Page, title: string) {
   await submitButton.click()
 
   await expect(
-    page.getByText(/הודעה נוצרה בהצלחה/i)
+    page.getByText('הודעה נוצרה בהצלחה!', { exact: true }).first()
   ).toBeVisible({ timeout: 15000 })
 }
 
