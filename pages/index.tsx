@@ -1,4 +1,3 @@
-import { GetServerSideProps } from 'next'
 import Link from 'next/link'
 import Head from 'next/head'
 import { motion } from 'framer-motion'
@@ -18,8 +17,9 @@ import { Button } from '@/components/ui/button'
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Footer } from '@/components/footer'
 import { Logo } from '@/components/logo'
-import { createServerClientFromCookies } from '@/lib/supabase/server'
-import { ClientDashboardGate } from '@/components/ClientDashboardGate'
+import { Header } from '@/components/header'
+import { useAuth } from '@/lib/hooks/use-auth'
+import { useFamilyContext } from '@/lib/context/family-context'
 
 const fadeInUp = {
   hidden: { opacity: 0, y: 20 },
@@ -36,11 +36,226 @@ const staggerContainer = {
   },
 }
 
-interface HomePageProps {
-  isAuthedFromServer: boolean
+function AuthenticatedHome() {
+  const { user } = useAuth()
+  const { groups, selectedGroup } = useFamilyContext()
+
+  const displayName =
+    user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email?.split('@')[0]
+
+  const quickLinks = [
+    {
+      title: 'הודעות',
+      description: 'צפה בכל ההודעות האחרונות',
+      href: '/feed',
+      icon: MessageSquare,
+      color: 'bg-blue-50 dark:bg-blue-900/20 text-blue-600',
+    },
+    {
+      title: 'אירועים',
+      description: 'לוח אירועים משפחתי',
+      href: '/events',
+      icon: Calendar,
+      color: 'bg-purple-50 dark:bg-purple-900/20 text-purple-600',
+    },
+    {
+      title: 'ניהול',
+      description: 'שלח הודעות וצור אירועים',
+      href: '/admin',
+      icon: Mail,
+      color: 'bg-green-50 dark:bg-green-900/20 text-green-600',
+    },
+    {
+      title: 'הקבוצות שלי',
+      description: 'נהל את הקבוצות שלך',
+      href: '/groups',
+      icon: Users,
+      color: 'bg-amber-50 dark:bg-amber-900/20 text-amber-600',
+    },
+  ]
+
+  return (
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <Header />
+      <main className="container mx-auto px-4 py-8">
+        <div className="max-w-4xl mx-auto">
+          <motion.div
+            initial="hidden"
+            animate="visible"
+            variants={fadeInUp}
+            className="mb-8"
+          >
+            <h1 className="text-2xl sm:text-3xl font-bold mb-2">
+              שלום, {displayName} 👋
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400">
+              {groups.length > 0
+                ? `אתה חבר ב-${groups.length} קבוצות`
+                : 'ברוך הבא ל-FamilyNotify'}
+            </p>
+          </motion.div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+            {quickLinks.map((link, idx) => (
+              <motion.div
+                key={link.href}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.1 }}
+              >
+                <Link href={link.href}>
+                  <Card className="hover:shadow-lg transition-all cursor-pointer border-none shadow-md h-full">
+                    <CardHeader className="flex flex-row items-center gap-4 p-5">
+                      <div className={`p-3 rounded-xl ${link.color}`}>
+                        <link.icon className="h-6 w-6" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-lg">{link.title}</CardTitle>
+                        <CardDescription className="text-sm">
+                          {link.description}
+                        </CardDescription>
+                      </div>
+                    </CardHeader>
+                  </Card>
+                </Link>
+              </motion.div>
+            ))}
+          </div>
+
+          {selectedGroup && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+            >
+              <Card className="border-none shadow-md">
+                <CardHeader>
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-900/20">
+                      <Users className="h-5 w-5 text-blue-600" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-base">קבוצה פעילה</CardTitle>
+                      <CardDescription>{selectedGroup.name}</CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+              </Card>
+            </motion.div>
+          )}
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+            className="mt-10"
+          >
+            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+              <Info className="h-5 w-5 text-blue-600" />
+              איך זה עובד?
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <Card className="border-none shadow-md">
+                <CardHeader className="text-center p-5">
+                  <div className="mx-auto mb-3 w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 font-bold text-lg">
+                    1
+                  </div>
+                  <CardTitle className="text-base">צור או הצטרף לקבוצה</CardTitle>
+                  <CardDescription className="text-sm">
+                    צור קבוצה משפחתית חדשה או הצטרף לקבוצה קיימת באמצעות קוד
+                  </CardDescription>
+                </CardHeader>
+              </Card>
+              <Card className="border-none shadow-md">
+                <CardHeader className="text-center p-5">
+                  <div className="mx-auto mb-3 w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center text-green-600 font-bold text-lg">
+                    2
+                  </div>
+                  <CardTitle className="text-base">שלח הודעות ואירועים</CardTitle>
+                  <CardDescription className="text-sm">
+                    פרסם הודעות, צור אירועים ותזמן תזכורות לכל חברי הקבוצה
+                  </CardDescription>
+                </CardHeader>
+              </Card>
+              <Card className="border-none shadow-md">
+                <CardHeader className="text-center p-5">
+                  <div className="mx-auto mb-3 w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-purple-600 font-bold text-lg">
+                    3
+                  </div>
+                  <CardTitle className="text-base">כולם מקבלים</CardTitle>
+                  <CardDescription className="text-sm">
+                    ההודעות נשלחות ב-WhatsApp, מייל או SMS לפי העדפות כל חבר
+                  </CardDescription>
+                </CardHeader>
+              </Card>
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 }}
+            className="mt-10"
+          >
+            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+              <Phone className="h-5 w-5 text-blue-600" />
+              צריך עזרה?
+            </h2>
+            <Card className="border-none shadow-md">
+              <CardHeader className="p-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-900/20">
+                      <Mail className="h-5 w-5 text-blue-600" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-base mb-1">שלח לנו מייל</CardTitle>
+                      <CardDescription>
+                        <a href="mailto:familynotifys@gmail.com" className="text-blue-600 hover:underline">
+                          familynotifys@gmail.com
+                        </a>
+                      </CardDescription>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 rounded-lg bg-green-50 dark:bg-green-900/20">
+                      <MessageSquare className="h-5 w-5 text-green-600" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-base mb-1">WhatsApp</CardTitle>
+                      <CardDescription>
+                        <a href="https://wa.me/972533113784" target="_blank" rel="noopener noreferrer" className="text-green-600 hover:underline">
+                          שלח הודעה בוואטסאפ
+                        </a>
+                      </CardDescription>
+                    </div>
+                  </div>
+                </div>
+              </CardHeader>
+            </Card>
+          </motion.div>
+        </div>
+      </main>
+      <Footer />
+    </div>
+  )
 }
 
-export default function HomePage({ isAuthedFromServer }: HomePageProps) {
+export default function HomePage() {
+  const { user, loading } = useAuth()
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="animate-spin h-8 w-8 border-4 border-blue-600 border-t-transparent rounded-full" />
+      </div>
+    )
+  }
+
+  if (user) {
+    return <AuthenticatedHome />
+  }
+
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 overflow-x-hidden">
       <Head>
@@ -51,9 +266,6 @@ export default function HomePage({ isAuthedFromServer }: HomePageProps) {
         />
       </Head>
 
-      <ClientDashboardGate isAuthedFromServer={isAuthedFromServer} />
-
-      {/* Header */}
       <header className="fixed top-0 w-full z-50 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md border-b border-slate-100 dark:border-slate-800">
         <nav className="container mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2 group cursor-pointer">
@@ -492,16 +704,3 @@ export default function HomePage({ isAuthedFromServer }: HomePageProps) {
   )
 }
 
-export const getServerSideProps: GetServerSideProps = async (context) => {
-  const supabase = createServerClientFromCookies(context.req.cookies)
-
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
-
-  return {
-    props: {
-      isAuthedFromServer: !!session,
-    },
-  }
-}
