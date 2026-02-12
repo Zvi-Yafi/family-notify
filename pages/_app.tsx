@@ -13,8 +13,8 @@ export default function App({ Component, pageProps }: AppProps) {
   return (
     <>
       <Head>
-        <title>FamilyNotify - פלטפורמה למשפחה</title>
-        <meta name="description" content="מערכת לשליחת הודעות ואירועים למשפחה הגדולה" />
+        <title>FamNotify – הודעות ועדכונים למשפחה</title>
+        <meta name="description" content="רשימת תפוצה משפחתית לשליחת הודעות, עדכוני אירועים ותזכורות בוואצאפ, SMS ואימייל" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="theme-color" content="#2563eb" />
         <link rel="manifest" href="/manifest.json" />

@@ -184,7 +184,7 @@ function AuthenticatedHome() {
                   </div>
                   <CardTitle className="text-base">כולם מקבלים</CardTitle>
                   <CardDescription className="text-sm">
-                    ההודעות נשלחות ב-WhatsApp, מייל או SMS לפי העדפות כל חבר
+                    ההודעות נשלחות ב-WhatsApp, SMS, אימייל או התראה קולית לפי העדפות כל חבר
                   </CardDescription>
                 </CardHeader>
               </Card>
@@ -259,10 +259,80 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 overflow-x-hidden">
       <Head>
-        <title>FamNotify | מערכת הודעות למשפחה וניהול אירועים משפחתיים</title>
+        <title>FamNotify – הודעות ועדכונים למשפחה בוואצאפ, SMS ואימייל</title>
         <meta
           name="description"
-          content="הפלטפורמה המובילה לשליחת הודעות ותזכורות למשפחה ב-WhatsApp, SMS ואימייל. נהלו אירועים משפחתיים, ימי הולדת ושמחות במקום אחד בטוח ופרטי."
+          content="רשימת תפוצה משפחתית לשליחת הודעות מזל טוב, עדכוני אירועים ותזכורות בוואצאפ, SMS ואימייל. תקשורת רב-ערוצית למשפחות – חינם ומאובטח."
+        />
+        <meta name="robots" content="index, follow" />
+        <link rel="canonical" href="https://famnotify.com" />
+
+        <meta property="og:type" content="website" />
+        <meta property="og:locale" content="he_IL" />
+        <meta property="og:site_name" content="FamNotify" />
+        <meta property="og:title" content="FamNotify – הודעות ועדכונים למשפחה בוואצאפ, SMS ואימייל" />
+        <meta
+          property="og:description"
+          content="רשימת תפוצה משפחתית לשליחת הודעות מזל טוב, עדכוני אירועים ותזכורות. תקשורת רב-ערוצית למשפחות – חינם ומאובטח."
+        />
+        <meta property="og:url" content="https://famnotify.com" />
+
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="FamNotify – הודעות ועדכונים למשפחה בוואצאפ, SMS ואימייל" />
+        <meta
+          name="twitter:description"
+          content="רשימת תפוצה משפחתית לשליחת הודעות מזל טוב, עדכוני אירועים ותזכורות. תקשורת רב-ערוצית למשפחות."
+        />
+
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'WebApplication',
+              name: 'FamNotify',
+              alternateName: 'FamilyNotify',
+              url: 'https://famnotify.com',
+              applicationCategory: 'CommunicationApplication',
+              operatingSystem: 'Web',
+              inLanguage: 'he',
+              description:
+                'פלטפורמה לניהול הודעות ועדכונים למשפחה בוואצאפ, SMS ואימייל. רשימת תפוצה משפחתית עם תקשורת רב-ערוצית.',
+              offers: {
+                '@type': 'Offer',
+                price: '0',
+                priceCurrency: 'ILS',
+              },
+              featureList: [
+                'שליחת הודעות בוואצאפ',
+                'שליחת SMS',
+                'שליחת אימייל',
+                'שליחת התראות קוליות',
+                'ניהול אירועים משפחתיים',
+                'תזכורות אוטומטיות',
+                'ניהול קבוצות משפחתיות',
+                'רשימת תפוצה משפחתית',
+              ],
+            }),
+          }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'Organization',
+              name: 'FamNotify',
+              url: 'https://famnotify.com',
+              logo: 'https://famnotify.com/favicon.svg',
+              contactPoint: {
+                '@type': 'ContactPoint',
+                email: 'familynotifys@gmail.com',
+                contactType: 'customer service',
+                availableLanguage: 'Hebrew',
+              },
+            }),
+          }}
         />
       </Head>
 
@@ -300,7 +370,7 @@ export default function HomePage() {
               className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50: dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 text-sm font-semibold mb-8 border border-blue-100 dark:border-blue-800"
             >
               <Globe className="h-4 w-4" />
-              <span>הדרך החדשה לתקשורת משפחתית</span>
+              <span>פלטפורמת תקשורת רב-ערוצית למשפחות</span>
             </motion.div>
 
             <motion.h1
@@ -309,9 +379,9 @@ export default function HomePage() {
               transition={{ delay: 0.2, duration: 0.6 }}
               className="text-5xl md:text-7xl font-extrabold tracking-tight mb-8 leading-[1.1]"
             >
-              מחברים את <br />
+              ניהול הודעות ועדכונים <br />
               <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-600 via-indigo-500 to-purple-600">
-                כל המשפחה יחד
+                למשפחה בכל ערוצי התקשורת
               </span>
             </motion.h1>
 
@@ -321,8 +391,8 @@ export default function HomePage() {
               transition={{ delay: 0.3, duration: 0.6 }}
               className="text-lg md:text-2xl text-slate-600 dark:text-slate-400 max-w-3xl mb-12 leading-relaxed"
             >
-              פלטפורמה אחת לריכוז כל ההודעות, השמחות והאירועים של המשפחה. כל אחד בוחר איך לקבל את
-              העדכון – WhatsApp, SMS או אימייל.
+              רשימת תפוצה משפחתית לשליחת הודעות מזל טוב, עדכוני אירועים ותזכורות – ישירות
+              ל-WhatsApp, SMS, אימייל או התראה קולית. תקשורת רב-ערוצית למשפחות, במקום אחד נוח ומאובטח.
             </motion.p>
 
             <motion.div
@@ -373,8 +443,8 @@ export default function HomePage() {
                     ללכת לאיבוד בתוך הרעש של קבוצות הווטסאפ האינסופיות.
                   </p>
                   <p>
-                    אנחנו מאמינים שהודעות על שמחות, אירועים ועדכונים משפחתיים חשובים צריכים להגיע
-                    בצורה מכובדת, ברורה ובזמן הנכון – בדיוק בערוץ שכל בן משפחה מעדיף.
+                    אנחנו מאמינים ששליחת הודעות מזל טוב, עדכוני אירועים ותזכורות משפחתיות
+                    צריכים להגיע בצורה מכובדת, ברורה ובזמן הנכון – בדיוק בערוץ שכל בן משפחה מעדיף.
                   </p>
                   <ul className="space-y-3 pt-4">
                     {[
@@ -428,7 +498,7 @@ export default function HomePage() {
         <section id="features" className="py-24">
           <div className="container mx-auto px-6">
             <div className="text-center max-w-2xl mx-auto mb-20 space-y-4">
-              <h2 className="text-4xl font-bold">כל מה שצריך לניהול תקשורת משפחתית</h2>
+              <h2 className="text-4xl font-bold">כל הכלים לניהול רשימת תפוצה משפחתית רב-ערוצית</h2>
               <p className="text-lg text-slate-600 dark:text-slate-400">
                 ריכזנו עבורכם את הכלים המתקדמים ביותר כדי שאף אחד לא יפספס אף עדכון.
               </p>
@@ -446,7 +516,7 @@ export default function HomePage() {
                   title: 'ערוצים מרובים',
                   icon: Mail,
                   color: 'text-blue-500',
-                  desc: 'שליחה אוטומטית למייל, SMS ו-WhatsApp בהתאמה אישית לכל משתמש.',
+                  desc: 'שליחה אוטומטית למייל, SMS, WhatsApp והתראות קוליות בהתאמה אישית לכל משתמש.',
                 },
                 {
                   title: 'לוח אירועים',
@@ -503,7 +573,7 @@ export default function HomePage() {
         <section className="py-24 bg-blue-600 dark:bg-blue-700 text-white">
           <div className="container mx-auto px-6 text-center mb-20">
             <h2 className="text-4xl font-bold mb-6">איך מתחילים?</h2>
-            <p className="text-blue-100 text-xl">3 צעדים פשוטים ואתם מחוברים</p>
+            <p className="text-blue-100 text-xl">3 צעדים פשוטים ורשימת התפוצה המשפחתית שלכם מוכנה</p>
           </div>
 
           <div className="container mx-auto px-6">
@@ -519,7 +589,7 @@ export default function HomePage() {
                 {
                   step: '2',
                   title: 'צירוף בני המשפחה',
-                  desc: 'מגדירים את מספרי הטלפון והמיילים של כולם ומתחילים לחבר.',
+                  desc: 'מגדירים את המיילים והטלפונים של בני המשפחה או החברים ומתחילים לחבר או שולחים להם זימון לקבוצה.',
                 },
                 {
                   step: '3',
@@ -633,33 +703,33 @@ export default function HomePage() {
                   FamNotify - מערכת הודעות למשפחה וניהול אירועים משפחתיים
                 </h2>
                 <p className="text-lg text-slate-600 dark:text-slate-400 leading-relaxed">
-                  ניהול תקשורת משפחתית בעידן הדיגיטלי לא חייב להיות משימה מורכבת. FamNotify היא
-                  פלטפורמה ייעודית שנוצרה כדי להעניק למשפחות מרחב פרטי, מאורגן ושקט לניהול כל מה
-                  שקורה בתוך המשפחה. בין אם מדובר בשמחה גדולה, עדכון יומיומי או תיאום אירוע חשוב,
-                  המערכת שלנו מבטיחה שכל בן משפחה יקבל את המידע בזמן ובדרך הנוחה לו ביותר.
+                  ניהול רשימת תפוצה משפחתית בעידן הדיגיטלי לא חייב להיות משימה מורכבת. FamNotify היא
+                  פלטפורמה ייעודית לתקשורת רב-ערוצית למשפחות, שנוצרה כדי להעניק מרחב פרטי, מאורגן ושקט
+                  לניהול כל מה שקורה בתוך המשפחה. בין אם מדובר בשליחת הודעות מזל טוב, עדכוני אירועים
+                  או תיאום שמחה חשובה – המערכת מבטיחה שכל בן משפחה יקבל את המידע בזמן ובדרך הנוחה לו.
                 </p>
               </header>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
                 <div className="space-y-4">
-                  <h2 className="text-2xl font-semibold text-slate-800 dark:text-slate-200">
+                  <h3 className="text-2xl font-semibold text-slate-800 dark:text-slate-200">
                     אתר תזכורות למשפחה: איך זה עובד?
-                  </h2>
+                  </h3>
                   <p className="text-slate-600 dark:text-slate-400">
-                    שלא כמו קבוצות צ׳אט עמוסות, FamNotify מרכזת את כל המידע בלוח אחד מסודר. בני
-                    המשפחה יכולים לצפות בהודעות קודמות, לראות אירועים עתידיים בלוח השנה ולוודא שהם
-                    לא פספסו שום דבר. המערכת מאפשרת לכם לשלוח הודעות ותזכורות אוטומטיות, כך שלא
-                    תצטרכו לרדוף אחרי אף אחד – הטכנולוגיה עושה את העבודה בשבילכם.
+                    שלא כמו קבוצות צ׳אט עמוסות, רשימת התפוצה המשפחתית ב-FamNotify מרכזת את כל
+                    המידע בלוח אחד מסודר. בני המשפחה יכולים לצפות בהודעות קודמות, לראות עדכוני
+                    אירועים עתידיים בלוח השנה ולוודא שהם לא פספסו שום דבר. המערכת מאפשרת לכם
+                    לשלוח הודעות ותזכורות אוטומטיות, כך שלא תצטרכו לרדוף אחרי אף אחד.
                   </p>
                 </div>
 
                 <div className="space-y-4">
-                  <h2 className="text-2xl font-semibold text-slate-800 dark:text-slate-200">
-                    שליחת הודעות למשפחה ב-WhatsApp, SMS ואימייל
-                  </h2>
+                  <h3 className="text-2xl font-semibold text-slate-800 dark:text-slate-200">
+                    שליחת הודעות למשפחה בוואצאפ, SMS, אימייל והתראות קוליות
+                  </h3>
                   <p className="text-slate-600 dark:text-slate-400">
-                    אנחנו מבינים שלכל בן משפחה יש את העדפות שלו. סבתא אולי מעדיפה SMS, ההורים
-                    משתמשים באימייל, והצעירים מחוברים לוואטסאפ. FamNotify מאפשרת לכל משתמש לבחור את
+                    אנחנו מבינים שלכל בן משפחה יש את העדפות שלו. סבתא אולי מעדיפה SMS או התראה קולית,
+                    ההורים משתמשים באימייל, והצעירים מחוברים לוואטסאפ. FamNotify מאפשרת לכל משתמש לבחור את
                     ערוץ התקשורת המועדף עליו, כך שהודעה אחת שאתם מפרסמים מופצת באופן אוטומטי לכל
                     הערוצים שנבחרו בו-זמנית.
                   </p>
@@ -667,13 +737,13 @@ export default function HomePage() {
               </div>
 
               <div className="bg-white dark:bg-slate-800 p-8 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-sm">
-                <h2 className="text-2xl font-semibold mb-6 text-slate-800 dark:text-slate-200">
-                  פתרון מושלם לניהול אירועים משפחתיים ושמחות
-                </h2>
+                <h3 className="text-2xl font-semibold mb-6 text-slate-800 dark:text-slate-200">
+                  פתרון מושלם לניהול אירועים משפחתיים ושליחת הודעות מזל טוב
+                </h3>
                 <p className="mb-6 text-slate-600 dark:text-slate-400">
-                  מארגנים ברית, שבת חתן או סתם טיול משפחתי? הכלים שלנו עוזרים לכם לנהל את האירוע
-                  מתחילתו ועד סופו. עם מערכת תזכורות לוואטסאפ למשפחה, תוכלו לוודא שכולם זוכרים את
-                  התאריך והמיקום, מבלי להרגיש שאתם מציפים את כולם בהודעות מיותרות.
+                  מארגנים ברית, שבת חתן או סתם טיול משפחתי? שליחת הודעות מזל טוב ועדכוני אירועים
+                  לכל המשפחה לא הייתה פשוטה יותר. עם מערכת תזכורות לוואצאפ למשפחה, תוכלו לוודא
+                  שכולם זוכרים את התאריך והמיקום, מבלי להרגיש שאתם מציפים את כולם בהודעות מיותרות.
                 </p>
                 <ul className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {[
