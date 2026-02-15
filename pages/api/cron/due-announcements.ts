@@ -87,13 +87,69 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         })
       }
 
-      // Small delay between dispatches
+      await new Promise((resolve) => setTimeout(resolve, 100))
+    }
+
+    const dueResends = await prisma.announcement.findMany({
+      where: {
+        scheduledResendAt: {
+          lte: now,
+        },
+      },
+      take: 10,
+    })
+
+    console.log(`🔁 נמצאו ${dueResends.length} הודעות לשליחה חוזרת`)
+
+    for (const announcement of dueResends) {
+      const { count } = await prisma.announcement.updateMany({
+        where: {
+          id: announcement.id,
+          scheduledResendAt: { not: null },
+        },
+        data: {
+          scheduledResendAt: null,
+        },
+      })
+
+      if (count === 0) {
+        console.log(`⏭️ השליחה החוזרת "${announcement.title}" כבר טופלה. מדלג.`)
+        continue
+      }
+
+      console.log(`🔒 שליחה חוזרת "${announcement.title}" ננעלה`)
+
+      try {
+        const resendIsrael = announcement.scheduledResendAt
+          ? new Date(announcement.scheduledResendAt).toLocaleString('he-IL', {
+              timeZone: 'Asia/Jerusalem',
+            })
+          : 'לא מוגדר'
+
+        console.log(`\n📤 שולח שליחה חוזרת:`)
+        console.log(`   כותרת: "${announcement.title}"`)
+        console.log(`   תוזמנה ל: ${resendIsrael}`)
+
+        await dispatchService.dispatchAnnouncement({
+          announcementId: announcement.id,
+          familyGroupId: announcement.familyGroupId,
+        })
+        console.log(`✅ השליחה החוזרת הושלמה בהצלחה!`)
+      } catch (error: any) {
+        console.error(`❌ שגיאה בשליחה חוזרת ${announcement.id}:`, error)
+
+        await prisma.announcement.update({
+          where: { id: announcement.id },
+          data: { scheduledResendAt: announcement.scheduledResendAt },
+        })
+      }
+
       await new Promise((resolve) => setTimeout(resolve, 100))
     }
 
     return res.status(200).json({
       success: true,
-      processed: dueAnnouncements.length,
+      processed: dueAnnouncements.length + dueResends.length,
     })
   } catch (error: any) {
     console.error('Error in due-announcements cron:', error)

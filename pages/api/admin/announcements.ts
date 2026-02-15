@@ -21,7 +21,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   if (req.method === 'POST') {
     try {
-      const { title, bodyText, type, familyGroupId, scheduledAt } = req.body
+      const { title, bodyText, type, familyGroupId, scheduledAt, sendNow = true } = req.body
 
       // Get authenticated user
       const supabase = createServerClient(req, res)
@@ -58,12 +58,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
       }
 
-      // Create announcement
-      // ... (rest of the POST logic remains the same)
       let scheduledDate = null
+      let scheduledResendDate = null
+
       if (scheduledAt) {
         const roundedTime = roundDateToTenMinutes(scheduledAt)
-        scheduledDate = convertIsraelToUTC(roundedTime)
+        const utcDate = convertIsraelToUTC(roundedTime)
+
+        if (sendNow) {
+          scheduledResendDate = utcDate
+        } else {
+          scheduledDate = utcDate
+        }
       }
 
       const announcement = await prisma.announcement.create({
@@ -74,13 +80,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           familyGroupId,
           createdBy: userId,
           scheduledAt: scheduledDate,
-          publishedAt: scheduledAt ? null : new Date(),
+          scheduledResendAt: scheduledResendDate,
+          publishedAt: sendNow ? new Date() : null,
         },
       })
 
       invalidateStatsOnAnnouncementCreate(familyGroupId)
 
-      if (!scheduledAt) {
+      if (sendNow) {
         await dispatchService.dispatchAnnouncement({
           announcementId: announcement.id,
           familyGroupId,

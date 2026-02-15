@@ -3,6 +3,7 @@ import { emailProvider } from '@/lib/providers/email.provider'
 import { pushProvider } from '@/lib/providers/push.provider'
 import { smsProvider } from '@/lib/providers/sms.provider'
 import { whatsAppProvider } from '@/lib/providers/whatsapp.provider'
+import { voiceCallProvider } from '@/lib/providers/voice-call.provider'
 import { CommunicationChannel, DeliveryStatus } from '@prisma/client'
 import { formatInTimeZone } from 'date-fns-tz'
 import { he } from 'date-fns/locale'
@@ -68,7 +69,8 @@ export class DispatchService {
     })
     console.log(`   סה"כ שליחות (כולל כל הערוצים): ${totalDeliveries}`)
 
-    // Create delivery attempts for each user and their enabled channels
+    const voiceCallBatch: Array<{ preference: any; user: any; attemptId: string }> = []
+
     for (const membership of memberships) {
       const userName =
         membership.user.name ||
@@ -78,13 +80,11 @@ export class DispatchService {
       console.log(`\n👤 שולח ל-${userName} (${contact})...`)
 
       for (const preference of membership.user.preferences) {
-        // Skip if not verified
         if (!preference.verifiedAt) {
           console.log(`   ⏭️  ${preference.channel}: לא מאומת - מדלג`)
           continue
         }
 
-        // Create delivery attempt
         const attempt = await prisma.deliveryAttempt.create({
           data: {
             itemType: 'ANNOUNCEMENT',
@@ -95,9 +95,17 @@ export class DispatchService {
           },
         })
 
-        // Send immediately
-        await this.sendDeliveryAttempt(attempt.id, announcement, membership.user, preference)
+        if (preference.channel === 'VOICE_CALL') {
+          voiceCallBatch.push({ preference, user: membership.user, attemptId: attempt.id })
+          console.log(`   📞 VOICE_CALL: נוסף ל-batch (${voiceCallBatch.length} שיחות)`)
+        } else {
+          await this.sendDeliveryAttempt(attempt.id, announcement, membership.user, preference)
+        }
       }
+    }
+
+    if (voiceCallBatch.length > 0) {
+      await this.sendVoiceCallBatch(voiceCallBatch, announcement)
     }
 
     console.log(`\n✨ סיום שליחת ההודעה "${announcement.title}"`)
@@ -175,17 +183,17 @@ export class DispatchService {
       console.log(`   הודעה מותאמת אישית: "${customMessage}"`)
     }
 
-    // Create delivery attempts for each user and their enabled channels
+    const timeUntil = this.getTimeUntilEvent(event.startsAt)
+    const voiceCallBatch: Array<{ preference: any; user: any; attemptId: string }> = []
+
     for (const membership of memberships) {
       for (const preference of membership.user.preferences) {
-        // Skip if not verified
         if (!preference.verifiedAt) {
           const userContact = membership.user.email || membership.user.phone || membership.user.id
           console.log(`⏭️  Skipping ${preference.channel} for ${userContact} - not verified`)
           continue
         }
 
-        // Create delivery attempt
         const attempt = await prisma.deliveryAttempt.create({
           data: {
             itemType: options.eventReminderId ? 'EVENT_REMINDER' : 'EVENT',
@@ -196,16 +204,30 @@ export class DispatchService {
           },
         })
 
-        // Send immediately
-        await this.sendEventReminder(
-          attempt.id,
-          event,
-          membership.user,
-          preference,
-          customMessage,
-          options.isInitial
-        )
+        if (preference.channel === 'VOICE_CALL') {
+          voiceCallBatch.push({ preference, user: membership.user, attemptId: attempt.id })
+          console.log(`   📞 VOICE_CALL: נוסף ל-batch`)
+        } else {
+          await this.sendEventReminder(
+            attempt.id,
+            event,
+            membership.user,
+            preference,
+            customMessage,
+            options.isInitial
+          )
+        }
       }
+    }
+
+    if (voiceCallBatch.length > 0) {
+      await this.sendVoiceCallBatchForEvent(
+        voiceCallBatch,
+        event,
+        timeUntil,
+        customMessage,
+        options.isInitial
+      )
     }
   }
 
@@ -282,6 +304,20 @@ export class DispatchService {
           } catch (e) {
             console.log(`   ❌ שגיאה ב-Push: subscription לא תקין`)
             result = { success: false, error: 'Invalid push subscription' }
+          }
+          break
+
+        case 'VOICE_CALL':
+          console.log(`   📞 שולח שיחה קולית ל-${preference.destination}...`)
+          const voiceText = `הודעה חדשה מ-${announcement.familyGroup.name}. ${announcement.title}. ${announcement.body.substring(0, 150)}`
+          result = await voiceCallProvider.send({
+            to: preference.destination,
+            text: voiceText,
+          })
+          if (result.success) {
+            console.log(`   ✅ שיחה קולית נשלחה בהצלחה`)
+          } else {
+            console.log(`   ❌ שגיאה בשיחה קולית: ${result.error}`)
           }
           break
 
@@ -394,6 +430,16 @@ export class DispatchService {
           } catch (e) {
             result = { success: false, error: 'Invalid push subscription' }
           }
+          break
+
+        case 'VOICE_CALL':
+          const voiceReminderText = isInitial
+            ? `אירוע חדש: ${event.title}${event.location ? ` ב${event.location}` : ''}. מתחיל ב${timeUntil}`
+            : customMessage || `תזכורת: ${event.title}. מתחיל ${timeUntil}`
+          result = await voiceCallProvider.send({
+            to: preference.destination,
+            text: voiceReminderText,
+          })
           break
 
         default:
@@ -564,6 +610,18 @@ export class DispatchService {
           })
           break
 
+        case 'VOICE_CALL':
+          if (!preference.destination && !user.phone) {
+            console.error(`❌ אין מספר טלפון למשתמש ${user.id}`)
+            return
+          }
+          const voiceWelcomeText = `שלום ${userName}! ברוך הבא לקבוצת ${groupName} ב-FamilyNotify. תוכל להישאר מעודכן בכל האירועים המשפחתיים.`
+          result = await voiceCallProvider.send({
+            to: preference.destination || user.phone!,
+            text: voiceWelcomeText,
+          })
+          break
+
         default:
           console.warn(`⚠️ ערוץ ${channel} לא נתמך להודעת ברוך הבא`)
           return
@@ -576,6 +634,101 @@ export class DispatchService {
       }
     } catch (error: any) {
       console.error(`❌ שגיאה לא צפויה בשליחת הודעת ברוך הבא: ${error.message}`)
+    }
+  }
+
+  private async sendVoiceCallBatch(
+    batch: Array<{ preference: any; user: any; attemptId: string }>,
+    announcement: any
+  ): Promise<void> {
+    if (batch.length === 0) return
+
+    console.log(`\n📞 שולח batch של ${batch.length} שיחות קוליות...`)
+
+    const voiceText = `הודעה חדשה מ-${announcement.familyGroup.name}. ${announcement.title}. ${announcement.body.substring(0, 150)}`
+
+    const recipients = batch.map(item => ({
+      phone: item.preference.destination,
+      userId: item.user.id,
+      attemptId: item.attemptId
+    }))
+
+    const batchResult = await voiceCallProvider.sendBatch({
+      recipients,
+      text: voiceText
+    })
+
+    if (batchResult.campaignId) {
+      console.log(`✅ Batch campaign created: ${batchResult.campaignId}`)
+    }
+
+    for (const item of batch) {
+      const result = batchResult.results.get(item.preference.destination)
+      
+      await prisma.deliveryAttempt.update({
+        where: { id: item.attemptId },
+        data: {
+          status: result?.success ? 'SENT' : 'FAILED',
+          providerMessageId: batchResult.campaignId,
+          error: result?.error,
+        },
+      })
+
+      if (result?.success) {
+        console.log(`   ✅ שיחה קולית נשלחה ל-${item.preference.destination}`)
+      } else {
+        console.log(`   ❌ שגיאה ל-${item.preference.destination}: ${result?.error}`)
+      }
+    }
+  }
+
+  private async sendVoiceCallBatchForEvent(
+    batch: Array<{ preference: any; user: any; attemptId: string }>,
+    event: any,
+    timeUntil: string,
+    customMessage?: string | null,
+    isInitial?: boolean
+  ): Promise<void> {
+    if (batch.length === 0) return
+
+    console.log(`\n📞 שולח batch של ${batch.length} תזכורות קוליות...`)
+
+    const voiceText = isInitial
+      ? `אירוע חדש: ${event.title}${event.location ? ` ב${event.location}` : ''}. מתחיל ב${timeUntil}`
+      : customMessage || `תזכורת: ${event.title}. מתחיל ${timeUntil}`
+
+    const recipients = batch.map(item => ({
+      phone: item.preference.destination,
+      userId: item.user.id,
+      attemptId: item.attemptId
+    }))
+
+    const batchResult = await voiceCallProvider.sendBatch({
+      recipients,
+      text: voiceText
+    })
+
+    if (batchResult.campaignId) {
+      console.log(`✅ Batch campaign created: ${batchResult.campaignId}`)
+    }
+
+    for (const item of batch) {
+      const result = batchResult.results.get(item.preference.destination)
+      
+      await prisma.deliveryAttempt.update({
+        where: { id: item.attemptId },
+        data: {
+          status: result?.success ? 'SENT' : 'FAILED',
+          providerMessageId: batchResult.campaignId,
+          error: result?.error,
+        },
+      })
+
+      if (result?.success) {
+        console.log(`   ✅ תזכורת קולית נשלחה ל-${item.preference.destination}`)
+      } else {
+        console.log(`   ❌ שגיאה ל-${item.preference.destination}: ${result?.error}`)
+      }
     }
   }
 

@@ -113,6 +113,7 @@ export default function AdminPage() {
     body: '',
     type: 'GENERAL' as 'GENERAL' | 'SIMCHA',
     scheduledAt: '',
+    sendMode: 'now' as 'now' | 'scheduled' | 'both',
   })
 
   const [eventForm, setEventForm] = useState({
@@ -125,6 +126,7 @@ export default function AdminPage() {
     reminderScheduledAt: '',
     imageUrl: '',
     fileUrl: '',
+    notifyMode: 'now' as 'now' | 'scheduled' | 'both',
   })
 
   const [uploading, setUploading] = useState(false)
@@ -545,34 +547,57 @@ export default function AdminPage() {
 
 
 
+    if (announcementForm.sendMode !== 'now' && !announcementForm.scheduledAt) {
+      toast({
+        title: 'שגיאה',
+        description: 'יש לבחור תאריך ושעה לתזמון',
+        variant: 'destructive',
+      })
+      return
+    }
+
     setLoading(true)
 
     try {
+      const sendNow = announcementForm.sendMode === 'now' || announcementForm.sendMode === 'both'
+      const scheduledAt =
+        announcementForm.sendMode === 'scheduled' || announcementForm.sendMode === 'both'
+          ? announcementForm.scheduledAt
+          : undefined
+
       await apiClient.createAnnouncement({
         title: announcementForm.title,
         bodyText: announcementForm.body,
         type: announcementForm.type,
         familyGroupId,
-        scheduledAt: announcementForm.scheduledAt || undefined,
+        sendNow,
+        scheduledAt,
       })
 
-      toast({
-        title: 'הודעה נוצרה בהצלחה!',
-        description: 'ההודעה נשלחה לכל חברי המשפחה',
-      })
+      const toastMessages = {
+        now: { title: 'ההודעה נשלחה בהצלחה!', description: 'ההודעה נשלחה לכל חברי הקבוצה' },
+        scheduled: {
+          title: 'ההודעה תוזמנה בהצלחה!',
+          description: `ההודעה תישלח ב-${new Date(announcementForm.scheduledAt).toLocaleString('he-IL', { timeZone: 'Asia/Jerusalem', day: 'numeric', month: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}`,
+        },
+        both: {
+          title: 'ההודעה נשלחה ותוזמנה!',
+          description: `ההודעה נשלחה עכשיו וגם תישלח שוב ב-${new Date(announcementForm.scheduledAt).toLocaleString('he-IL', { timeZone: 'Asia/Jerusalem', day: 'numeric', month: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}`,
+        },
+      }
 
-      // Reload stats to update the count
+      toast(toastMessages[announcementForm.sendMode])
+
       await loadStats()
 
-      // Reset form
       setAnnouncementForm({
         title: '',
         body: '',
         type: 'GENERAL',
         scheduledAt: '',
+        sendMode: 'now',
       })
     } catch (error: any) {
-      // Don't show error for unauthorized - redirect is handled by apiClient
       if (error instanceof UnauthorizedError) {
         return
       }
@@ -647,6 +672,15 @@ export default function AdminPage() {
       return
     }
 
+    if (eventForm.notifyMode !== 'now' && !eventForm.reminderScheduledAt) {
+      toast({
+        title: 'שגיאה',
+        description: 'יש לבחור תאריך ושעה לתזמון ההודעה',
+        variant: 'destructive',
+      })
+      return
+    }
+
     setLoading(true)
 
     try {
@@ -661,38 +695,50 @@ export default function AdminPage() {
         fileUrl: eventForm.fileUrl || undefined,
       })
 
-      // Create reminder (either scheduled or immediate default)
-      const reminderToCreate = {
-        eventId: eventResponse.event.id,
-        message: eventForm.reminderMessage || '',
-        scheduledAt: eventForm.reminderScheduledAt || null,
+      const eventId = eventResponse.event.id
+
+      const createReminder = async (scheduledAt: string | null, message: string) => {
+        try {
+          await fetch('/api/admin/event-reminders', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ eventId, message, scheduledAt }),
+          })
+        } catch (reminderError) {
+          console.error('Failed to create reminder:', reminderError)
+        }
       }
 
-      try {
-        await fetch('/api/admin/event-reminders', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(reminderToCreate),
-        })
-      } catch (reminderError) {
-        console.error('Failed to create reminder:', reminderError)
-        // Don't fail the whole operation if reminder creation fails
+      if (eventForm.notifyMode === 'now') {
+        await createReminder(null, '')
+      } else if (eventForm.notifyMode === 'scheduled') {
+        await createReminder(eventForm.reminderScheduledAt, eventForm.reminderMessage || '')
+      } else {
+        await createReminder(null, '')
+        await createReminder(eventForm.reminderScheduledAt, eventForm.reminderMessage || '')
       }
 
-      toast({
-        title: 'אירוע נוצר בהצלחה!',
-        description: reminderToCreate.scheduledAt
-          ? 'האירוע והתזכורת המתוזמנת נוצרו בהצלחה'
-          : 'האירוע נוצר ונשלחה הודעה לחברים',
-      })
+      const toastMessages = {
+        now: {
+          title: 'האירוע נוצר בהצלחה!',
+          description: 'האירוע נוצר ונשלחה הודעה לחברים',
+        },
+        scheduled: {
+          title: 'האירוע נוצר בהצלחה!',
+          description: `האירוע נוצר והתזכורת תישלח ב-${new Date(eventForm.reminderScheduledAt).toLocaleString('he-IL', { timeZone: 'Asia/Jerusalem', day: 'numeric', month: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}`,
+        },
+        both: {
+          title: 'האירוע נוצר בהצלחה!',
+          description: `נשלחה הודעה לחברים וגם תזכורת תישלח ב-${new Date(eventForm.reminderScheduledAt).toLocaleString('he-IL', { timeZone: 'Asia/Jerusalem', day: 'numeric', month: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}`,
+        },
+      }
 
-      // Reload stats to update the count
+      toast(toastMessages[eventForm.notifyMode])
+
       await loadStats()
 
-      // Redirect to events page
       router.push('/events')
     } catch (error: any) {
-      // Don't show error for unauthorized - redirect is handled by apiClient
       if (error instanceof UnauthorizedError) {
         return
       }
@@ -1168,20 +1214,60 @@ export default function AdminPage() {
                         </div>
                       </div>
 
-                      <div>
-                        <StrictDateTimePicker
-                          id="scheduledAt"
-                          label="תזמון שליחה (אופציונלי)"
-                          value={announcementForm.scheduledAt}
-                          onChange={(val) =>
-                            setAnnouncementForm({ ...announcementForm, scheduledAt: val })
-                          }
-                          helperText="הזמן יוגבל לקפיצות של 10 דקות (למשל: 10, 20, 30...)"
-                        />
-                        {announcementForm.scheduledAt && (
-                          <div className="mt-1 text-sm font-semibold text-blue-600">
-                            תאריך עברי:{' '}
-                            {getHebrewDateString(new Date(announcementForm.scheduledAt))}
+                      <div className="border-t pt-4 mt-4">
+                        <Label className="text-sm sm:text-base font-semibold mb-3 block">
+                          מתי לשלוח?
+                        </Label>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-4">
+                          {([
+                            { value: 'now', label: 'שלח עכשיו', icon: Send },
+                            { value: 'scheduled', label: 'תזמן לשליחה', icon: Calendar },
+                            { value: 'both', label: 'שלח עכשיו + תזמן שוב', icon: Bell },
+                          ] as const).map(({ value, label, icon: Icon }) => (
+                            <button
+                              key={value}
+                              type="button"
+                              onClick={() =>
+                                setAnnouncementForm((prev) => ({
+                                  ...prev,
+                                  sendMode: value,
+                                  scheduledAt: value === 'now' ? '' : prev.scheduledAt,
+                                }))
+                              }
+                              className={`flex items-center gap-2 p-3 rounded-lg border-2 transition-all text-sm font-medium ${
+                                announcementForm.sendMode === value
+                                  ? 'border-blue-600 bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-500'
+                                  : 'border-gray-200 hover:border-gray-300 dark:border-gray-700 dark:hover:border-gray-600'
+                              }`}
+                            >
+                              <Icon className="h-4 w-4 flex-shrink-0" />
+                              <span>{label}</span>
+                            </button>
+                          ))}
+                        </div>
+
+                        {announcementForm.sendMode !== 'now' && (
+                          <div className="space-y-2 p-4 rounded-lg bg-gray-50 dark:bg-gray-800/50">
+                            <StrictDateTimePicker
+                              id="scheduledAt"
+                              label={
+                                announcementForm.sendMode === 'both'
+                                  ? 'מתי לשלוח שוב?'
+                                  : 'מתי לשלוח?'
+                              }
+                              value={announcementForm.scheduledAt}
+                              onChange={(val) =>
+                                setAnnouncementForm({ ...announcementForm, scheduledAt: val })
+                              }
+                              required
+                              helperText="הזמן יוגבל לקפיצות של 10 דקות"
+                            />
+                            {announcementForm.scheduledAt && (
+                              <div className="text-sm font-semibold text-blue-600">
+                                תאריך עברי:{' '}
+                                {getHebrewDateString(new Date(announcementForm.scheduledAt))}
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
@@ -1190,9 +1276,11 @@ export default function AdminPage() {
                         <Button type="submit" className="flex-1 touch-target" disabled={loading}>
                           {loading
                             ? 'שולח...'
-                            : announcementForm.scheduledAt
-                              ? 'תזמן לשליחה'
-                              : 'שלח עכשיו'}
+                            : announcementForm.sendMode === 'now'
+                              ? 'שלח עכשיו'
+                              : announcementForm.sendMode === 'scheduled'
+                                ? 'תזמן לשליחה'
+                                : 'שלח עכשיו ותזמן'}
                         </Button>
                         <Button
                           type="button"
@@ -1203,6 +1291,7 @@ export default function AdminPage() {
                               body: '',
                               type: 'GENERAL',
                               scheduledAt: '',
+                              sendMode: 'now',
                             })
                           }
                           className="w-full sm:w-auto touch-target"
@@ -1365,47 +1454,88 @@ export default function AdminPage() {
                       </div>
 
                       <div className="border-t pt-4 mt-4">
-                        <div className="flex items-center gap-2 mb-3">
-                          <Bell className="h-5 w-5 text-blue-600" />
-                          <Label className="text-sm sm:text-base font-semibold">
-                            תזכורת לאירוע (אופציונלי)
-                          </Label>
-                        </div>
-                        <p className="text-xs text-gray-500 mb-4">
-                          הוסף תזכורת שתישלח לפני האירוע. השאר ריק אם אינך רוצה תזכורת.
-                        </p>
-
-                        <div className="space-y-4">
-                          <div>
-                            <Label htmlFor="reminderMessage" className="text-sm sm:text-base">
-                              הודעת התזכורת
-                            </Label>
-                            <textarea
-                              id="reminderMessage"
-                              className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-3 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                              placeholder="למשל: תזכורת! יום הולדת לסבתא מתקרב..."
-                              value={eventForm.reminderMessage}
-                              onChange={(e) =>
-                                setEventForm({ ...eventForm, reminderMessage: e.target.value })
+                        <Label className="text-sm sm:text-base font-semibold mb-3 block">
+                          מתי להודיע לחברים?
+                        </Label>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-4">
+                          {([
+                            { value: 'now', label: 'שלח הודעה עכשיו', icon: Send },
+                            { value: 'scheduled', label: 'תזמן הודעה', icon: Calendar },
+                            { value: 'both', label: 'שלח עכשיו + תזמן תזכורת', icon: Bell },
+                          ] as const).map(({ value, label, icon: Icon }) => (
+                            <button
+                              key={value}
+                              type="button"
+                              onClick={() =>
+                                setEventForm((prev) => ({
+                                  ...prev,
+                                  notifyMode: value,
+                                  reminderScheduledAt: value === 'now' ? '' : prev.reminderScheduledAt,
+                                  reminderMessage: value === 'now' ? '' : prev.reminderMessage,
+                                }))
                               }
-                            />
-                          </div>
-
-                          <StrictDateTimePicker
-                            id="reminderScheduledAt"
-                            label="תזמון תזכורת (אופציונלי)"
-                            value={eventForm.reminderScheduledAt}
-                            onChange={(val) =>
-                              setEventForm({ ...eventForm, reminderScheduledAt: val })
-                            }
-                            helperText="השאר ריק כדי לשלוח מיד. הזמן יוגבל לקפיצות של 10 דקות."
-                          />
+                              className={`flex items-center gap-2 p-3 rounded-lg border-2 transition-all text-sm font-medium ${
+                                eventForm.notifyMode === value
+                                  ? 'border-blue-600 bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-500'
+                                  : 'border-gray-200 hover:border-gray-300 dark:border-gray-700 dark:hover:border-gray-600'
+                              }`}
+                            >
+                              <Icon className="h-4 w-4 flex-shrink-0" />
+                              <span>{label}</span>
+                            </button>
+                          ))}
                         </div>
+
+                        {eventForm.notifyMode !== 'now' && (
+                          <div className="space-y-4 p-4 rounded-lg bg-gray-50 dark:bg-gray-800/50">
+                            <div>
+                              <Label htmlFor="reminderMessage" className="text-sm sm:text-base">
+                                הודעת התזכורת (אופציונלי)
+                              </Label>
+                              <textarea
+                                id="reminderMessage"
+                                className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-3 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                placeholder="למשל: תזכורת! יום הולדת לסבתא מתקרב..."
+                                value={eventForm.reminderMessage}
+                                onChange={(e) =>
+                                  setEventForm({ ...eventForm, reminderMessage: e.target.value })
+                                }
+                              />
+                            </div>
+
+                            <StrictDateTimePicker
+                              id="reminderScheduledAt"
+                              label={
+                                eventForm.notifyMode === 'both'
+                                  ? 'מתי לשלוח תזכורת?'
+                                  : 'מתי לשלוח?'
+                              }
+                              value={eventForm.reminderScheduledAt}
+                              onChange={(val) =>
+                                setEventForm({ ...eventForm, reminderScheduledAt: val })
+                              }
+                              required
+                              helperText="הזמן יוגבל לקפיצות של 10 דקות"
+                            />
+                            {eventForm.reminderScheduledAt && (
+                              <div className="text-sm font-semibold text-blue-600">
+                                תאריך עברי:{' '}
+                                {getHebrewDateString(new Date(eventForm.reminderScheduledAt))}
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
 
                       <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                         <Button type="submit" className="flex-1 touch-target" disabled={loading}>
-                          {loading ? 'יוצר...' : 'צור אירוע'}
+                          {loading
+                            ? 'יוצר...'
+                            : eventForm.notifyMode === 'now'
+                              ? 'צור אירוע ושלח עכשיו'
+                              : eventForm.notifyMode === 'scheduled'
+                                ? 'צור אירוע ותזמן הודעה'
+                                : 'צור אירוע, שלח ותזמן'}
                         </Button>
                         <Button
                           type="button"
@@ -1421,6 +1551,7 @@ export default function AdminPage() {
                               reminderScheduledAt: '',
                               imageUrl: '',
                               fileUrl: '',
+                              notifyMode: 'now',
                             })
                           }
                           className="w-full sm:w-auto touch-target"

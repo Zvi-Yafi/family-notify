@@ -222,7 +222,7 @@ export default function EventsPage() {
                             )}
                           </div>
                           {event.description && (
-                            <CardDescription className="text-sm sm:text-base mb-3">
+                            <CardDescription className="text-sm sm:text-base mb-3 whitespace-pre-wrap">
                               {event.description}
                             </CardDescription>
                           )}

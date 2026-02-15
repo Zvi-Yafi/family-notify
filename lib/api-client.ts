@@ -60,6 +60,7 @@ class ApiClient {
     type: 'GENERAL' | 'SIMCHA'
     familyGroupId: string
     scheduledAt?: string
+    sendNow?: boolean
   }) {
     return this.request<{ success: boolean; announcement: any }>('/api/admin/announcements', {
       method: 'POST',

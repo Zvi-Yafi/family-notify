@@ -37,6 +37,13 @@ const BASE_STYLES = {
   link: `color: ${COLORS.primary}; text-decoration: underline;`,
 }
 
+function linkify(text: string): string {
+  const urlRegex = /(https?:\/\/[^\s<>"{}|\\^`\[\]]+)/gi
+  return text.replace(urlRegex, (url) => {
+    return `<a href="${url}" target="_blank" style="color: ${COLORS.primary}; text-decoration: underline; word-break: break-all;">${url}</a>`
+  })
+}
+
 interface CommonEmailProps {
   previewText?: string
 }
@@ -68,9 +75,9 @@ export function buildEventReminderHtml(
   const mapLinkWaze = `https://waze.com/ul?q=${encodeURIComponent(event.location || '')}&navigate=yes`
   const mapLinkGoogle = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location || '')}`
 
-  const heroImage =
-    event.imageUrl ||
-    'https://lh3.googleusercontent.com/aida-public/AB6AXuCDcGhJoZ4dKseCDDs1xCbYhq_0cvBk1Gk6giO9jJKXsajjAXnjbvH2ze7S2coacgEPCqd1Uo8eN6kTIH3erQ-iWKKQRTlbzku15-9FHNoWJoC3Jqa-Pdfb5WaSmEZ0ctEHhE8C0I_MlcRP4Y4rkw6-9lWHJKQ3EDNJ8azaqWl5h1NBKHWMqFiSwUMrp1KtWRZBVlzz2fWTCI8OTZuBFpdcUBjfNkEgBLyF3g-Oal9JXO2QQGQ1dMXHUJCZcEo9KLDABZTkz6F1zpNv'
+  const heroImageHtml = event.imageUrl
+    ? `<img src="${event.imageUrl}" alt="Event Image" style="${BASE_STYLES.hero}" />`
+    : ''
 
   return `
     <!DOCTYPE html>
@@ -99,8 +106,7 @@ export function buildEventReminderHtml(
               <!-- Header REMOVED as per user request -->
 
 
-              <!-- Hero Image -->
-              <img src="${heroImage}" alt="Event Image" style="${BASE_STYLES.hero}" />
+              ${heroImageHtml}
 
               <!-- Title Section -->
               <div class="content-padding" style="padding: 40px 32px 16px 32px; text-align: center;">
@@ -171,7 +177,7 @@ export function buildEventReminderHtml(
                 ${(event.description || '')
                   .split('\n')
                   .map((line: string) =>
-                    line ? `<p style="${BASE_STYLES.paragraph}">${line}</p>` : ''
+                    line ? `<p style="${BASE_STYLES.paragraph}">${linkify(line)}</p>` : '<br>'
                   )
                   .join('')}
                 
@@ -262,7 +268,7 @@ export function buildEmailHtml(announcement: any, user: any): string {
                     .split('\n')
                     .map((line: string) =>
                       line
-                        ? `<p style="${BASE_STYLES.paragraph}; font-size: 16px;">${line}</p>`
+                        ? `<p style="${BASE_STYLES.paragraph}; font-size: 16px;">${linkify(line)}</p>`
                         : '<br>'
                     )
                     .join('')}

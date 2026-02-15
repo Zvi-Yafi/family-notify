@@ -73,19 +73,20 @@ model Preference {
 }
 
 model Announcement {
-  id            String              @id @default(uuid())
-  familyGroupId String
-  title         String
-  body          String
-  type          AnnouncementType    @default(GENERAL)
-  createdBy     String
-  scheduledAt   DateTime?
-  publishedAt   DateTime?
-  createdAt     DateTime            @default(now())
-  updatedAt     DateTime            @updatedAt
-  topics        AnnouncementTopic[]
-  creator       User                @relation(fields: [createdBy], references: [id], onDelete: Cascade)
-  familyGroup   FamilyGroup         @relation(fields: [familyGroupId], references: [id], onDelete: Cascade)
+  id                String              @id @default(uuid())
+  familyGroupId     String
+  title             String
+  body              String
+  type              AnnouncementType    @default(GENERAL)
+  createdBy         String
+  scheduledAt       DateTime?
+  scheduledResendAt DateTime?
+  publishedAt       DateTime?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  topics            AnnouncementTopic[]
+  creator           User                @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+  familyGroup       FamilyGroup         @relation(fields: [familyGroupId], references: [id], onDelete: Cascade)
 
   @@index([familyGroupId, publishedAt])
   @@map("announcements")
@@ -218,6 +219,7 @@ enum CommunicationChannel {
   SMS
   WHATSAPP
   PUSH
+  VOICE_CALL
 }
 
 enum AnnouncementType {
