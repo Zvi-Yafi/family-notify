@@ -58,7 +58,7 @@ async function createAnnouncementAsAdmin(page: Page, title: string) {
 
   await test.step('verify success toast', async () => {
     await expect(
-      page.getByText('הודעה נוצרה בהצלחה!', { exact: true }).first()
+      page.getByText('ההודעה נשלחה בהצלחה!', { exact: true }).first()
     ).toBeVisible({ timeout: 15000 })
   })
 }
