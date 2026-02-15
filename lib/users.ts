@@ -7,7 +7,7 @@ interface SyncUserParams {
   phone?: string | null
 }
 
-function normalizePhoneNumber(phone: string): string {
+export function normalizePhoneNumber(phone: string): string {
   let cleaned = phone.replace(/\D/g, '')
   
   if (cleaned.startsWith('0')) {

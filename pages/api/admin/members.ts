@@ -5,6 +5,7 @@ import { CommunicationChannel } from '@prisma/client'
 import { dispatchService } from '@/lib/dispatch/dispatch.service'
 import { withRequestContext } from '@/lib/api-wrapper'
 import { getGroupMembers, invalidateGroupCache } from '@/lib/services/cached-endpoints.service'
+import { normalizePhoneNumber } from '@/lib/users'
 
 async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void> {
   if (req.method === 'OPTIONS') {
@@ -62,8 +63,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void>
         }
       }
 
-      // 3. Normalize email if provided
       const normalizedEmail = email ? email.trim().toLowerCase() : null
+      const normalizedPhone = phone ? normalizePhoneNumber(phone) : null
 
       // 4. Supabase Auth Management
       const adminClient = createAdminClient()
@@ -105,7 +106,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void>
       // 5. Create/Update user in Prisma
       const searchConditions = []
       if (normalizedEmail) searchConditions.push({ email: normalizedEmail })
-      if (phone) searchConditions.push({ phone: phone })
+      if (normalizedPhone) searchConditions.push({ phone: normalizedPhone })
       if (supabaseUserId) searchConditions.push({ id: supabaseUserId })
 
       let targetUser = await prisma.user.findFirst({
@@ -118,7 +119,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void>
             id: supabaseUserId || undefined,
             email: normalizedEmail,
             name: name,
-            phone: phone || null,
+            phone: normalizedPhone,
           },
         })
       } else {
@@ -128,7 +129,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void>
             id: supabaseUserId || targetUser.id,
             email: normalizedEmail || targetUser.email,
             name: targetUser.name || name,
-            phone: phone || targetUser.phone,
+            phone: normalizedPhone || targetUser.phone,
           },
         })
       }
@@ -160,14 +161,14 @@ async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void>
           },
           update: {
             enabled: true,
-            destination: (channel === 'EMAIL' ? normalizedEmail : phone) || undefined,
+            destination: (channel === 'EMAIL' ? normalizedEmail : normalizedPhone) || undefined,
             verifiedAt: new Date(),
           },
           create: {
             userId: targetUser.id,
             channel: channel as CommunicationChannel,
             enabled: true,
-            destination: (channel === 'EMAIL' ? normalizedEmail : phone) || undefined,
+            destination: (channel === 'EMAIL' ? normalizedEmail : normalizedPhone) || undefined,
             verifiedAt: new Date(),
           },
         })
