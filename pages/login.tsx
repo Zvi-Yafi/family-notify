@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/hooks/use-toast'
+import { event as gaEvent } from '@/lib/analytics'
 import { Mail, Chrome, Lock, User, AlertCircle } from 'lucide-react'
 import { useFamilyContext } from '@/lib/context/family-context'
 import { Footer } from '@/components/footer'
@@ -64,6 +65,8 @@ export default function LoginPage() {
       }
 
       console.log('🔐 Google OAuth redirect URL:', callbackUrl)
+
+      gaEvent('login', { method: 'google' })
 
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
@@ -157,6 +160,8 @@ export default function LoginPage() {
         title: 'התחברת בהצלחה! 🎉',
         description: 'מעביר אותך...',
       })
+
+      gaEvent('login', { method: 'email' })
 
       const dest = (router.query.redirectTo as string) || '/feed'
       router.push(dest)
@@ -266,6 +271,8 @@ export default function LoginPage() {
           console.error('Failed to create user:', syncError)
         }
 
+        gaEvent('sign_up', { method: 'email' })
+
         if (isTemporaryEmail) {
           toast({
             title: 'הרשמה הושלמה! 🎉',
@@ -302,6 +309,8 @@ export default function LoginPage() {
           console.error('Failed to refresh groups:', refreshError)
           // Don't block signup if refresh fails
         }
+
+        gaEvent('sign_up', { method: 'email' })
 
         toast({
           title: 'הרשמה הושלמה! 🎉',

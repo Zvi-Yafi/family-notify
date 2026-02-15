@@ -8,6 +8,7 @@ import { useToast } from '@/hooks/use-toast'
 import { useFamilyContext } from '@/lib/context/family-context'
 import { createClient } from '@/lib/supabase/client'
 import { Info, AlertCircle, ArrowRight } from 'lucide-react'
+import { event as gaEvent } from '@/lib/analytics'
 
 const isValidEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
 
@@ -192,7 +193,10 @@ export default function OnboardingPage() {
         description: `ברוך הבא לקבוצה "${groupResult.group.name}"`,
       })
 
-      // Redirect to feed or admin
+      gaEvent('complete_onboarding', {
+        method: formData.createNew ? 'create_group' : 'join_group',
+      })
+
       setTimeout(() => {
         router.push('/feed')
       }, 1000)

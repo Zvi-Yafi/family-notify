@@ -13,6 +13,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { event as gaEvent } from '@/lib/analytics'
 import {
   Bell,
   Calendar,
@@ -348,6 +349,7 @@ export default function AdminPage() {
           title: 'הזמנות נשלחו',
           description: `${successes.length} הזמנות נשלחו בהצלחה`,
         })
+        gaEvent('send_invitation', { count: successes.length })
         setEmailsToInvite([])
         loadInvitations()
       }
@@ -588,6 +590,11 @@ export default function AdminPage() {
 
       toast(toastMessages[announcementForm.sendMode])
 
+      gaEvent('create_announcement', {
+        send_mode: announcementForm.sendMode,
+        type: announcementForm.type,
+      })
+
       await loadStats()
 
       setAnnouncementForm({
@@ -734,6 +741,8 @@ export default function AdminPage() {
       }
 
       toast(toastMessages[eventForm.notifyMode])
+
+      gaEvent('create_event', { notify_mode: eventForm.notifyMode })
 
       await loadStats()
 

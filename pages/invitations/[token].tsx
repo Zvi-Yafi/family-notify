@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/router'
 import { Header } from '@/components/header'
+import { event as gaEvent } from '@/lib/analytics'
 import {
   Card,
   CardContent,
@@ -78,10 +79,10 @@ export default function InvitationPage() {
         description: `ברוך הבא לקבוצת ${invitation.familyGroup.name}. כעת ניתן להגדיר העדפות.`,
       })
 
-      // Refresh groups in context so the user sees them everywhere immediately
+      gaEvent('join_group', { method: 'invitation' })
+
       await refreshGroups()
 
-      // Redirect to preferences
       router.push('/preferences?message=joined')
     } catch (err: any) {
       toast({
