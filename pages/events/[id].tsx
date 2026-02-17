@@ -145,7 +145,7 @@ export default function EventDetailPage() {
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
         <Header />
         <div className="container mx-auto px-4 py-8">
-          <div className="max-w-4xl mx-auto text-center py-12">
+          <div className="max-w-4xl lg:max-w-6xl mx-auto text-center py-12">
             <Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-600" />
             <p className="text-gray-600 dark:text-gray-400 mt-4">טוען...</p>
           </div>
@@ -159,7 +159,7 @@ export default function EventDetailPage() {
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
         <Header />
         <div className="container mx-auto px-4 py-8">
-          <div className="max-w-4xl mx-auto text-center py-12">
+          <div className="max-w-4xl lg:max-w-6xl mx-auto text-center py-12">
             <p className="text-gray-600 dark:text-gray-400">{error || 'אירוע לא נמצא'}</p>
             <Button onClick={() => router.push('/events')} className="mt-4">
               חזרה לאירועים
@@ -186,7 +186,7 @@ export default function EventDetailPage() {
       <Header />
 
       <div className="container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-4xl lg:max-w-6xl mx-auto">
           {/* Back Button */}
           <Button variant="ghost" onClick={() => router.push('/events')} className="mb-6">
             <ArrowRight className="h-4 w-4 ml-2" />

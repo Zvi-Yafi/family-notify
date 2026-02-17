@@ -139,7 +139,7 @@ export default function FeedPage() {
       <div className="min-h-screen bg-background">
         <Header />
         <div className="container mx-auto px-4 py-8">
-          <div className="max-w-3xl mx-auto text-center py-12">
+          <div className="max-w-3xl lg:max-w-6xl mx-auto text-center py-12">
             <Loader2 className="h-8 w-8 mx-auto text-primary mb-4 animate-spin" />
             <p className="text-muted-foreground">טוען קבוצות...</p>
           </div>
@@ -153,7 +153,7 @@ export default function FeedPage() {
       <Header />
 
       <div className="container mx-auto px-4 py-6 sm:py-8">
-        <div className="max-w-3xl mx-auto">
+        <div className="max-w-3xl lg:max-w-6xl mx-auto">
           <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div className="flex-1">
               <h2 className="text-2xl sm:text-3xl font-bold mb-1">פיד הודעות</h2>
@@ -211,7 +211,8 @@ export default function FeedPage() {
 
               <div ref={listRef}>
                 {loading && (
-                  <div className="space-y-4">
+                  <div className="space-y-4 lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0">
+                    <CardSkeleton />
                     <CardSkeleton />
                     <CardSkeleton />
                     <CardSkeleton />
@@ -231,7 +232,7 @@ export default function FeedPage() {
                 )}
 
                 {!loading && !error && announcements.length > 0 && (
-                  <div className="space-y-4">
+                  <div className="space-y-4 lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0">
                     {announcements.map((announcement) => (
                       <Card key={announcement.id} className="hover:shadow-lg transition-shadow">
                         <CardHeader className="p-4 sm:p-6">
@@ -270,7 +271,7 @@ export default function FeedPage() {
                       page={page}
                       totalPages={totalPages}
                       onPageChange={handlePageChange}
-                      className="mt-6"
+                      className="mt-6 lg:col-span-2"
                     />
                   </div>
                 )}

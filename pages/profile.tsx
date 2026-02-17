@@ -142,7 +142,7 @@ export default function ProfilePage() {
       <Header />
 
       <main className="flex-1 container mx-auto px-4 py-8 md:py-16">
-        <div className="max-w-2xl mx-auto">
+        <div className="max-w-2xl lg:max-w-4xl mx-auto">
           {/* Back button */}
           <Link
             href="/feed"

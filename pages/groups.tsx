@@ -129,7 +129,7 @@ export default function GroupsPage() {
     return (
       <div className="min-h-screen bg-gray-50">
         <Header />
-        <main className="container max-w-4xl mx-auto p-6">
+        <main className="container max-w-4xl lg:max-w-6xl mx-auto p-6">
           <div className="flex items-center justify-center h-64">
             <p className="text-gray-500">טוען קבוצות...</p>
           </div>
@@ -141,7 +141,7 @@ export default function GroupsPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
-      <main className="container max-w-4xl mx-auto p-4 sm:p-6">
+      <main className="container max-w-4xl lg:max-w-6xl mx-auto p-4 sm:p-6">
         <div className="mb-6 sm:mb-8">
           <h1 className="text-2xl sm:text-3xl font-bold mb-2">הקבוצות שלי</h1>
           <p className="text-sm sm:text-base text-gray-600">

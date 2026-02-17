@@ -766,7 +766,7 @@ export default function AdminPage() {
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
         <Header />
         <div className="container mx-auto px-4 py-8">
-          <div className="max-w-5xl mx-auto text-center py-12">
+          <div className="max-w-5xl lg:max-w-7xl mx-auto text-center py-12">
             <Loader2 className="h-8 w-8 mx-auto text-blue-600 mb-4 animate-spin" />
             <p className="text-gray-600 dark:text-gray-400">טוען קבוצות...</p>
           </div>
@@ -784,7 +784,7 @@ export default function AdminPage() {
 
       {/* Main Content */}
       <div className="container mx-auto px-4 py-8">
-        <div className="max-w-5xl mx-auto">
+        <div className="max-w-5xl lg:max-w-7xl mx-auto">
           {/* Group Selection - Always show for multiple groups or when needed */}
           {(needsGroupSelection || (groups.length > 1 && familyGroupId)) && (
             <div className="mb-8">

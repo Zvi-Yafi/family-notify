@@ -222,7 +222,7 @@ export default function EventsPage() {
       <div className="min-h-screen bg-background">
         <Header />
         <div className="container mx-auto px-4 py-8">
-          <div className="max-w-4xl mx-auto text-center py-12">
+          <div className="max-w-4xl lg:max-w-7xl mx-auto text-center py-12">
             <Loader2 className="h-8 w-8 mx-auto text-primary mb-4 animate-spin" />
             <p className="text-muted-foreground">טוען קבוצות...</p>
           </div>
@@ -236,7 +236,7 @@ export default function EventsPage() {
       <Header />
 
       <div className="container mx-auto px-4 py-6 sm:py-8">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-4xl lg:max-w-7xl mx-auto">
           <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div className="flex-1">
               <h2 className="text-2xl sm:text-3xl font-bold mb-1">לוח אירועים משפחתי</h2>
@@ -278,8 +278,8 @@ export default function EventsPage() {
           )}
 
           {familyGroupId && (
-            <>
-              <div className="mb-4">
+            <div className="lg:grid lg:grid-cols-[350px_1fr] lg:gap-6 lg:items-start">
+              <div className="mb-4 lg:mb-0 lg:sticky lg:top-24">
                 <EventsCalendar
                   eventDates={eventDates}
                   selectedDate={selectedDate}
@@ -290,6 +290,7 @@ export default function EventsPage() {
                 />
               </div>
 
+              <div>
               {selectedDate && (
                 <div className="mb-4 flex items-center gap-2">
                   <span className="inline-flex items-center gap-1.5 bg-primary/10 text-primary px-3 py-1.5 rounded-full text-sm font-medium">
@@ -499,7 +500,8 @@ export default function EventsPage() {
                   </Card>
                 )}
               </div>
-            </>
+              </div>
+            </div>
           )}
         </div>
       </div>

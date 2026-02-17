@@ -78,7 +78,7 @@ function AuthenticatedHome() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <Header />
       <main className="container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-4xl lg:max-w-6xl mx-auto">
           <motion.div
             initial="hidden"
             animate="visible"
@@ -630,7 +630,7 @@ export default function HomePage() {
         {/* CONTACT SECTION */}
         <section id="contact" className="py-24">
           <div className="container mx-auto px-6">
-            <div className="max-w-4xl mx-auto bg-white dark:bg-slate-900 rounded-[2rem] shadow-2xl overflow-hidden flex flex-col md:flex-row border border-slate-100 dark:border-slate-800">
+            <div className="max-w-4xl lg:max-w-6xl mx-auto bg-white dark:bg-slate-900 rounded-[2rem] shadow-2xl overflow-hidden flex flex-col md:flex-row border border-slate-100 dark:border-slate-800">
               <div className="md:w-1/2 p-12 bg-slate-50 dark:bg-slate-800/50">
                 <h2 className="text-3xl font-bold mb-6">נשמח לשמוע מכם!</h2>
                 <p className="text-slate-600 dark:text-slate-400 mb-10 text-lg">
@@ -697,7 +697,7 @@ export default function HomePage() {
         {/* SEO CONTENT SECTION */}
         <section className="py-24 bg-slate-50 dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-800">
           <div className="container mx-auto px-6">
-            <div className="max-w-4xl mx-auto space-y-12 text-right">
+            <div className="max-w-4xl lg:max-w-6xl mx-auto space-y-12 text-right">
               <header className="space-y-4">
                 <h2 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
                   FamNotify - מערכת הודעות למשפחה וניהול אירועים משפחתיים

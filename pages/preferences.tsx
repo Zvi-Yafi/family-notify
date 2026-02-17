@@ -318,7 +318,7 @@ export default function PreferencesPage() {
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
         <Header />
         <div className="container mx-auto px-4 py-8">
-          <div className="max-w-3xl mx-auto text-center">
+          <div className="max-w-3xl lg:max-w-6xl mx-auto text-center">
             <p>טוען העדפות...</p>
           </div>
         </div>
@@ -330,7 +330,7 @@ export default function PreferencesPage() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <Header />
       <div className="container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-4xl lg:max-w-6xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}

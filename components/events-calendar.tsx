@@ -39,7 +39,7 @@ export function EventsCalendar({
   onMonthChange,
   loading = false,
 }: EventsCalendarProps) {
-  const [collapsed, setCollapsed] = useState(true)
+  const [collapsed, setCollapsed] = useState(false)
   const [weekAnchor, setWeekAnchor] = useState<Date>(new Date())
 
   const datesSet = useMemo(() => new Set(eventDates), [eventDates])
