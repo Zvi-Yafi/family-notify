@@ -37,7 +37,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         userId: user.id,
       },
       include: {
-        familyGroup: true,
+        familyGroup: {
+          include: {
+            _count: {
+              select: { memberships: true },
+            },
+          },
+        },
       },
       orderBy: {
         createdAt: 'asc',
@@ -46,13 +52,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     console.log('✅ Groups API: Found memberships', { userId: user.id, count: memberships.length })
 
-    // Transform the data
     const groups = memberships.map((membership) => ({
       id: membership.familyGroup.id,
       name: membership.familyGroup.name,
       slug: membership.familyGroup.slug,
       role: membership.role,
       joinedAt: membership.createdAt,
+      memberCount: membership.familyGroup._count.memberships,
     }))
 
     return res.status(200).json({ groups })

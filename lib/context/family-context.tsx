@@ -9,6 +9,7 @@ interface Group {
   slug: string
   role: 'ADMIN' | 'MEMBER'
   joinedAt?: string
+  memberCount?: number
 }
 
 interface FamilyContextType {
@@ -137,10 +138,8 @@ export function FamilyProvider({ children }: { children: ReactNode }) {
 
     // Auto-select logic if groups available but none selected
     if (groups.length > 0 && !familyGroupId) {
-      // Only auto-select if exactly one group
-      if (groups.length === 1) {
-        setFamilyGroupIdState(groups[0].id)
-      }
+      const sorted = [...groups].sort((a, b) => (b.memberCount ?? 0) - (a.memberCount ?? 0))
+      setFamilyGroupIdState(sorted[0].id)
     } else if (groups.length > 0 && familyGroupId) {
       // Validate
       const isValid = groups.some((g) => g.id === familyGroupId)
