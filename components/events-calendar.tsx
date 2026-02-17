@@ -97,6 +97,7 @@ export function EventsCalendar({
   const handleToday = () => {
     onMonthChange(new Date())
     setWeekAnchor(new Date())
+    onDateSelect(null)
   }
 
   const handleDateClick = (day: Date) => {

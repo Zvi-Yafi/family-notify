@@ -43,9 +43,9 @@ export function GroupSelector({
     return (
       <Card>
         <CardContent className="py-12 text-center">
-          <Users className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+          <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
           <h3 className="text-lg font-semibold mb-2">אין לך קבוצות עדיין</h3>
-          <p className="text-gray-600 mb-4">צור קבוצה חדשה או הצטרף לקבוצה קיימת כדי להתחיל</p>
+          <p className="text-muted-foreground mb-4">צור קבוצה חדשה או הצטרף לקבוצה קיימת כדי להתחיל</p>
           <Button asChild>
             <Link href="/onboarding">הצטרף לקבוצה</Link>
           </Button>
@@ -54,13 +54,12 @@ export function GroupSelector({
     )
   }
 
-  // One group - already auto-selected, show current selection
   if (groups.length === 1 && familyGroupId) {
     return (
-      <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+      <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-primary/5 rounded-lg border border-primary/20">
         <div className="flex items-center gap-2">
-          <Users className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 flex-shrink-0" />
-          <span className="text-xs sm:text-sm text-blue-800 dark:text-blue-200 truncate">
+          <Users className="h-4 w-4 sm:h-5 sm:w-5 text-primary flex-shrink-0" />
+          <span className="text-xs sm:text-sm text-foreground truncate">
             שולח ל: <strong>{selectedGroup?.name}</strong>
           </span>
         </div>
@@ -71,10 +70,8 @@ export function GroupSelector({
   // Multiple groups or manual request - show selector
   return (
     <div className="space-y-4 mb-4 sm:mb-6">
-      {/* Pending Invitations Section */}
       {showInvitations && <PendingInvitations />}
 
-      {/* Group Selector Card */}
       {groups.length > 0 && (
         <Card>
           <CardHeader className="p-4 sm:p-6">
@@ -82,41 +79,42 @@ export function GroupSelector({
             <CardDescription className="text-xs sm:text-sm">{description}</CardDescription>
           </CardHeader>
           <CardContent className="p-4 sm:p-6 pt-0">
-            <div className="grid grid-flow-col auto-cols-fr gap-2 sm:gap-3 overflow-x-auto pb-1">
-              {groups.map((group) => (
-                <button
-                  key={group.id}
-                  onClick={() => handleSelectGroup(group.id)}
-                  className={`w-full min-w-[150px] p-3 sm:p-4 rounded-lg border-2 text-right transition-all touch-target ${
-                    familyGroupId === group.id
-                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50 dark:border-gray-700 dark:hover:border-gray-600'
-                  }`}
-                >
-                  <div className="flex flex-col gap-2 h-full">
-                    <div className="flex items-center justify-between gap-2 w-full">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <Users
-                          className={`h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0 ${
-                            familyGroupId === group.id ? 'text-blue-600' : 'text-gray-400'
-                          }`}
-                        />
-                        {familyGroupId === group.id && (
-                          <Check className="h-4 w-4 text-blue-600 flex-shrink-0 sm:hidden" />
-                        )}
-                      </div>
-                      {familyGroupId === group.id && (
-                        <Check className="h-5 w-5 text-blue-600 flex-shrink-0 hidden sm:block" />
-                      )}
+            <div className="flex flex-col gap-2">
+              {groups.map((group) => {
+                const isActive = familyGroupId === group.id
+                return (
+                  <button
+                    key={group.id}
+                    onClick={() => handleSelectGroup(group.id)}
+                    className={`w-full flex items-center gap-3 p-3 sm:p-4 rounded-lg border-2 text-right transition-all touch-target ${
+                      isActive
+                        ? 'border-primary bg-primary/5'
+                        : 'border-border hover:border-primary/30 hover:bg-accent'
+                    }`}
+                  >
+                    <div
+                      className={`flex items-center justify-center w-10 h-10 rounded-full flex-shrink-0 ${
+                        isActive
+                          ? 'bg-primary/10 text-primary'
+                          : 'bg-muted text-muted-foreground'
+                      }`}
+                    >
+                      <Users className="h-5 w-5" />
                     </div>
-
-                    <div className="flex-1 min-w-0 w-full">
-                      <p className="font-medium text-sm sm:text-base truncate">{group.name}</p>
-                      <p className="text-xs sm:text-sm text-gray-500 truncate">קוד: {group.slug}</p>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm sm:text-base truncate">
+                        {group.name}
+                      </p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {group.slug}
+                      </p>
                     </div>
-                  </div>
-                </button>
-              ))}
+                    {isActive && (
+                      <Check className="h-5 w-5 text-primary flex-shrink-0" />
+                    )}
+                  </button>
+                )
+              })}
             </div>
           </CardContent>
         </Card>
