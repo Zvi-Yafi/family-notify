@@ -2,17 +2,18 @@ import type { NextApiRequest, NextApiResponse } from 'next'
 import { prisma } from '@/lib/prisma'
 import { dispatchService } from '@/lib/dispatch/dispatch.service'
 import { createServerClient } from '@/lib/supabase/server'
-import { convertIsraelToUTC, formatToIsraelTime } from '@/lib/utils/timezone'
+import { convertIsraelToUTC } from '@/lib/utils/timezone'
 import { roundDateToTenMinutes } from '@/lib/utils/time-utils'
 import { invalidateStatsOnAnnouncementCreate } from '@/lib/hooks/cache-invalidation'
-import { withRequestContext } from '@/lib/api-wrapper'
 import {
   getGroupAnnouncements,
+  getGroupAnnouncementsPaginated,
   invalidateGroupCache,
 } from '@/lib/services/cached-endpoints.service'
 
+const VALID_TYPES = ['GENERAL', 'SIMCHA']
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
@@ -23,7 +24,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     try {
       const { title, bodyText, type, familyGroupId, scheduledAt, sendNow = true } = req.body
 
-      // Get authenticated user
       const supabase = createServerClient(req, res)
       const {
         data: { user },
@@ -39,7 +39,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const SUPER_ADMIN_EMAIL = 'z0533113784@gmail.com'
       const isSuperAdmin = user.email === SUPER_ADMIN_EMAIL
 
-      // VERIFY MEMBERSHIP
       let membership = null
       if (!isSuperAdmin) {
         membership = await prisma.membership.findUnique({
@@ -103,13 +102,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   if (req.method === 'GET') {
     try {
-      const { familyGroupId } = req.query
+      const { familyGroupId, page: pageParam, limit: limitParam, type } = req.query
 
       if (!familyGroupId || typeof familyGroupId !== 'string') {
         return res.status(400).json({ error: 'familyGroupId required' })
       }
 
-      // Get authenticated user
       const supabase = createServerClient(req, res)
       const {
         data: { user },
@@ -123,7 +121,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const SUPER_ADMIN_EMAIL = 'z0533113784@gmail.com'
       const isSuperAdmin = user.email === SUPER_ADMIN_EMAIL
 
-      // VERIFY MEMBERSHIP
       if (!isSuperAdmin) {
         const membership = await prisma.membership.findUnique({
           where: {
@@ -139,22 +136,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
       }
 
-      const announcements = await prisma.announcement.findMany({
-        where: { familyGroupId },
-        include: {
-          creator: {
-            select: {
-              email: true,
-            },
-          },
-        },
-        orderBy: {
-          createdAt: 'desc',
-        },
-        take: 50,
-      })
+      if (pageParam !== undefined) {
+        const page = Math.max(1, parseInt(String(pageParam), 10) || 1)
+        const limit = Math.min(50, Math.max(1, parseInt(String(limitParam), 10) || 10))
+        const typeFilter =
+          type && typeof type === 'string' && VALID_TYPES.includes(type.toUpperCase())
+            ? type.toUpperCase()
+            : undefined
 
-      return res.status(200).json({ announcements })
+        const { items, total } = await getGroupAnnouncementsPaginated(familyGroupId, {
+          page,
+          limit,
+          type: typeFilter,
+        })
+
+        const totalPages = Math.ceil(total / limit)
+        return res.status(200).json({ items, total, page, totalPages })
+      }
+
+      const result = await getGroupAnnouncements(familyGroupId)
+      return res.status(200).json(result)
     } catch (error: any) {
       console.error('Error fetching announcements:', error)
       return res.status(500).json({ error: error.message || 'Failed to fetch announcements' })

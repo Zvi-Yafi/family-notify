@@ -1,11 +1,17 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { prisma } from '@/lib/prisma'
 import { createServerClient } from '@/lib/supabase/server'
-import { convertIsraelToUTC, formatToIsraelTime } from '@/lib/utils/timezone'
+import { convertIsraelToUTC } from '@/lib/utils/timezone'
 import { roundDateToTenMinutes } from '@/lib/utils/time-utils'
 import { invalidateStatsOnEventCreate } from '@/lib/hooks/cache-invalidation'
 import { withRequestContext } from '@/lib/api-wrapper'
-import { getGroupEvents, invalidateGroupCache } from '@/lib/services/cached-endpoints.service'
+import {
+  getGroupEvents,
+  getGroupEventsPaginated,
+  invalidateGroupCache,
+} from '@/lib/services/cached-endpoints.service'
+
+const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/
 
 async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void> {
   if (req.method === 'OPTIONS') {
@@ -29,7 +35,6 @@ async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void>
         fileUrl,
       } = req.body
 
-      // Get authenticated user
       const supabase = createServerClient(req, res)
       const {
         data: { user },
@@ -45,7 +50,6 @@ async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void>
       const SUPER_ADMIN_EMAIL = 'z0533113784@gmail.com'
       const isSuperAdmin = user.email === SUPER_ADMIN_EMAIL
 
-      // VERIFY MEMBERSHIP
       if (!isSuperAdmin) {
         const membership = await prisma.membership.findUnique({
           where: {
@@ -63,7 +67,6 @@ async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void>
         }
       }
 
-      // Create event
       const startsAtUTC = convertIsraelToUTC(roundDateToTenMinutes(startsAt))
       const endsAtUTC = endsAt ? convertIsraelToUTC(roundDateToTenMinutes(endsAt)) : null
 
@@ -93,20 +96,12 @@ async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void>
 
   if (req.method === 'GET') {
     try {
-      const { familyGroupId, includePast } = req.query
+      const { familyGroupId, includePast, page: pageParam, limit: limitParam, date } = req.query
 
       if (!familyGroupId || typeof familyGroupId !== 'string') {
         return res.status(400).json({ error: 'familyGroupId required' })
       }
 
-      const now = new Date()
-
-      // Build where clause - include past events if requested
-      const whereClause: any = {
-        familyGroupId,
-      }
-
-      // Get authenticated user
       const supabase = createServerClient(req, res)
       const {
         data: { user },
@@ -120,7 +115,6 @@ async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void>
       const SUPER_ADMIN_EMAIL = 'z0533113784@gmail.com'
       const isSuperAdmin = user.email === SUPER_ADMIN_EMAIL
 
-      // VERIFY MEMBERSHIP
       if (!isSuperAdmin) {
         const membership = await prisma.membership.findUnique({
           where: {
@@ -134,6 +128,22 @@ async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void>
         if (!membership) {
           return res.status(403).json({ error: 'Forbidden - You are not a member of this group' })
         }
+      }
+
+      if (pageParam !== undefined) {
+        const page = Math.max(1, parseInt(String(pageParam), 10) || 1)
+        const limit = Math.min(50, Math.max(1, parseInt(String(limitParam), 10) || 10))
+        const dateFilter =
+          date && typeof date === 'string' && DATE_REGEX.test(date) ? date : undefined
+
+        const { items, total } = await getGroupEventsPaginated(familyGroupId, {
+          page,
+          limit,
+          date: dateFilter,
+        })
+
+        const totalPages = Math.ceil(total / limit)
+        return res.status(200).json({ items, total, page, totalPages })
       }
 
       const result = await getGroupEvents(familyGroupId, includePast === 'true')

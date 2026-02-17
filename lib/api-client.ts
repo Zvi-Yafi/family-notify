@@ -1,9 +1,3 @@
-/**
- * API Client for FamilyNotify
- * Centralized API communication layer
- */
-
-// Custom error class for authentication errors
 export class UnauthorizedError extends Error {
   constructor(message: string) {
     super(message)
@@ -11,9 +5,15 @@ export class UnauthorizedError extends Error {
   }
 }
 
+export interface PaginatedResponse<T> {
+  items: T[]
+  total: number
+  page: number
+  totalPages: number
+}
+
 class ApiClient {
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-    // Use relative URLs - works in browser and during SSR
     const url = endpoint
 
     const config: RequestInit = {
@@ -22,19 +22,16 @@ class ApiClient {
         'Content-Type': 'application/json',
         ...options.headers,
       },
-      credentials: 'include', // Include cookies for auth
+      credentials: 'include',
     }
 
     const response = await fetch(url, config)
 
     if (!response.ok) {
-      // Handle 401 Unauthorized - user logged out
       if (response.status === 401) {
-        // Only redirect if we're in the browser
         if (typeof window !== 'undefined') {
           const currentPath = window.location.pathname
           window.location.href = `/login?redirectTo=${encodeURIComponent(currentPath)}`
-          // Throw a special error that won't be displayed
           throw new UnauthorizedError('Unauthorized - redirecting to login')
         }
         throw new UnauthorizedError('Unauthorized')
@@ -47,10 +44,26 @@ class ApiClient {
     return response.json()
   }
 
-  // Announcements
   async getAnnouncements(familyGroupId: string) {
     return this.request<{ announcements: any[] }>(
       `/api/admin/announcements?familyGroupId=${familyGroupId}`
+    )
+  }
+
+  async getAnnouncementsPaginated(
+    familyGroupId: string,
+    params: { page: number; limit: number; type?: string }
+  ) {
+    const searchParams = new URLSearchParams({
+      familyGroupId,
+      page: String(params.page),
+      limit: String(params.limit),
+    })
+    if (params.type && params.type !== 'ALL') {
+      searchParams.set('type', params.type)
+    }
+    return this.request<PaginatedResponse<any>>(
+      `/api/admin/announcements?${searchParams.toString()}`
     )
   }
 
@@ -68,10 +81,32 @@ class ApiClient {
     })
   }
 
-  // Events
   async getEvents(familyGroupId: string, includePast: boolean = false) {
     const url = `/api/admin/events?familyGroupId=${familyGroupId}${includePast ? '&includePast=true' : ''}`
     return this.request<{ events: any[] }>(url)
+  }
+
+  async getEventsPaginated(
+    familyGroupId: string,
+    params: { page: number; limit: number; date?: string }
+  ) {
+    const searchParams = new URLSearchParams({
+      familyGroupId,
+      page: String(params.page),
+      limit: String(params.limit),
+    })
+    if (params.date) {
+      searchParams.set('date', params.date)
+    }
+    return this.request<PaginatedResponse<any>>(
+      `/api/admin/events?${searchParams.toString()}`
+    )
+  }
+
+  async getEventDatesForMonth(familyGroupId: string, month: string) {
+    return this.request<{ eventDates: string[] }>(
+      `/api/admin/events/dates?familyGroupId=${familyGroupId}&month=${month}`
+    )
   }
 
   async createEvent(data: {
