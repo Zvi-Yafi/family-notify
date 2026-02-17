@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/hooks/use-toast'
 import { event as gaEvent } from '@/lib/analytics'
-import { Mail, Chrome, Lock, User, AlertCircle } from 'lucide-react'
+import { Mail, Chrome, Lock, User, AlertCircle, ArrowRight } from 'lucide-react'
 import { useFamilyContext } from '@/lib/context/family-context'
 import { Footer } from '@/components/footer'
 
@@ -344,6 +344,15 @@ export default function LoginPage() {
         <Card className="w-full max-w-md">
           {/* ... existing CardContent ... */}
           <CardHeader className="text-center p-4 sm:p-6">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => router.push('/')}
+              className="self-start mb-2 gap-2 text-muted-foreground hover:text-foreground"
+            >
+              <ArrowRight className="h-4 w-4" />
+              חזרה לעמוד הראשי
+            </Button>
             <div className="flex justify-center mb-3 sm:mb-4">
               <div className="h-12 w-12 sm:h-16 sm:w-16 bg-blue-600 rounded-full flex items-center justify-center">
                 <Mail className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
@@ -543,17 +552,6 @@ export default function LoginPage() {
                 </Button>
               </TabsContent>
             </Tabs>
-
-            <Button
-              onClick={() => router.push('/onboarding')}
-              variant="ghost"
-              size="sm"
-              className="w-full"
-              disabled={loading}
-            >
-              המשך כאורח
-            </Button>
-
             <p className="text-center text-sm text-muted-foreground pt-4 border-t">
               בהתחברות, אתם מסכימים ל
               <Link href="/legal/terms" className="underline hover:text-primary mx-1">
