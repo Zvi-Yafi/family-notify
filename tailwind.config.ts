@@ -52,6 +52,14 @@ const config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        success: {
+          DEFAULT: "hsl(var(--success))",
+          foreground: "hsl(var(--success-foreground))",
+        },
+        simcha: {
+          DEFAULT: "hsl(var(--simcha))",
+          foreground: "hsl(var(--simcha-foreground))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",

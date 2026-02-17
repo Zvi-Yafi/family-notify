@@ -34,7 +34,7 @@ export function GroupSelector({
     return (
       <Card className="mb-4 sm:mb-6">
         <CardContent className="py-8 text-center">
-          <p className="text-gray-500">טוען קבוצות...</p>
+          <p className="text-muted-foreground">טוען קבוצות...</p>
         </CardContent>
       </Card>
     )

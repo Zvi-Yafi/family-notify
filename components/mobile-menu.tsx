@@ -120,7 +120,7 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
 
       {/* Slide-in Menu - opens from RIGHT for RTL */}
       <div
-        className={`fixed top-0 right-0 h-full w-80 max-w-[85vw] bg-white dark:bg-gray-800 shadow-xl z-50 transform transition-transform duration-300 ease-in-out ${
+        className={`fixed top-0 right-0 h-full w-80 max-w-[85vw] bg-card shadow-xl z-50 transform transition-transform duration-300 ease-in-out ${
           isAnimating ? 'translate-x-0' : 'translate-x-full'
         }`}
         role="dialog"
@@ -129,9 +129,9 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
       >
         <div className="flex flex-col h-full">
           {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b dark:border-gray-700">
+          <div className="flex items-center justify-between p-4 border-b">
             <div className="flex items-center gap-2">
-              <Bell className="h-6 w-6 text-blue-600" />
+              <Bell className="h-6 w-6 text-primary" />
               <span className="text-xl font-bold">FamilyNotify</span>
             </div>
             <Button
@@ -147,9 +147,9 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
 
           {/* User Profile Section */}
           {user && (
-            <div className="p-4 border-b dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+            <div className="p-4 border-b bg-primary/[0.03]">
               <div className="flex items-center gap-3">
-                <div className="h-12 w-12 rounded-full bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900 dark:to-blue-800 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 overflow-hidden">
                   {avatarUrl ? (
                     <Image
                       src={avatarUrl}
@@ -159,12 +159,12 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
                       className="rounded-full object-cover"
                     />
                   ) : (
-                    <UserIcon className="h-6 w-6 text-blue-600 dark:text-blue-300" />
+                    <UserIcon className="h-6 w-6 text-primary" />
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-base truncate">{displayName}</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 truncate">{user.email}</p>
+                  <p className="text-sm text-muted-foreground truncate">{user.email}</p>
                 </div>
               </div>
             </div>
@@ -183,8 +183,8 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
                     href={item.href}
                     className={`flex items-center gap-3 px-4 py-3 rounded-lg touch-target transition-colors ${
                       isActive
-                        ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-medium'
-                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                        ? 'bg-primary/10 text-primary font-medium'
+                        : 'text-foreground/70 hover:bg-muted'
                     }`}
                   >
                     <Icon className="h-5 w-5 flex-shrink-0" />
@@ -197,7 +197,7 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
 
           {/* Footer - Logout */}
           {user && (
-            <div className="p-4 border-t dark:border-gray-700">
+            <div className="p-4 border-t">
               <Button
                 variant="outline"
                 className="w-full justify-start gap-3 touch-target"

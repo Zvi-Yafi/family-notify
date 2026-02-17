@@ -67,7 +67,7 @@ export function Header() {
 
   return (
     <>
-      <header className="sticky top-0 z-50 bg-white dark:bg-gray-800 border-b">
+      <header className="sticky top-0 z-50 bg-card border-b shadow-sm">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             {/* Left side: Logo + Navigation links */}
@@ -102,10 +102,10 @@ export function Header() {
                         <Button
                           variant="ghost"
                           asChild
-                          className={`hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors ${
+                          className={`hover:bg-primary/5 transition-colors ${
                             isActive
-                              ? 'text-blue-600 dark:text-blue-400 font-semibold'
-                              : 'text-gray-600 dark:text-gray-400'
+                              ? 'text-primary font-semibold'
+                              : 'text-muted-foreground'
                           }`}
                         >
                           <Link href={item.href}>{item.label}</Link>
@@ -113,7 +113,7 @@ export function Header() {
                         {isActive && (
                           <motion.div
                             layoutId="nav-underline"
-                            className="absolute -bottom-[17px] left-0 right-0 h-0.5 bg-gray-900 dark:bg-white rounded-t-full"
+                            className="absolute -bottom-[17px] left-0 right-0 h-0.5 bg-primary rounded-t-full"
                             transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
                           />
                         )}
@@ -172,7 +172,7 @@ export function Header() {
                                   )}
                                   <span className="font-semibold">{displayName}</span>
                                 </div>
-                                <span className="text-xs text-gray-500 font-normal">
+                                <span className="text-xs text-muted-foreground font-normal">
                                   {user.email}
                                 </span>
                               </div>

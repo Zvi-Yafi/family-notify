@@ -122,7 +122,7 @@ export function EventsCalendar({
     : !isSameMonth(currentMonth, new Date())
 
   return (
-    <div className="bg-card rounded-lg border p-3 sm:p-4">
+    <div className="bg-card rounded-lg border p-3 sm:p-4 shadow-sm">
       <div className="flex items-center justify-between mb-3">
         <Button
           variant="ghost"
@@ -220,8 +220,8 @@ export function EventsCalendar({
               <span
                 className={cn(
                   'flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-full text-sm transition-colors',
-                  isSelected && 'bg-primary text-primary-foreground font-bold',
-                  !isSelected && today && 'ring-2 ring-primary font-semibold',
+                  isSelected && 'bg-primary text-primary-foreground font-bold shadow-sm',
+                  !isSelected && today && 'ring-2 ring-ring/40 font-semibold text-primary',
                   !isSelected && !today && inCurrentMonth && 'text-foreground',
                 )}
               >
@@ -232,7 +232,7 @@ export function EventsCalendar({
                   <div
                     className={cn(
                       'w-1.5 h-1.5 rounded-full',
-                      isSelected ? 'bg-primary-foreground' : 'bg-primary'
+                      isSelected ? 'bg-primary-foreground' : 'bg-primary/60'
                     )}
                   />
                 )}

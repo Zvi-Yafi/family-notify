@@ -156,7 +156,7 @@ export default function FeedPage() {
         <div className="max-w-3xl lg:max-w-6xl mx-auto">
           <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div className="flex-1">
-              <h2 className="text-2xl sm:text-3xl font-bold mb-1">פיד הודעות</h2>
+              <h2 className="text-2xl sm:text-3xl font-bold mb-1 section-title">פיד הודעות</h2>
               <p className="text-sm text-muted-foreground">
                 כל ההודעות והשמחות האחרונות מהמשפחה
               </p>
@@ -200,7 +200,7 @@ export default function FeedPage() {
                     className={cn(
                       'px-4 py-2 rounded-md text-sm font-medium transition-colors min-h-[36px]',
                       typeFilter === tab.value
-                        ? 'bg-background text-foreground shadow-sm'
+                        ? 'bg-background text-primary shadow-sm border border-primary/15'
                         : 'text-muted-foreground hover:text-foreground'
                     )}
                   >
@@ -234,7 +234,7 @@ export default function FeedPage() {
                 {!loading && !error && announcements.length > 0 && (
                   <div className="space-y-4 lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0">
                     {announcements.map((announcement) => (
-                      <Card key={announcement.id} className="hover:shadow-lg transition-shadow">
+                      <Card key={announcement.id} className="hover:shadow-lg transition-shadow card-accent">
                         <CardHeader className="p-4 sm:p-6">
                           <div className="flex flex-col sm:flex-row items-start justify-between gap-3 sm:gap-0">
                             <div className="flex-1 min-w-0 w-full">
@@ -251,8 +251,8 @@ export default function FeedPage() {
                               className={cn(
                                 'px-3 py-1 rounded-full text-xs font-medium flex-shrink-0 self-start sm:self-auto',
                                 announcement.type === 'SIMCHA'
-                                  ? 'bg-secondary text-secondary-foreground'
-                                  : 'bg-primary/10 text-primary'
+                                  ? 'badge-soft-purple'
+                                  : 'badge-soft-blue'
                               )}
                             >
                               {announcement.type === 'SIMCHA' ? 'שמחה' : 'כללי'}

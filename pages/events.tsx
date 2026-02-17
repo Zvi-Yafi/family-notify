@@ -32,6 +32,7 @@ import {
 import { generateGoogleCalendarUrl, downloadIcsFile } from '@/lib/utils/calendar-utils'
 import { EventsCalendar } from '@/components/events-calendar'
 import { Pagination } from '@/components/ui/pagination'
+import { cn } from '@/lib/utils'
 
 interface Event {
   id: string
@@ -237,9 +238,9 @@ export default function EventsPage() {
 
       <div className="container mx-auto px-4 py-6 sm:py-8">
         <div className="max-w-4xl lg:max-w-7xl mx-auto">
-          <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div className="flex-1">
-              <h2 className="text-2xl sm:text-3xl font-bold mb-1">לוח אירועים משפחתי</h2>
+              <h2 className="text-2xl sm:text-3xl font-bold mb-1 section-title">לוח אירועים משפחתי</h2>
               <p className="text-sm text-muted-foreground">
                 אירועים ושמחות
               </p>
@@ -337,9 +338,11 @@ export default function EventsPage() {
                       return (
                         <Card
                           key={event.id}
-                          className={`hover:shadow-lg transition-shadow ${
-                            isPast ? 'opacity-60' : ''
-                          } ${isTodayEvent ? 'border-primary border-2' : ''}`}
+                          className={cn(
+                            'hover:shadow-lg transition-shadow card-accent',
+                            isPast && 'opacity-60',
+                            isTodayEvent && 'border-primary/40 border-2 shadow-md'
+                          )}
                         >
                           <CardHeader className="p-4 sm:p-6">
                             <div className="flex items-start justify-between">
@@ -350,7 +353,7 @@ export default function EventsPage() {
                                     {event.title}
                                   </CardTitle>
                                   {isTodayEvent && (
-                                    <span className="bg-primary text-primary-foreground px-2 py-1 rounded text-xs font-bold">
+                                    <span className="badge-soft-blue px-2 py-0.5 rounded-full text-xs font-bold">
                                       היום!
                                     </span>
                                   )}
@@ -381,7 +384,7 @@ export default function EventsPage() {
                                   href={event.fileUrl}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="flex items-center gap-2 p-3 border rounded-lg bg-destructive/5 hover:bg-destructive/10 transition-colors text-destructive font-semibold"
+                                  className="flex items-center gap-2 p-3 border rounded-lg bg-primary/5 hover:bg-primary/10 transition-colors text-primary font-semibold"
                                 >
                                   <Paperclip className="h-5 w-5" />
                                   <span className="text-sm">צפה בהזמנה (PDF)</span>
