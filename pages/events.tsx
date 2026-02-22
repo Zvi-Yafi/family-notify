@@ -191,7 +191,12 @@ export default function EventsPage() {
     setPage(1)
     setEventDates([])
     setEvents([])
-    setCurrentMonth(new Date())
+    setCurrentMonth((prev) => {
+      const now = new Date()
+      const isSameMonth =
+        prev.getFullYear() === now.getFullYear() && prev.getMonth() === now.getMonth()
+      return isSameMonth ? prev : now
+    })
   }, [familyGroupId])
 
   const handleMonthChange = (month: Date) => {
