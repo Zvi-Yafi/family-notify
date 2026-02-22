@@ -2,25 +2,48 @@ import { Ratelimit } from '@upstash/ratelimit'
 import { Redis } from '@upstash/redis/cloudflare'
 import type { NextRequest } from 'next/server'
 
-const redis =
-  process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
-    ? new Redis({
-        url: process.env.UPSTASH_REDIS_REST_URL,
-        token: process.env.UPSTASH_REDIS_REST_TOKEN,
-      })
-    : null
+type RateLimiterSet = {
+  global: Ratelimit
+  auth: Ratelimit
+  dispatch: Ratelimit
+  write: Ratelimit
+  superAdmin: Ratelimit
+}
 
-export const rateLimiters = redis
-  ? {
+let cachedRateLimiters: RateLimiterSet | null | undefined
+
+function getRateLimiters(): RateLimiterSet | null {
+  if (cachedRateLimiters !== undefined) return cachedRateLimiters
+
+  const url = process.env.UPSTASH_REDIS_REST_URL
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN
+  if (!url || !token) {
+    cachedRateLimiters = null
+    return cachedRateLimiters
+  }
+
+  try {
+    const redis = new Redis({ url, token })
+    cachedRateLimiters = {
       global: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(100, '1 m'), prefix: 'rl:global' }),
       auth: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(5, '1 m'), prefix: 'rl:auth' }),
       dispatch: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(10, '1 m'), prefix: 'rl:dispatch' }),
       write: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(30, '1 m'), prefix: 'rl:write' }),
-      superAdmin: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(20, '1 m'), prefix: 'rl:super-admin' }),
+      superAdmin: new Ratelimit({
+        redis,
+        limiter: Ratelimit.slidingWindow(20, '1 m'),
+        prefix: 'rl:super-admin',
+      }),
     }
-  : null
+  } catch {
+    cachedRateLimiters = null
+  }
+
+  return cachedRateLimiters
+}
 
 export function getLimiter(pathname: string): Ratelimit | null {
+  const rateLimiters = getRateLimiters()
   if (!rateLimiters) return null
   if (pathname.startsWith('/api/auth')) return rateLimiters.auth
   if (pathname.startsWith('/api/dispatch')) return rateLimiters.dispatch
