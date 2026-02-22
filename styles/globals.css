@@ -132,3 +132,14 @@
 .text-mobile-2xl {
   @apply text-3xl sm:text-4xl md:text-5xl;
 }
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
