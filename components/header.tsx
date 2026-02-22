@@ -102,10 +102,10 @@ export function Header() {
                         <Button
                           variant="ghost"
                           asChild
-                          className={`hover:bg-primary/5 transition-colors ${
+                          className={`transition-colors ${
                             isActive
                               ? 'text-primary font-semibold'
-                              : 'text-muted-foreground'
+                              : 'text-foreground/75 hover:text-foreground hover:bg-muted'
                           }`}
                         >
                           <Link href={item.href}>{item.label}</Link>
