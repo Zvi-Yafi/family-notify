@@ -11,6 +11,7 @@ import { Providers } from '@/components/providers'
 import { ErrorBoundary } from '@/components/error-boundary'
 import { useAuth } from '@/lib/hooks/use-auth'
 import { GA_MEASUREMENT_ID, isGAEnabled, pageview, setUserId } from '@/lib/analytics'
+import '@/src/i18n'
 
 const inter = Inter({ subsets: ['latin'] })
 

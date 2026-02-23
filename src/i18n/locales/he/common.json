@@ -1,0 +1,21 @@
+{
+  "sendingProgress": {
+    "announcementTitle": "מתקדמים בשליחת ההודעה",
+    "eventReminderTitle": "מתקדמים בשליחת התזכורת",
+    "eventNotificationTitle": "מתקדמים בשליחת עדכון האירוע",
+    "inProgress": "שולחים עכשיו",
+    "completed": "השליחה הושלמה",
+    "processedOfTotal": "{{processed}} מתוך {{total}}",
+    "sent": "נשלח",
+    "failed": "נכשל",
+    "queued": "ממתין",
+    "percentageLabel": "{{value}}%",
+    "channel": {
+      "EMAIL": "אימייל",
+      "SMS": "SMS",
+      "WHATSAPP": "וואטסאפ",
+      "PUSH": "פוש",
+      "VOICE_CALL": "שיחה קולית"
+    }
+  }
+}

@@ -22,7 +22,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   if (req.method === 'POST') {
     try {
-      const { title, bodyText, type, familyGroupId, scheduledAt, sendNow = true } = req.body
+      const {
+        title,
+        bodyText,
+        type,
+        familyGroupId,
+        scheduledAt,
+        sendNow = true,
+        asyncDispatch = false,
+      } = req.body
 
       const supabase = createServerClient(req, res)
       const {
@@ -87,10 +95,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       invalidateStatsOnAnnouncementCreate(familyGroupId)
 
       if (sendNow) {
-        await dispatchService.dispatchAnnouncement({
-          announcementId: announcement.id,
-          familyGroupId,
-        })
+        if (asyncDispatch) {
+          void dispatchService
+            .dispatchAnnouncement({
+              announcementId: announcement.id,
+              familyGroupId,
+            })
+            .catch((dispatchError) => {
+              console.error('Error dispatching announcement asynchronously:', dispatchError)
+            })
+        } else {
+          await dispatchService.dispatchAnnouncement({
+            announcementId: announcement.id,
+            familyGroupId,
+          })
+        }
       }
 
       return res.status(200).json({ success: true, announcement })

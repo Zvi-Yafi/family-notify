@@ -1,0 +1,21 @@
+{
+  "sendingProgress": {
+    "announcementTitle": "Sending announcement",
+    "eventReminderTitle": "Sending reminder",
+    "eventNotificationTitle": "Sending event update",
+    "inProgress": "Sending now",
+    "completed": "Sending completed",
+    "processedOfTotal": "{{processed}} of {{total}}",
+    "sent": "Sent",
+    "failed": "Failed",
+    "queued": "Queued",
+    "percentageLabel": "{{value}}%",
+    "channel": {
+      "EMAIL": "Email",
+      "SMS": "SMS",
+      "WHATSAPP": "WhatsApp",
+      "PUSH": "Push",
+      "VOICE_CALL": "Voice call"
+    }
+  }
+}

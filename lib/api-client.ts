@@ -12,6 +12,30 @@ export interface PaginatedResponse<T> {
   totalPages: number
 }
 
+export interface SendProgressResponse {
+  itemType: 'ANNOUNCEMENT' | 'EVENT' | 'EVENT_REMINDER'
+  itemId: string
+  total: number
+  processed: number
+  sent: number
+  failed: number
+  queued: number
+  percentage: number
+  byChannel: Record<
+    'EMAIL' | 'SMS' | 'WHATSAPP' | 'PUSH' | 'VOICE_CALL',
+    {
+      total: number
+      processed: number
+      sent: number
+      failed: number
+      queued: number
+    }
+  >
+  startedAt: string | null
+  completedAt: string | null
+  isComplete: boolean
+}
+
 class ApiClient {
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = endpoint
@@ -74,11 +98,16 @@ class ApiClient {
     familyGroupId: string
     scheduledAt?: string
     sendNow?: boolean
+    asyncDispatch?: boolean
   }) {
     return this.request<{ success: boolean; announcement: any }>('/api/admin/announcements', {
       method: 'POST',
       body: JSON.stringify(data),
     })
+  }
+
+  async getAnnouncementProgress(announcementId: string) {
+    return this.request<SendProgressResponse>(`/api/admin/announcements/${announcementId}/progress`)
   }
 
   async getEvents(familyGroupId: string, includePast: boolean = false) {
@@ -123,6 +152,10 @@ class ApiClient {
       method: 'POST',
       body: JSON.stringify(data),
     })
+  }
+
+  async getEventReminderProgress(reminderId: string) {
+    return this.request<SendProgressResponse>(`/api/admin/event-reminders/${reminderId}/progress`)
   }
 
   // Stats
