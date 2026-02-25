@@ -98,7 +98,6 @@ class ApiClient {
     familyGroupId: string
     scheduledAt?: string
     sendNow?: boolean
-    asyncDispatch?: boolean
   }) {
     return this.request<{ success: boolean; announcement: any }>('/api/admin/announcements', {
       method: 'POST',

@@ -14,7 +14,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   if (req.method === 'POST') {
     try {
-      const { eventId, message, scheduledAt, asyncDispatch = false } = req.body
+      const { eventId, message, scheduledAt } = req.body
 
       // Get authenticated user
       const supabase = createServerClient(req, res)
@@ -74,34 +74,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       })
 
       if (!scheduledAt) {
-        if (asyncDispatch) {
-          void (async () => {
-            try {
-              await dispatchService.dispatchEventReminder({
-                eventReminderId: reminder.id,
-                familyGroupId: event.familyGroupId,
-                isInitial: true,
-              })
-              await prisma.eventReminder.update({
-                where: { id: reminder.id },
-                data: { sentAt: new Date() },
-              })
-            } catch (dispatchError) {
-              console.error('Error dispatching event reminder asynchronously:', dispatchError)
-            }
-          })()
-        } else {
-          await dispatchService.dispatchEventReminder({
-            eventReminderId: reminder.id,
-            familyGroupId: event.familyGroupId,
-            isInitial: true,
-          })
+        await dispatchService.dispatchEventReminder({
+          eventReminderId: reminder.id,
+          familyGroupId: event.familyGroupId,
+          isInitial: true,
+        })
 
-          await prisma.eventReminder.update({
-            where: { id: reminder.id },
-            data: { sentAt: new Date() },
-          })
-        }
+        await prisma.eventReminder.update({
+          where: { id: reminder.id },
+          data: { sentAt: new Date() },
+        })
       }
 
       return res.status(200).json({ success: true, reminder })

@@ -625,7 +625,6 @@ export default function AdminPage() {
         familyGroupId,
         sendNow,
         scheduledAt,
-        asyncDispatch: sendNow,
       })
 
       if (sendNow) {
@@ -771,7 +770,6 @@ export default function AdminPage() {
               eventId,
               message,
               scheduledAt,
-              asyncDispatch: !scheduledAt,
             }),
           })
           if (!reminderResponse.ok) {

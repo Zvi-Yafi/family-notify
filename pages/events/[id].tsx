@@ -144,7 +144,6 @@ export default function EventDetailPage() {
           eventId: id,
           message: reminderForm.message,
           scheduledAt: reminderForm.scheduledAt || null,
-          asyncDispatch: !reminderForm.scheduledAt,
         }),
       })
 
