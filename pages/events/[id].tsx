@@ -17,8 +17,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { generateGoogleCalendarUrl, downloadIcsFile } from '@/lib/utils/calendar-utils'
-import { apiClient } from '@/lib/api-client'
-import { SendProgressCard, type SendProgressData } from '@/components/ui/send-progress-card'
 
 interface Event {
   id: string
@@ -54,43 +52,11 @@ export default function EventDetailPage() {
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [sendProgress, setSendProgress] = useState<SendProgressData | null>(null)
 
   const [reminderForm, setReminderForm] = useState({
     message: '',
     scheduledAt: '',
   })
-
-  const createEmptyProgress = (): SendProgressData => ({
-    total: 0,
-    processed: 0,
-    sent: 0,
-    failed: 0,
-    queued: 0,
-    percentage: 0,
-    byChannel: {
-      EMAIL: { total: 0, processed: 0, sent: 0, failed: 0, queued: 0 },
-      SMS: { total: 0, processed: 0, sent: 0, failed: 0, queued: 0 },
-      WHATSAPP: { total: 0, processed: 0, sent: 0, failed: 0, queued: 0 },
-      PUSH: { total: 0, processed: 0, sent: 0, failed: 0, queued: 0 },
-      VOICE_CALL: { total: 0, processed: 0, sent: 0, failed: 0, queued: 0 },
-    },
-    isComplete: false,
-  })
-
-  const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
-
-  const pollReminderProgress = async (reminderId: string) => {
-    for (let attempt = 0; attempt < 120; attempt += 1) {
-      const progress = await apiClient.getEventReminderProgress(reminderId)
-      setSendProgress(progress)
-      if (progress.isComplete) {
-        return progress
-      }
-      await wait(1000)
-    }
-    return null
-  }
 
   const loadEventDetails = useCallback(async () => {
     if (!id || typeof id !== 'string') return
@@ -135,7 +101,6 @@ export default function EventDetailPage() {
 
     try {
       setSubmitting(true)
-      setSendProgress(null)
 
       const response = await fetch('/api/admin/event-reminders', {
         method: 'POST',
@@ -148,12 +113,7 @@ export default function EventDetailPage() {
       })
 
       if (!response.ok) throw new Error('Failed to create reminder')
-      const reminderData = await response.json()
-
-      if (!reminderForm.scheduledAt && reminderData.reminder?.id) {
-        setSendProgress(createEmptyProgress())
-        await pollReminderProgress(reminderData.reminder.id)
-      }
+      await response.json()
 
       toast({
         title: reminderForm.scheduledAt ? 'תזכורת נוצרה!' : 'תזכורת נשלחה!',
@@ -178,7 +138,6 @@ export default function EventDetailPage() {
       })
     } finally {
       setSubmitting(false)
-      setSendProgress(null)
     }
   }
 
@@ -364,10 +323,6 @@ export default function EventDetailPage() {
             </CardHeader>
             <CardContent>
               <form onSubmit={handleReminderSubmit} className="space-y-4">
-                {submitting && sendProgress && (
-                  <SendProgressCard titleKey="sendingProgress.eventReminderTitle" progress={sendProgress} />
-                )}
-
                 <div>
                   <Label htmlFor="message">הודעת התזכורת</Label>
                   <textarea
@@ -397,7 +352,7 @@ export default function EventDetailPage() {
                   {submitting ? (
                     <>
                       <Loader2 className="h-4 w-4 ml-2 animate-spin" />
-                      שולח...
+                      שולח
                     </>
                   ) : reminderForm.scheduledAt ? (
                     <>
@@ -407,7 +362,7 @@ export default function EventDetailPage() {
                   ) : (
                     <>
                       <Send className="h-4 w-4 ml-2" />
-                      שלח עכשיו
+                      שולח
                     </>
                   )}
                 </Button>

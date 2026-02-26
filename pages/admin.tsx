@@ -45,7 +45,6 @@ import { roundToTenMinutes } from '@/lib/utils/time-utils'
 import { getHebrewDateString } from '@/lib/utils/hebrew-date-utils'
 import { MultiEmailInput } from '@/components/multi-email-input'
 import { MessageCircle, Copy, CheckCircle2 } from 'lucide-react'
-import { SendProgressCard, type SendProgressData } from '@/components/ui/send-progress-card'
 
 interface Stats {
   memberCount: number
@@ -132,8 +131,6 @@ export default function AdminPage() {
   })
 
   const [uploading, setUploading] = useState(false)
-  const [announcementProgress, setAnnouncementProgress] = useState<SendProgressData | null>(null)
-  const [eventReminderProgress, setEventReminderProgress] = useState<SendProgressData | null>(null)
 
   const [settingsForm, setSettingsForm] = useState({
     name: '',
@@ -148,49 +145,6 @@ export default function AdminPage() {
   const [invitations, setInvitations] = useState<any[]>([])
   const [loadingInvitations, setLoadingInvitations] = useState(false)
   const [copied, setCopied] = useState(false)
-
-  const createEmptyProgress = (): SendProgressData => ({
-    total: 0,
-    processed: 0,
-    sent: 0,
-    failed: 0,
-    queued: 0,
-    percentage: 0,
-    byChannel: {
-      EMAIL: { total: 0, processed: 0, sent: 0, failed: 0, queued: 0 },
-      SMS: { total: 0, processed: 0, sent: 0, failed: 0, queued: 0 },
-      WHATSAPP: { total: 0, processed: 0, sent: 0, failed: 0, queued: 0 },
-      PUSH: { total: 0, processed: 0, sent: 0, failed: 0, queued: 0 },
-      VOICE_CALL: { total: 0, processed: 0, sent: 0, failed: 0, queued: 0 },
-    },
-    isComplete: false,
-  })
-
-  const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
-
-  const pollAnnouncementProgress = async (announcementId: string) => {
-    for (let attempt = 0; attempt < 120; attempt += 1) {
-      const progress = await apiClient.getAnnouncementProgress(announcementId)
-      setAnnouncementProgress(progress)
-      if (progress.isComplete) {
-        return progress
-      }
-      await wait(1000)
-    }
-    return null
-  }
-
-  const pollEventReminderProgress = async (reminderId: string) => {
-    for (let attempt = 0; attempt < 120; attempt += 1) {
-      const progress = await apiClient.getEventReminderProgress(reminderId)
-      setEventReminderProgress(progress)
-      if (progress.isComplete) {
-        return progress
-      }
-      await wait(1000)
-    }
-    return null
-  }
 
   // Direct member addition state
   const [addMemberForm, setAddMemberForm] = useState({
@@ -384,7 +338,6 @@ export default function AdminPage() {
     if (!familyGroupId || emailsToInvite.length === 0) return
 
     setLoading(true)
-    setAnnouncementProgress(null)
     try {
       const response = await apiClient.sendInvitations(familyGroupId, emailsToInvite)
 
@@ -614,11 +567,7 @@ export default function AdminPage() {
           ? announcementForm.scheduledAt
           : undefined
 
-      if (sendNow) {
-        setAnnouncementProgress(createEmptyProgress())
-      }
-
-      const announcementResponse = await apiClient.createAnnouncement({
+      await apiClient.createAnnouncement({
         title: announcementForm.title,
         bodyText: announcementForm.body,
         type: announcementForm.type,
@@ -626,10 +575,6 @@ export default function AdminPage() {
         sendNow,
         scheduledAt,
       })
-
-      if (sendNow) {
-        await pollAnnouncementProgress(announcementResponse.announcement.id)
-      }
 
       const toastMessages = {
         now: { title: 'ההודעה נשלחה בהצלחה!', description: 'ההודעה נשלחה לכל חברי הקבוצה' },
@@ -670,7 +615,6 @@ export default function AdminPage() {
       })
     } finally {
       setLoading(false)
-      setAnnouncementProgress(null)
     }
   }
 
@@ -745,7 +689,6 @@ export default function AdminPage() {
     }
 
     setLoading(true)
-    setEventReminderProgress(null)
 
     try {
       const eventResponse = await apiClient.createEvent({
@@ -784,19 +727,11 @@ export default function AdminPage() {
       }
 
       if (eventForm.notifyMode === 'now') {
-        setEventReminderProgress(createEmptyProgress())
-        const reminderId = await createReminder(null, '')
-        if (reminderId) {
-          await pollEventReminderProgress(reminderId)
-        }
+        await createReminder(null, '')
       } else if (eventForm.notifyMode === 'scheduled') {
         await createReminder(eventForm.reminderScheduledAt, eventForm.reminderMessage || '')
       } else {
-        setEventReminderProgress(createEmptyProgress())
-        const reminderId = await createReminder(null, '')
-        if (reminderId) {
-          await pollEventReminderProgress(reminderId)
-        }
+        await createReminder(null, '')
         await createReminder(eventForm.reminderScheduledAt, eventForm.reminderMessage || '')
       }
 
@@ -833,7 +768,6 @@ export default function AdminPage() {
       })
     } finally {
       setLoading(false)
-      setEventReminderProgress(null)
     }
   }
 
@@ -1357,22 +1291,20 @@ export default function AdminPage() {
                         )}
                       </div>
 
-                      {loading && announcementProgress && (
-                        <SendProgressCard
-                          titleKey="sendingProgress.announcementTitle"
-                          progress={announcementProgress}
-                        />
-                      )}
-
                       <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                         <Button type="submit" className="flex-1 touch-target" disabled={loading}>
-                          {loading
-                            ? 'שולח...'
-                            : announcementForm.sendMode === 'now'
-                              ? 'שלח עכשיו'
-                              : announcementForm.sendMode === 'scheduled'
-                                ? 'תזמן לשליחה'
-                                : 'שלח עכשיו ותזמן'}
+                          {loading ? (
+                            <>
+                              <Loader2 className="h-4 w-4 ml-2 animate-spin" />
+                              שולח
+                            </>
+                          ) : announcementForm.sendMode === 'now' ? (
+                            'שולח'
+                          ) : announcementForm.sendMode === 'scheduled' ? (
+                            'תזמן לשליחה'
+                          ) : (
+                            'שלח עכשיו ותזמן'
+                          )}
                         </Button>
                         <Button
                           type="button"
@@ -1619,22 +1551,20 @@ export default function AdminPage() {
                         )}
                       </div>
 
-                      {loading && eventReminderProgress && (
-                        <SendProgressCard
-                          titleKey="sendingProgress.eventNotificationTitle"
-                          progress={eventReminderProgress}
-                        />
-                      )}
-
                       <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                         <Button type="submit" className="flex-1 touch-target" disabled={loading}>
-                          {loading
-                            ? 'יוצר...'
-                            : eventForm.notifyMode === 'now'
-                              ? 'צור אירוע ושלח עכשיו'
-                              : eventForm.notifyMode === 'scheduled'
-                                ? 'צור אירוע ותזמן הודעה'
-                                : 'צור אירוע, שלח ותזמן'}
+                          {loading ? (
+                            <>
+                              <Loader2 className="h-4 w-4 ml-2 animate-spin" />
+                              שולח
+                            </>
+                          ) : eventForm.notifyMode === 'now' ? (
+                            'צור אירוע ושלח עכשיו'
+                          ) : eventForm.notifyMode === 'scheduled' ? (
+                            'צור אירוע ותזמן הודעה'
+                          ) : (
+                            'צור אירוע, שלח ותזמן'
+                          )}
                         </Button>
                         <Button
                           type="button"
